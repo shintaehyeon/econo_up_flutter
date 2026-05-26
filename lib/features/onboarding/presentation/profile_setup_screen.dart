@@ -4,6 +4,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/constants/api_endpoints.dart';
+import 'interests_screen.dart';
 
 class ProfileSetupScreen extends StatefulWidget {
   const ProfileSetupScreen({super.key});
@@ -89,7 +90,14 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
       ),
     );
 
-    // TODO: 다음 온보딩 관심사 선택 화면(EC-0003)으로 이동 처리
+    if (mounted) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const InterestsScreen(),
+        ),
+      );
+    }
   }
 
   @override
