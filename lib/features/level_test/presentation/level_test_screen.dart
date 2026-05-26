@@ -76,7 +76,7 @@ class _LevelTestScreenState extends State<LevelTestScreen> {
         {'id': 'A', 'text': '소득공제'},
         {'id': 'B', 'text': '세액공제'},
         {'id': 'C', 'text': '비과세'},
-        {'id': 'D': '원천징수'},
+        {'id': 'D', 'text': '원천징수'},
       ],
       'answer': 'B',
       'explanation': '소득공제는 과세 대상 소득을 줄여주는 반면, 세액공제는 납부해야 할 세금 자체에서 직접 일정 비율을 차감해 주어 효과가 큽니다.',
@@ -191,7 +191,7 @@ class _LevelTestScreenState extends State<LevelTestScreen> {
                       currentQ['prompt'] as String,
                       style: const TextStyle(
                         fontSize: 20,
-                        fontWeight: FontWeight.w850,
+                        fontWeight: FontWeight.w800,
                         color: AppColors.ink,
                         height: 1.4,
                       ),
@@ -336,7 +336,7 @@ class _LevelTestScreenState extends State<LevelTestScreen> {
             onPressed: hasSelected ? _submitAnswer : null,
             child: const Text(
               '정답 확인',
-              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w850),
+              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
             ),
           ),
         ),
@@ -413,7 +413,7 @@ class _LevelTestScreenState extends State<LevelTestScreen> {
               onPressed: _nextQuestion,
               child: Text(
                 _currentIdx == _questions.length - 1 ? '결과 확인하기 🎉' : '다음 문제',
-                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w850),
+                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
               ),
             ),
           ),

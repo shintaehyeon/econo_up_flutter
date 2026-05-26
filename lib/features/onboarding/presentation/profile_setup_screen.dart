@@ -144,7 +144,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                         '어떻게 불러드리면 될까요? 👀',
                         style: TextStyle(
                           fontSize: 22,
-                          fontWeight: FontWeight.w850,
+                          fontWeight: FontWeight.w800,
                           color: AppColors.ink,
                           letterSpacing: -0.5,
                         ),
@@ -156,7 +156,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                         '닉네임',
                         style: TextStyle(
                           fontSize: 13,
-                          fontWeight: FontWeight.w750,
+                          fontWeight: FontWeight.w700,
                           color: AppColors.muted,
                           textBaseline: TextBaseline.alphabetic,
                         ),
@@ -194,7 +194,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                         '성별',
                         style: TextStyle(
                           fontSize: 13,
-                          fontWeight: FontWeight.w750,
+                          fontWeight: FontWeight.w700,
                           color: AppColors.muted,
                         ),
                       ),
@@ -223,13 +223,13 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
 
                       // 3. 나이 선택 슬라이더 영역
                       Row(
-                        mainAxisAlignment: MainAxisAlignment.between,
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           const Text(
                             '나이',
                             style: TextStyle(
                               fontSize: 13,
-                              fontWeight: FontWeight.w750,
+                              fontWeight: FontWeight.w700,
                               color: AppColors.muted,
                             ),
                           ),
@@ -296,7 +296,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                     '프로필 저장 및 계속하기',
                     style: TextStyle(
                       fontSize: 15,
-                      fontWeight: FontWeight.w850,
+                      fontWeight: FontWeight.w800,
                     ),
                   ),
                 ),

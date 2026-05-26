@@ -196,7 +196,7 @@ class _InterestsScreenState extends State<InterestsScreen> {
       children: [
         const Text(
           '관심 있는 경제 분야를\n모두 선택해 주세요! 💼',
-          style: TextStyle(fontSize: 22, fontWeight: FontWeight.w850, color: AppColors.ink, height: 1.3),
+          style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: AppColors.ink, height: 1.3),
         ),
         const SizedBox(height: 8),
         const Text(
@@ -292,7 +292,7 @@ class _InterestsScreenState extends State<InterestsScreen> {
       children: [
         const Text(
           '이코노업을 통해 달성할\n핵심 목표를 선택해 주세요! 🏆',
-          style: TextStyle(fontSize: 22, fontWeight: FontWeight.w850, color: AppColors.ink, height: 1.3),
+          style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: AppColors.ink, height: 1.3),
         ),
         const SizedBox(height: 8),
         const Text(
@@ -363,7 +363,7 @@ class _InterestsScreenState extends State<InterestsScreen> {
       children: [
         const Text(
           '하루에 얼마나 학습을\n진행하시겠어요? ⏱️',
-          style: TextStyle(fontSize: 22, fontWeight: FontWeight.w850, color: AppColors.ink, height: 1.3),
+          style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: AppColors.ink, height: 1.3),
         ),
         const SizedBox(height: 8),
         const Text(
@@ -434,7 +434,7 @@ class _InterestsScreenState extends State<InterestsScreen> {
       children: [
         const Text(
           '과거 경제 공부를 끝까지\n마치지 못했던 원인은 무엇인가요? 🥺',
-          style: TextStyle(fontSize: 22, fontWeight: FontWeight.w850, color: AppColors.ink, height: 1.3),
+          style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: AppColors.ink, height: 1.3),
         ),
         const SizedBox(height: 8),
         const Text(
@@ -548,7 +548,7 @@ class _InterestsScreenState extends State<InterestsScreen> {
           _currentStep == _totalSteps ? '맞춤 커리큘럼 생성하기 🚀' : '계속하기',
           style: const TextStyle(
             fontSize: 15,
-            fontWeight: FontWeight.w850,
+            fontWeight: FontWeight.w800,
           ),
         ),
       ),

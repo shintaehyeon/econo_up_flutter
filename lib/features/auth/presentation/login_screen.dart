@@ -53,8 +53,13 @@ class _LoginScreenState extends State<LoginScreen> {
               height: 320,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: AppColors.brandSoft.withOpacity(0.4),
-                blurRadius: 90,
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.brandSoft.withOpacity(0.4),
+                    blurRadius: 90,
+                    spreadRadius: 45,
+                  )
+                ],
               ),
             ),
           ),

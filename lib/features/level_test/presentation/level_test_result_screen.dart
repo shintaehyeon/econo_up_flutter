@@ -92,7 +92,7 @@ class LevelTestResultScreen extends StatelessWidget {
                     '당신의 정답률은 $score% 입니다.',
                     style: TextStyle(
                       fontSize: 15,
-                      fontWeight: FontWeight.w750,
+                      fontWeight: FontWeight.w700,
                       color: levelColor,
                     ),
                   ),
@@ -168,7 +168,7 @@ class LevelTestResultScreen extends StatelessWidget {
                       roadmapName,
                       style: const TextStyle(
                         fontSize: 15,
-                        fontWeight: FontWeight.w850,
+                        fontWeight: FontWeight.w800,
                         color: AppColors.ink,
                       ),
                     ),
@@ -214,7 +214,7 @@ class LevelTestResultScreen extends StatelessWidget {
                     '이코노업 학습 시작하기 🚀',
                     style: TextStyle(
                       fontSize: 15,
-                      fontWeight: FontWeight.w850,
+                      fontWeight: FontWeight.w800,
                     ),
                   ),
                 ),

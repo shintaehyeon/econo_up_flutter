@@ -24,7 +24,7 @@ class HomeScreen extends StatelessWidget {
               '이코노업 홈 화면 🏠',
               style: TextStyle(
                 fontSize: 22,
-                fontWeight: FontWeight.w850,
+                fontWeight: FontWeight.w800,
                 color: AppColors.ink,
               ),
             ),
