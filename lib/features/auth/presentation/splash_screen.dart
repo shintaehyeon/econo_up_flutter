@@ -116,7 +116,6 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                     const Text(
                       'ECONO-UP',
                       style: TextStyle(
-                        fontFamily: 'Outfit',
                         fontSize: 34,
                         fontWeight: FontWeight.w900,
                         color: Colors.white,

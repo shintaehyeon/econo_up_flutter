@@ -371,34 +371,14 @@ class _HomeScreenState extends State<HomeScreen> {
                     style: TextStyle(
                       fontFamily: 'Pretendard',
                       fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF6A7282),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const Icon(Icons.chevron_right_rounded, color: Color(0xFFB2B2B2), size: 20),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // 이어서 학습하기 패널 (2개 세그먼트 가로 병렬 배치)
-  Widget _buildContinueLearningSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
+                      fontWeight: FontWeight.w        Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             const Text(
               '이어서 학습하기',
               style: TextStyle(
-                fontFamily: 'Pretendard',
                 fontSize: 16,
-                fontWeight: FontWeight.w700,
+                fontWeight: FontWeight.w750,
                 color: brandInk,
               ),
             ),
@@ -419,7 +399,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 category: '경제 상식',
                 unit: 'Unit 1. 금리',
                 progress: 0.6,
-                emoji: '📚',
+                icon: Icons.menu_book_rounded,
+                iconColor: AppColors.brand,
               ),
             ),
             const SizedBox(width: 12),
@@ -429,7 +410,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 category: '저축',
                 unit: 'Unit 1. 현금 관리',
                 progress: 0.3,
-                emoji: '💰',
+                icon: Icons.savings_rounded,
+                iconColor: AppColors.mint,
               ),
             ),
           ],
@@ -442,7 +424,8 @@ class _HomeScreenState extends State<HomeScreen> {
     required String category,
     required String unit,
     required double progress,
-    required String emoji,
+    required IconData icon,
+    required Color iconColor,
   }) {
     return Container(
       height: 113,
@@ -471,9 +454,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   borderRadius: BorderRadius.circular(14),
                 ),
                 alignment: Alignment.center,
-                child: Text(
-                  emoji,
-                  style: const TextStyle(fontSize: 18),
+                child: Icon(
+                  icon,
+                  color: iconColor,
+                  size: 20,
                 ),
               ),
               const SizedBox(width: 8),
@@ -484,7 +468,6 @@ class _HomeScreenState extends State<HomeScreen> {
                     Text(
                       category,
                       style: const TextStyle(
-                        fontFamily: 'Pretendard',
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
                         color: brandInk,
@@ -495,7 +478,6 @@ class _HomeScreenState extends State<HomeScreen> {
                     Text(
                       unit,
                       style: const TextStyle(
-                        fontFamily: 'Pretendard',
                         fontSize: 10,
                         fontWeight: FontWeight.w600,
                         color: Color(0xFF6A7282),
