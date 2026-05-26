@@ -18,6 +18,7 @@ class EconoUpApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,
+        fontFamily: 'Pretendard',
         colorScheme: const ColorScheme.light(
           primary: AppColors.brand,
           secondary: AppColors.mint,
