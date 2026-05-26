@@ -90,7 +90,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 style: TextStyle(
                   fontFamily: 'Pretendard',
                   fontSize: 24,
-                  fontWeight: FontWeight.w750,
+                  fontWeight: FontWeight.w700,
                   color: brandInk,
                   letterSpacing: -0.5,
                 ),
@@ -398,7 +398,7 @@ class _HomeScreenState extends State<HomeScreen> {
               style: TextStyle(
                 fontFamily: 'Pretendard',
                 fontSize: 16,
-                fontWeight: FontWeight.w750,
+                fontWeight: FontWeight.w700,
                 color: brandInk,
               ),
             ),
