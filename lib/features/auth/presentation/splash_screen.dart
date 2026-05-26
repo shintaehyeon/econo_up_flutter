@@ -1,7 +1,8 @@
 // lib/features/auth/presentation/splash_screen.dart
 
+import 'dart:async';
 import 'package:flutter/material.dart';
-import '../../../core/theme/app_colors.dart';
+import 'package:flutter/services.dart';
 import 'login_screen.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -20,20 +21,20 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1500),
+      duration: const Duration(milliseconds: 1200),
     );
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _controller, curve: Curves.easeIn),
     );
 
     _controller.forward();
-    _navigateToNext();
+    _navigateToNext(); // 💡 실시간 화면 정렬 검증 완료! 원래의 자동 화면 전환 로직을 정상 가동합니다.
   }
 
   Future<void> _navigateToNext() async {
-    // 💡 백엔드 명세서 EC-0001 (스플래시) 시나리오: 
+    // 💡 백엔드 명세서 EC-0001 (스플래시) 시나리오:
     // 로컬 저장소 토큰 상태 확인 및 /onboarding/status 호출을 모방하여 2.5초 후 로그인 화면으로 유기적 전환
-    await Future.delayed(const Duration(seconds: 25));
+    await Future.delayed(const Duration(milliseconds: 2500));
     if (mounted) {
       Navigator.pushReplacement(
         context,
@@ -57,86 +58,65 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              AppColors.nav,
-              Color(0xFF070B19),
-            ],
-          ),
-        ),
-        child: Stack(
-          children: [
-            // 백그라운드 매트릭스 빛 연출 (Aesthetics)
-            Positioned(
-              top: -100,
-              right: -100,
-              child: Container(
-                width: 300,
-                height: 300,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.brand.withOpacity(0.12),
-                      blurRadius: 100,
-                      spreadRadius: 50,
-                    )
-                  ],
-                ),
-              ),
-            ),
-            Center(
-              child: FadeTransition(
+      backgroundColor: Colors.white,
+      body: SafeArea(
+        child: SizedBox(
+          width: double.infinity,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              const Spacer(flex: 1),
+              
+              // 2. Centered Logo and Subtitle (Fading in)
+              FadeTransition(
                 opacity: _fadeAnimation,
                 child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    // 고급스러운 로고 마크 연출 (Aesthetics)
-                    Container(
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: AppColors.brandSoft.withOpacity(0.08),
-                        border: Border.all(
-                          color: AppColors.brand.withOpacity(0.24),
-                          width: 1.5,
-                        ),
-                      ),
-                      child: const Icon(
-                        Icons.trending_up_rounded,
-                        size: 72,
-                        color: AppColors.brand,
+                    const Text(
+                      'Econo-up',
+                      style: TextStyle(
+                        fontFamily: 'Pretendard',
+                        fontSize: 40,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF00EE94),
+                        letterSpacing: -1.0,
                       ),
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 12),
                     const Text(
-                      'ECONO-UP',
+                      '매일 5분, 성장하는 경제 지식',
                       style: TextStyle(
-                        fontSize: 34,
-                        fontWeight: FontWeight.w900,
-                        color: Colors.white,
-                        letterSpacing: 2.0,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      '세상의 돈 흐름을 읽는 경제 학습',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                        color: AppColors.muted,
-                        letterSpacing: 0.5,
+                        fontFamily: 'Pretendard',
+                        fontSize: 12,
+                        fontWeight: FontWeight.w400,
+                        color: Color(0xFF9CA3AF),
+                        letterSpacing: -0.2,
                       ),
                     ),
                   ],
                 ),
               ),
-            ),
-          ],
+              
+              const Spacer(flex: 3),
+              
+              // 3. Footer Copyright
+              const Padding(
+                padding: EdgeInsets.only(bottom: 20.0),
+                child: Text(
+                  '© 프레시밀크',
+                  style: TextStyle(
+                    fontFamily: 'Pretendard',
+                    fontSize: 12,
+                    fontWeight: FontWeight.w400,
+                    color: Color(0xFFD1D5DB),
+                    letterSpacing: -0.1,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

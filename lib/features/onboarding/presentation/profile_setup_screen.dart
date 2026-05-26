@@ -2,6 +2,7 @@
 
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/constants/api_endpoints.dart';
 import 'interests_screen.dart';
@@ -14,13 +15,14 @@ class ProfileSetupScreen extends StatefulWidget {
 }
 
 class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
+  // 피그마 시안의 예시 가이드 반영 (닉네임 힌트: "ex) 경제왕", 나이 힌트: "ex) 26", 성별 기본값: "MALE")
   final _nicknameController = TextEditingController();
+  final _ageController = TextEditingController();
+  String _gender = 'MALE'; // MALE | FEMALE
   Timer? _debounceTimer;
 
   bool _isCheckingNickname = false;
-  bool? _isNicknameAvailable;
-  String _gender = 'MALE'; // MALE | FEMALE | UNDEFINED
-  double _age = 25.0;
+  bool? _isNicknameAvailable; // 💡 비어있으므로 초기 검증 상태는 null로 시작합니다.
 
   @override
   void initState() {
@@ -63,32 +65,51 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
 
   Future<void> _submitProfile() async {
     final nickname = _nicknameController.text.trim();
+    final ageText = _ageController.text.trim();
+
     if (nickname.isEmpty || _isNicknameAvailable != true) {
+      HapticFeedback.heavyImpact();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('사용 가능한 닉네임을 입력해 주세요.'),
+          content: const Text(
+            '사용 가능한 닉네임을 입력해 주세요.',
+            style: TextStyle(fontFamily: 'Pretendard', fontWeight: FontWeight.w600),
+          ),
           backgroundColor: AppColors.danger,
           behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         ),
       );
       return;
     }
 
+    if (ageText.isEmpty) {
+      HapticFeedback.heavyImpact();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text(
+            '나이를 입력해 주세요.',
+            style: TextStyle(fontFamily: 'Pretendard', fontWeight: FontWeight.w600),
+          ),
+          backgroundColor: AppColors.danger,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        ),
+      );
+      return;
+    }
+
+    final age = int.tryParse(ageText) ?? 26;
+
     // 💡 백엔드 명세서 PUT /onboarding/profile 호출 데이터 연동 체크
     final requestPayload = {
       "nickname": nickname,
       "gender": _gender,
-      "age": _age.toInt()
+      "age": age
     };
     debugPrint('Submitting Profile to ${ApiEndpoints.onboardingProfile}: $requestPayload');
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('프로필 저장 완료: $nickname (${_age.toInt()}세, $_gender)'),
-        backgroundColor: AppColors.mint,
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
+    HapticFeedback.mediumImpact();
 
     if (mounted) {
       Navigator.push(
@@ -104,6 +125,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
   void dispose() {
     _nicknameController.removeListener(_onNicknameChanged);
     _nicknameController.dispose();
+    _ageController.dispose();
     _debounceTimer?.cancel();
     super.dispose();
   }
@@ -111,157 +133,311 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: AppColors.ink),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: const Text(
-          '프로필 설정',
-          style: TextStyle(
-            color: AppColors.ink,
-            fontWeight: FontWeight.w800,
-            fontSize: 18,
-          ),
-        ),
-        centerTitle: true,
-      ),
+      backgroundColor: Colors.white,
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(24.0),
+          padding: const EdgeInsets.symmetric(horizontal: 24.0),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              // 1. Progress Bar Section (Figma: padding 12px 24px 0px)
+              Padding(
+                padding: const EdgeInsets.only(top: 12.0),
+                child: Column(
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Container(
+                            height: 4,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFE4E8F0),
+                              borderRadius: BorderRadius.circular(100),
+                            ),
+                            alignment: Alignment.centerLeft,
+                            child: FractionallySizedBox(
+                              widthFactor: 1 / 6, // 1 / 6 단계 활성화
+                              child: Container(
+                                height: 4,
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF00EE94),
+                                  borderRadius: BorderRadius.circular(100),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: const Text(
+                        '1 / 6',
+                        style: TextStyle(
+                          fontFamily: 'Pretendard',
+                          fontSize: 12,
+                          fontWeight: FontWeight.w400,
+                          color: Color(0xFF9CA3AF),
+                          height: 16 / 12,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              // 2. Main Scrollable Content Section
               Expanded(
                 child: SingleChildScrollView(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        '어떻게 불러드리면 될까요? 👀',
-                        style: TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.w800,
-                          color: AppColors.ink,
-                          letterSpacing: -0.5,
+                      // Heading Section (반가워요! 🎉 / 기본 정보를 알려주세요)
+                      Align(
+                        alignment: Alignment.center,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            const Text(
+                              '반가워요! 🎉',
+                              style: TextStyle(
+                                fontFamily: 'Pretendard',
+                                fontSize: 20,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFF111827),
+                                height: 28 / 20,
+                              ),
+                            ),
+                            const SizedBox(height: 5),
+                            const Text(
+                              '기본 정보를 알려주세요',
+                              style: TextStyle(
+                                fontFamily: 'Pretendard',
+                                fontSize: 14,
+                                fontWeight: FontWeight.w400,
+                                color: Color(0xFF4B5563),
+                                height: 16 / 14,
+                              ),
+                            ),
+                            const SizedBox(height: 5),
+                            const Text(
+                              '나중에 설정에서 변경할 수 있어요',
+                              style: TextStyle(
+                                fontFamily: 'Pretendard',
+                                fontSize: 10,
+                                fontWeight: FontWeight.w400,
+                                color: Color(0xFF9CA3AF),
+                                height: 13 / 10,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                      const SizedBox(height: 28),
 
-                      // 1. 닉네임 입력 및 중복 검사 결과 노출 영역
-                      const Text(
-                        '닉네임',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.muted,
-                          textBaseline: TextBaseline.alphabetic,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      TextField(
-                        controller: _nicknameController,
-                        style: const TextStyle(fontWeight: FontWeight.w600, color: AppColors.ink),
-                        decoration: InputDecoration(
-                          hintText: '경제왕 길동이',
-                          filled: true,
-                          fillColor: AppColors.paper,
-                          suffixIcon: _buildNicknameSuffix(),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
-                            borderSide: const BorderSide(color: AppColors.line),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
-                            borderSide: const BorderSide(color: AppColors.line),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
-                            borderSide: const BorderSide(color: AppColors.brand, width: 1.5),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      _buildAvailabilityFeedback(),
+                      const SizedBox(height: 32),
 
-                      const SizedBox(height: 36),
-
-                      // 2. 성별 선택 카드 영역 (MALE | FEMALE)
-                      const Text(
-                        '성별',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.muted,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Row(
+                      // Input Fields Group
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Expanded(
-                            child: _buildGenderCard(
-                              label: '남성',
-                              value: 'MALE',
-                              icon: Icons.male_rounded,
+                          // 3.1. 닉네임 입력 영역
+                          const Text(
+                            '닉네임',
+                            style: TextStyle(
+                              fontFamily: 'Pretendard',
+                              fontSize: 9,
+                              fontWeight: FontWeight.w500,
+                              color: Color(0xFF9CA3AF),
+                              height: 13 / 9,
                             ),
                           ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: _buildGenderCard(
-                              label: '여성',
-                              value: 'FEMALE',
-                              icon: Icons.female_rounded,
+                          const SizedBox(height: 6),
+                          Container(
+                            height: 52,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: TextField(
+                              controller: _nicknameController,
+                              style: const TextStyle(
+                                fontFamily: 'Pretendard',
+                                fontSize: 16,
+                                fontWeight: FontWeight.w400,
+                                color: Color(0xFF4B5563),
+                              ),
+                              decoration: InputDecoration(
+                                hintText: 'ex) 경제왕',
+                                hintStyle: const TextStyle(color: Color(0xFF9CA3AF)),
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 16.0),
+                                suffixIcon: Padding(
+                                  padding: const EdgeInsets.only(right: 14.0),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    mainAxisAlignment: MainAxisAlignment.end,
+                                    children: [
+                                      Text(
+                                        '${_nicknameController.text.length}/20자',
+                                        style: const TextStyle(
+                                          fontFamily: 'Pretendard',
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.w400,
+                                          color: Color(0xFF9CA3AF),
+                                        ),
+                                      ),
+                                      if (_buildNicknameSuffix() != null) ...[
+                                        const SizedBox(width: 8),
+                                        _buildNicknameSuffix()!,
+                                      ],
+                                    ],
+                                  ),
+                                ),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                  borderSide: const BorderSide(color: Color(0xFFD0D5E0), width: 1.0),
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                  borderSide: const BorderSide(color: Color(0xFFD0D5E0), width: 1.0),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                  borderSide: const BorderSide(color: Color(0xFF00EE94), width: 1.5),
+                                ),
+                              ),
                             ),
                           ),
-                        ],
-                      ),
+                          const SizedBox(height: 6),
+                          _buildAvailabilityFeedback(),
 
-                      const SizedBox(height: 36),
+                          const SizedBox(height: 20),
 
-                      // 3. 나이 선택 슬라이더 영역
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
+                          // 3.2. 성별 입력 영역
+                          const Text(
+                            '성별',
+                            style: TextStyle(
+                              fontFamily: 'Pretendard',
+                              fontSize: 9,
+                              fontWeight: FontWeight.w500,
+                              color: Color(0xFF9CA3AF),
+                              height: 11 / 9,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _buildGenderButton(
+                                  label: '남성',
+                                  value: 'MALE',
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: _buildGenderButton(
+                                  label: '여성',
+                                  value: 'FEMALE',
+                                ),
+                              ),
+                            ],
+                          ),
+
+                          const SizedBox(height: 20),
+
+                          // 3.3. 나이 입력 영역
                           const Text(
                             '나이',
                             style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.muted,
+                              fontFamily: 'Pretendard',
+                              fontSize: 9,
+                              fontWeight: FontWeight.w500,
+                              color: Color(0xFF9CA3AF),
+                              height: 11 / 9,
                             ),
                           ),
-                          Text(
-                            '만 ${_age.toInt()}세',
-                            style: const TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w800,
-                              color: AppColors.brand,
+                          const SizedBox(height: 6),
+                          Container(
+                            height: 52,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: TextField(
+                              controller: _ageController,
+                              keyboardType: TextInputType.number,
+                              inputFormatters: [
+                                FilteringTextInputFormatter.digitsOnly,
+                                LengthLimitingTextInputFormatter(3),
+                              ],
+                              style: const TextStyle(
+                                fontFamily: 'Pretendard',
+                                fontSize: 16,
+                                fontWeight: FontWeight.w400,
+                                color: Color(0xFF4B5563),
+                              ),
+                              decoration: InputDecoration(
+                                hintText: 'ex) 26',
+                                hintStyle: const TextStyle(color: Color(0xFF9CA3AF)),
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 16.0),
+                                suffixIcon: const Padding(
+                                  padding: EdgeInsets.only(right: 14.0),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    mainAxisAlignment: MainAxisAlignment.end,
+                                    children: [
+                                      Text(
+                                        '세',
+                                        style: TextStyle(
+                                          fontFamily: 'Pretendard',
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.w400,
+                                          color: Color(0xFF9CA3AF),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                  borderSide: const BorderSide(color: Color(0xFFD0D5E0), width: 1.0),
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                  borderSide: const BorderSide(color: Color(0xFFD0D5E0), width: 1.0),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                  borderSide: const BorderSide(color: Color(0xFF00EE94), width: 1.5),
+                                ),
+                              ),
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 8),
+
+                      const SizedBox(height: 24),
+
+                      // 4. 정보 알림 배너
                       Container(
-                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 16.0),
                         decoration: BoxDecoration(
-                          color: AppColors.paper,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: AppColors.line),
+                          color: const Color(0xFFF2FFFA),
+                          borderRadius: BorderRadius.circular(10),
                         ),
-                        child: Slider(
-                          value: _age,
-                          min: 15.0,
-                          max: 80.0,
-                          activeColor: AppColors.brand,
-                          inactiveColor: AppColors.line,
-                          onChanged: (val) {
-                            setState(() {
-                              _age = val;
-                            });
-                          },
+                        alignment: Alignment.center,
+                        child: const Text(
+                          '나이는 콘텐츠 추천에만 활용되며 외부에 공개되지 않아요',
+                          style: TextStyle(
+                            fontFamily: 'Pretendard',
+                            fontSize: 12,
+                            fontWeight: FontWeight.w400,
+                            color: Color(0xFF0DE593),
+                            height: 15 / 12,
+                          ),
+                          textAlign: TextAlign.center,
                         ),
                       ),
                     ],
@@ -269,34 +445,31 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                 ),
               ),
 
-              // 저장하기 완료 버튼
-              Container(
-                height: 52,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(10),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.brand.withOpacity(0.15),
-                      blurRadius: 12,
-                      offset: const Offset(0, 4),
-                    )
-                  ],
-                ),
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.brand,
-                    foregroundColor: Colors.white,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
+              // 5. 다음 완료 버튼 (Figma: bottom 0px, padding 24px 0px 0px)
+              Padding(
+                padding: const EdgeInsets.only(top: 24.0, bottom: 12.0),
+                child: SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF00EE94),
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      padding: EdgeInsets.zero,
                     ),
-                  ),
-                  onPressed: _submitProfile,
-                  child: const Text(
-                    '프로필 저장 및 계속하기',
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w800,
+                    onPressed: _submitProfile,
+                    child: const Text(
+                      '다음',
+                      style: TextStyle(
+                        fontFamily: 'Pretendard',
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        height: 20 / 14,
+                      ),
                     ),
                   ),
                 ),
@@ -308,88 +481,94 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
     );
   }
 
+  Widget _buildGenderButton({
+    required String label,
+    required String value,
+  }) {
+    final isSelected = _gender == value;
+    return SizedBox(
+      height: 48,
+      child: OutlinedButton(
+        style: OutlinedButton.styleFrom(
+          backgroundColor: isSelected ? const Color(0xFFF2FFFA) : Colors.white,
+          side: BorderSide(
+            color: isSelected ? const Color(0xFF00EE94) : const Color(0xFFD0D5E0),
+            width: isSelected ? 2.0 : 1.0,
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+          padding: EdgeInsets.zero,
+        ),
+        onPressed: () {
+          HapticFeedback.lightImpact();
+          setState(() {
+            _gender = value;
+          });
+        },
+        child: Text(
+          label,
+          style: TextStyle(
+            fontFamily: 'Pretendard',
+            fontSize: 12,
+            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+            color: const Color(0xFF4B5563),
+            height: 16 / 12,
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget? _buildNicknameSuffix() {
     if (_isCheckingNickname) {
-      return const Padding(
-        padding: EdgeInsets.all(12.0),
-        child: SizedBox(
-          width: 20,
-          height: 20,
-          child: CircularProgressIndicator(
-            strokeWidth: 2,
-            valueColor: AlwaysStoppedAnimation<Color>(AppColors.brand),
-          ),
+      return const SizedBox(
+        width: 12,
+        height: 12,
+        child: CircularProgressIndicator(
+          strokeWidth: 1.5,
+          valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF00EE94)),
         ),
       );
     }
     if (_isNicknameAvailable == true) {
-      return const Icon(Icons.check_circle_rounded, color: AppColors.mint);
+      return const Icon(Icons.check_circle_rounded, color: Color(0xFF00EE94), size: 14);
     }
     if (_isNicknameAvailable == false) {
-      return const Icon(Icons.error_rounded, color: AppColors.danger);
+      return const Icon(Icons.error_rounded, color: AppColors.danger, size: 14);
     }
     return null;
   }
 
   Widget _buildAvailabilityFeedback() {
     if (_isNicknameAvailable == true) {
-      return const Text(
-        '멋진 닉네임이네요! 사용 가능합니다.',
-        style: TextStyle(fontSize: 12, color: AppColors.mint, fontWeight: FontWeight.w600),
+      return const Padding(
+        padding: EdgeInsets.only(left: 6.0),
+        child: Text(
+          '멋진 닉네임이네요! 사용 가능합니다.',
+          style: TextStyle(
+            fontFamily: 'Pretendard',
+            fontSize: 11,
+            color: Color(0xFF00EE94),
+            fontWeight: FontWeight.w500,
+          ),
+        ),
       );
     }
     if (_isNicknameAvailable == false) {
-      return const Text(
-        '이미 존재하거나 사용할 수 없는 닉네임입니다.',
-        style: TextStyle(fontSize: 12, color: AppColors.danger, fontWeight: FontWeight.w600),
+      return const Padding(
+        padding: EdgeInsets.only(left: 6.0),
+        child: Text(
+          '이미 존재하거나 사용할 수 없는 닉네임입니다.',
+          style: TextStyle(
+            fontFamily: 'Pretendard',
+            fontSize: 11,
+            color: AppColors.danger,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
       );
     }
     return const SizedBox.shrink();
-  }
-
-  Widget _buildGenderCard({
-    required String label,
-    required String value,
-    required IconData icon,
-  }) {
-    final isSelected = _gender == value;
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          _gender = value;
-        });
-      },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        height: 104,
-        decoration: BoxDecoration(
-          color: isSelected ? AppColors.brandSoft : AppColors.paper,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: isSelected ? AppColors.brand : AppColors.line,
-            width: isSelected ? 1.5 : 1.0,
-          ),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              icon,
-              size: 32,
-              color: isSelected ? AppColors.brand : AppColors.muted,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
-                color: isSelected ? AppColors.brand : AppColors.ink,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
   }
 }
