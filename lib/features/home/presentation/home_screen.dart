@@ -359,7 +359,6 @@ class _HomeScreenState extends State<HomeScreen> {
                   Text(
                     '골든 티켓',
                     style: TextStyle(
-                      fontFamily: 'Pretendard',
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
                       color: brandInk,
@@ -369,16 +368,34 @@ class _HomeScreenState extends State<HomeScreen> {
                   Text(
                     '12:34:56 후 만료',
                     style: TextStyle(
-                      fontFamily: 'Pretendard',
                       fontSize: 12,
-                      fontWeight: FontWeight.w        Row(
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF6A7282),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right_rounded, color: Color(0xFFB2B2B2), size: 20),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // 이어서 학습하기 패널 (2개 세그먼트 가로 병렬 배치)
+  Widget _buildContinueLearningSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             const Text(
               '이어서 학습하기',
               style: TextStyle(
                 fontSize: 16,
-                fontWeight: FontWeight.w750,
+                fontWeight: FontWeight.w700,
                 color: brandInk,
               ),
             ),
