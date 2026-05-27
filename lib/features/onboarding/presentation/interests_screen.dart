@@ -26,9 +26,10 @@ class _InterestsScreenState extends State<InterestsScreen> {
   String _selectedDepth = 'HARD'; // FAST | NORMAL | HARD (꼼꼼하게 기본선택)
   String _selectedVolume = 'ONE_TO_TWO'; // ONE_TO_TWO | THREE_OR_FOUR | FIVE_OR_MORE (1~2 회차 기본선택)
   
+  // 온보딩 5단계 (공부 실패 원인) 선택값
   String _selectedFailureReason = '';
 
-  // 1단계: 관심사 데이터 정의 (피그마 시안 반영)
+  // 1단계: 관심사 데이터 정의 (피그마 시안 반영 - 2/6)
   final List<Map<String, dynamic>> _interestsData = [
     {'code': 'ECONOMY', 'title': '📊 경제 상식'},
     {'code': 'SAVING', 'title': '💰 저축'},
@@ -37,7 +38,7 @@ class _InterestsScreenState extends State<InterestsScreen> {
     {'code': 'TAX', 'title': '🧾 세금'},
   ];
 
-  // 2단계: 핵심 목표 데이터 정의 (💸 손실 예방, 📈 재테크 시작, 🏦 실생활 대비, 🎓 자기 개발)
+  // 2단계: 핵심 목표 데이터 정의 (💸 손실 예방, 📈 재테크 시작, 🏦 실생활 대비, 🎓 자기 개발 - 3/6)
   final List<Map<String, String>> _goalsData = [
     {'code': 'LOSS_PREVENTION', 'emoji': '💸', 'title': '손실 예방', 'desc': '투자 전 제대로 알고 싶어요'},
     {'code': 'START_INVESTING', 'emoji': '📈', 'title': '재테크 시작', 'desc': '돈을 불리는 방법이 궁금해요'},
@@ -45,12 +46,14 @@ class _InterestsScreenState extends State<InterestsScreen> {
     {'code': 'SELF_DEVELOPMENT', 'emoji': '🎓', 'title': '자기 개발', 'desc': '경제 상식을 쌓고 싶어요'},
   ];
 
-  // 4단계: 작심삼일 공부 실패 원인 정의
+  // 4단계: 작심삼일 공부 실패 원인 정의 (OnboardingReasons - 5/6)
   final List<Map<String, String>> _failureReasonsData = [
-    {'code': 'TERMINOLOGY', 'title': '전문 용어가 너무 난해해서', 'desc': '무슨 소리인지 모르는 금융 용어의 장벽'},
-    {'code': 'WHERE_TO_START', 'title': '어디서부터 시작할지 몰라서', 'desc': '방대한 양에 갈 길을 잃음'},
-    {'code': 'BUSY', 'title': '일상 업무/공부에 치여 꾸준히 못함', 'desc': '습관화 실패 및 시간 부족'},
-    {'code': 'NO_FUN', 'title': '강제성이 없고 재미가 없어서', 'desc': '흥미를 붙이기 어려운 줄글 위주의 설명'},
+    {'code': 'NO_TIME', 'emoji': '⏰', 'title': '시간이 없어서'},
+    {'code': 'BORING_AND_HARD', 'emoji': '😴', 'title': '지루하고 어려워서'},
+    {'code': 'WHERE_TO_START', 'emoji': '🤷', 'title': '어디서 시작할지 몰라서'},
+    {'code': 'TOO_VAST', 'emoji': '📚', 'title': '너무 방대해서'},
+    {'code': 'TOO_EXPENSIVE', 'emoji': '💸', 'title': '유료라서 부담돼서'},
+    {'code': 'NONE', 'emoji': '❌', 'title': '해당없음'},
   ];
 
   void _nextStep() {
@@ -218,7 +221,7 @@ class _InterestsScreenState extends State<InterestsScreen> {
                                   ? '관심 분야를 선택하세요'
                                   : (_currentStep == 2
                                       ? '학습 목적을 선택하세요'
-                                      : (_currentStep == 3 ? '나만의 학습 스타일을 설정하세요' : '공부 실패 원인이 무엇인가요?')),
+                                      : (_currentStep == 3 ? '나만의 학습 스타일을 설정하세요' : '경제 공부, 왜 못 했나요?')),
                               style: const TextStyle(
                                 fontFamily: 'Pretendard',
                                 fontSize: 18,
@@ -233,7 +236,7 @@ class _InterestsScreenState extends State<InterestsScreen> {
                                   ? '(복수 선택 가능) 나중에 변경할 수 있어요'
                                   : (_currentStep == 2
                                       ? '가장 가까운 것 하나만 선택해주세요'
-                                      : (_currentStep == 3 ? '나중에 설정에서 변경 가능해요' : '나중에 설정에서 변경할 수 있어요')),
+                                      : (_currentStep == 3 ? '나중에 설정에서 변경 가능해요' : '이유를 알아야 해결할 수 있어요')),
                               style: const TextStyle(
                                 fontFamily: 'Pretendard',
                                 fontSize: 13,
@@ -627,16 +630,16 @@ class _InterestsScreenState extends State<InterestsScreen> {
     );
   }
 
-  // 4단계: 작심삼일 공부 실패 원인 설정
+  // 4단계: 공부 실패 원인 선택 (OnboardingReasons - 5/6)
   Widget _buildStep4FailureReason() {
     return Column(
       children: [
         const SizedBox(height: 32),
         ..._failureReasonsData.map((item) {
           final isSelected = _selectedFailureReason == item['code'];
-          return _buildSelectionTile(
+          return _buildReasonTile(
+            emoji: item['emoji']!,
             title: item['title']!,
-            desc: item['desc']!,
             isSelected: isSelected,
             onTap: () {
               HapticFeedback.lightImpact();
@@ -647,6 +650,60 @@ class _InterestsScreenState extends State<InterestsScreen> {
           );
         }),
       ],
+    );
+  }
+
+  // OnboardingReasons 세부 1행 선택 버튼 (높이 54px, selected 일 때 폰트 컬러 #0DE593 적용)
+  Widget _buildReasonTile({
+    required String emoji,
+    required String title,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12.0),
+      child: SizedBox(
+        height: 54,
+        width: double.infinity,
+        child: OutlinedButton(
+          style: OutlinedButton.styleFrom(
+            backgroundColor: isSelected ? const Color(0xFFF2FFFA) : Colors.white,
+            side: BorderSide(
+              color: isSelected ? const Color(0xFF00EE94) : const Color(0xFFD0D5E0),
+              width: isSelected ? 2.0 : 1.0,
+            ),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+          ),
+          onPressed: onTap,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Text(
+                emoji,
+                style: const TextStyle(
+                  fontFamily: 'Pretendard',
+                  fontSize: 16,
+                  height: 24 / 16,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                title,
+                style: TextStyle(
+                  fontFamily: 'Pretendard',
+                  fontSize: 13,
+                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                  color: isSelected ? const Color(0xFF0DE593) : const Color(0xFF111827),
+                  height: 16 / 13,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
