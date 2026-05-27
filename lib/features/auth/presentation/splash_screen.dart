@@ -60,15 +60,11 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
-        child: SizedBox(
-          width: double.infinity,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              const Spacer(flex: 1),
-              
-              // 2. Centered Logo and Subtitle (Fading in)
-              FadeTransition(
+        child: Stack(
+          children: [
+            // 2. Centered Logo and Subtitle (Fading in) - mathematically centered
+            Center(
+              child: FadeTransition(
                 opacity: _fadeAnimation,
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -98,11 +94,12 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                   ],
                 ),
               ),
-              
-              const Spacer(flex: 3),
-              
-              // 3. Footer Copyright
-              const Padding(
+            ),
+
+            // 3. Footer Copyright aligned at the bottom
+            const Align(
+              alignment: Alignment.bottomCenter,
+              child: Padding(
                 padding: EdgeInsets.only(bottom: 20.0),
                 child: Text(
                   '© 프레시밀크',
@@ -115,8 +112,8 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                   ),
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
