@@ -20,7 +20,12 @@ class _InterestsScreenState extends State<InterestsScreen> {
   // 선택된 상태 변수들
   final List<String> _selectedInterests = [];
   String _selectedGoal = '';
-  String _selectedStudyStyle = '';
+  
+  // 온보딩 4단계 (학습 스타일) 초기 선택값 정의 (피그마 시안과 일치)
+  String _selectedFrequency = 'THREE_OR_FOUR'; // ONCE_OR_TWICE | THREE_OR_FOUR | DAILY (주 3~4회 기본선택)
+  String _selectedDepth = 'HARD'; // FAST | NORMAL | HARD (꼼꼼하게 기본선택)
+  String _selectedVolume = 'ONE_TO_TWO'; // ONE_TO_TWO | THREE_OR_FOUR | FIVE_OR_MORE (1~2 회차 기본선택)
+  
   String _selectedFailureReason = '';
 
   // 1단계: 관심사 데이터 정의 (피그마 시안 반영)
@@ -38,14 +43,6 @@ class _InterestsScreenState extends State<InterestsScreen> {
     {'code': 'START_INVESTING', 'emoji': '📈', 'title': '재테크 시작', 'desc': '돈을 불리는 방법이 궁금해요'},
     {'code': 'REAL_LIFE_PREPARATION', 'emoji': '🏦', 'title': '실생활 대비', 'desc': '연말정산·청약 등 실용 지식'},
     {'code': 'SELF_DEVELOPMENT', 'emoji': '🎓', 'title': '자기 개발', 'desc': '경제 상식을 쌓고 싶어요'},
-  ];
-
-  // 3단계: 하루 학습 시간 스타일 정의
-  final List<Map<String, String>> _studyStylesData = [
-    {'code': 'LIGHT', 'title': '가볍게 (하루 5분)', 'desc': '주당 35분, 바쁜 일상 속 스낵 학습'},
-    {'code': 'NORMAL', 'title': '보통 (하루 10분)', 'desc': '주당 70분, 꾸준하게 습관 기르기 (추천)'},
-    {'code': 'SERIOUS', 'title': '진지하게 (하루 15분)', 'desc': '주당 105분, 빠른 경제 실력 향상'},
-    {'code': 'INTENSE', 'title': '강렬하게 (하루 20분)', 'desc': '주당 140분, 경제 전문가가 되기 위한 하드 스터디'},
   ];
 
   // 4단계: 작심삼일 공부 실패 원인 정의
@@ -85,9 +82,9 @@ class _InterestsScreenState extends State<InterestsScreen> {
     final goalPayload = {"goal": _selectedGoal.isEmpty ? "LOSS_PREVENTION" : _selectedGoal};
     
     final studyStylePayload = {
-      "frequency": "DAILY",
-      "depth": _selectedStudyStyle == 'LIGHT' ? 'EASY' : (_selectedStudyStyle == 'SERIOUS' || _selectedStudyStyle == 'INTENSE' ? 'HARD' : 'NORMAL'),
-      "sessionVolume": _selectedStudyStyle == 'LIGHT' ? 'LESS_THAN_ONE' : (_selectedStudyStyle == 'INTENSE' ? 'THREE_OR_MORE' : 'ONE_TO_TWO')
+      "frequency": _selectedFrequency,
+      "depth": _selectedDepth,
+      "sessionVolume": _selectedVolume
     };
 
     final failureReasonPayload = {
@@ -221,7 +218,7 @@ class _InterestsScreenState extends State<InterestsScreen> {
                                   ? '관심 분야를 선택하세요'
                                   : (_currentStep == 2
                                       ? '학습 목적을 선택하세요'
-                                      : (_currentStep == 3 ? '하루 경제 공부 페이스 설정' : '공부 실패 원인이 무엇인가요?')),
+                                      : (_currentStep == 3 ? '나만의 학습 스타일을 설정하세요' : '공부 실패 원인이 무엇인가요?')),
                               style: const TextStyle(
                                 fontFamily: 'Pretendard',
                                 fontSize: 18,
@@ -236,7 +233,7 @@ class _InterestsScreenState extends State<InterestsScreen> {
                                   ? '(복수 선택 가능) 나중에 변경할 수 있어요'
                                   : (_currentStep == 2
                                       ? '가장 가까운 것 하나만 선택해주세요'
-                                      : '나중에 설정에서 변경할 수 있어요'),
+                                      : (_currentStep == 3 ? '나중에 설정에서 변경 가능해요' : '나중에 설정에서 변경할 수 있어요')),
                               style: const TextStyle(
                                 fontFamily: 'Pretendard',
                                 fontSize: 13,
@@ -474,26 +471,159 @@ class _InterestsScreenState extends State<InterestsScreen> {
     );
   }
 
-  // 3단계: 하루 학습 시간 페이스 설정
+  // 3단계: 나만의 학습 스타일 설정 (OnboardingStyle - 4/6)
   Widget _buildStep3StudyStyle() {
     return Column(
       children: [
         const SizedBox(height: 32),
-        ..._studyStylesData.map((item) {
-          final isSelected = _selectedStudyStyle == item['code'];
-          return _buildSelectionTile(
-            title: item['title']!,
-            desc: item['desc']!,
-            isSelected: isSelected,
-            onTap: () {
-              HapticFeedback.lightImpact();
-              setState(() {
-                _selectedStudyStyle = item['code']!;
-              });
-            },
-          );
-        }),
+        // 3.1. 학습 빈도
+        _buildStyleCard(
+          title: '학습 빈도',
+          subtext: '얼마나 자주 공부할까요?',
+          options: ['주 1~2회', '주 3~4회', '매일'],
+          optionCodes: ['ONCE_OR_TWICE', 'THREE_OR_FOUR', 'DAILY'],
+          selectedCode: _selectedFrequency,
+          onSelected: (val) {
+            setState(() {
+              _selectedFrequency = val;
+            });
+          },
+        ),
+        const SizedBox(height: 16),
+        // 3.2. 꼼꼼함
+        _buildStyleCard(
+          title: '꼼꼼함',
+          subtext: '얼마나 깊게 공부할까요?',
+          options: ['빠르게', '보통', '꼼꼼하게'],
+          optionCodes: ['FAST', 'NORMAL', 'HARD'],
+          selectedCode: _selectedDepth,
+          onSelected: (val) {
+            setState(() {
+              _selectedDepth = val;
+            });
+          },
+        ),
+        const SizedBox(height: 16),
+        // 3.3. 1회 학습량
+        _buildStyleCard(
+          title: '1회 학습량',
+          subtext: '한 번에 얼마나 공부할까요?',
+          options: ['1~2 회차', '3~4 회차', '5 회차 +'],
+          optionCodes: ['ONE_TO_TWO', 'THREE_OR_FOUR', 'FIVE_OR_MORE'],
+          selectedCode: _selectedVolume,
+          onSelected: (val) {
+            setState(() {
+              _selectedVolume = val;
+            });
+          },
+        ),
       ],
+    );
+  }
+
+  // OnboardingStyle 전용 가로형 3분할 캡슐 버튼 카드 컴포넌트 (높이 120px)
+  Widget _buildStyleCard({
+    required String title,
+    required String subtext,
+    required List<String> options,
+    required List<String> optionCodes,
+    required String selectedCode,
+    required ValueChanged<String> onSelected,
+  }) {
+    return Container(
+      width: double.infinity,
+      height: 120,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(color: const Color(0xFFD0D5E0), width: 1.0),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      padding: const EdgeInsets.all(17.0),
+      child: Stack(
+        children: [
+          // 타이틀 (좌측 상단, height: 16px)
+          Positioned(
+            left: 0,
+            top: 0,
+            child: Text(
+              title,
+              style: const TextStyle(
+                fontFamily: 'Pretendard',
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF111827),
+                height: 16 / 14,
+              ),
+            ),
+          ),
+          // 설명글 (타이틀 아래 20px 지점, height: 14px)
+          Positioned(
+            left: 0,
+            top: 20,
+            child: Text(
+              subtext,
+              style: const TextStyle(
+                fontFamily: 'Pretendard',
+                fontSize: 11,
+                fontWeight: FontWeight.w400,
+                color: Color(0xFF9CA3AF),
+                height: 14 / 11,
+              ),
+            ),
+          ),
+          // 3분할 알약(캡슐)형 버튼들 (최하단 고정, 높이 32px)
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            height: 32,
+            child: Row(
+              children: List.generate(options.length, (index) {
+                final option = options[index];
+                final code = optionCodes[index];
+                final isSelected = selectedCode == code;
+
+                return Expanded(
+                  child: Padding(
+                    padding: EdgeInsets.only(
+                      left: index == 0 ? 0.0 : 4.0,
+                      right: index == options.length - 1 ? 0.0 : 4.0,
+                    ),
+                    child: SizedBox(
+                      height: 32,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: isSelected ? const Color(0xFF00EE94) : const Color(0xFFF0F2F7),
+                          foregroundColor: const Color(0xFF4B5563),
+                          elevation: 0,
+                          padding: EdgeInsets.zero,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(100),
+                          ),
+                        ),
+                        onPressed: () {
+                          HapticFeedback.lightImpact();
+                          onSelected(code);
+                        },
+                        child: Text(
+                          option,
+                          style: TextStyle(
+                            fontFamily: 'Pretendard',
+                            fontSize: 10,
+                            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                            color: const Color(0xFF4B5563),
+                            height: 13 / 10,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              }),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -600,7 +730,7 @@ class _InterestsScreenState extends State<InterestsScreen> {
     bool isEnabled = false;
     if (_currentStep == 1 && _selectedInterests.isNotEmpty) isEnabled = true;
     if (_currentStep == 2 && _selectedGoal.isNotEmpty) isEnabled = true;
-    if (_currentStep == 3 && _selectedStudyStyle.isNotEmpty) isEnabled = true;
+    if (_currentStep == 3 && _selectedFrequency.isNotEmpty && _selectedDepth.isNotEmpty && _selectedVolume.isNotEmpty) isEnabled = true;
     if (_currentStep == 4 && _selectedFailureReason.isNotEmpty) isEnabled = true;
 
     return Padding(
