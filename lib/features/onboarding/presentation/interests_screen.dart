@@ -806,9 +806,9 @@ class _InterestsScreenState extends State<InterestsScreen> {
             padding: EdgeInsets.zero,
           ),
           onPressed: isEnabled ? _nextStep : null,
-          child: Text(
-            _currentStep == _totalSteps ? '맞춤 커리큘럼 생성하기 🚀' : '다음',
-            style: const TextStyle(
+          child: const Text(
+            '다음',
+            style: TextStyle(
               fontFamily: 'Pretendard',
               fontSize: 14,
               fontWeight: FontWeight.w700,
