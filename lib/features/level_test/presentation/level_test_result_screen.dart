@@ -7,10 +7,12 @@ import '../../home/presentation/home_screen.dart';
 
 class LevelTestResultScreen extends StatelessWidget {
   final int score;
+  final String nickname;
 
   const LevelTestResultScreen({
     super.key,
     required this.score,
+    this.nickname = '경제왕',
   });
 
   @override
@@ -205,7 +207,7 @@ class LevelTestResultScreen extends StatelessWidget {
                     Navigator.pushAndRemoveUntil(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => const HomeScreen(),
+                        builder: (context) => HomeScreen(nickname: nickname),
                       ),
                       (route) => false, // 스택 완전 초기화
                     );

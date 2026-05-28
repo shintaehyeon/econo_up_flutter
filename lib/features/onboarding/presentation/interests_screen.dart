@@ -4,10 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/constants/api_endpoints.dart';
-import '../../level_test/presentation/level_test_screen.dart';
+import '../../level_test/presentation/level_test_intro_screen.dart';
 
 class InterestsScreen extends StatefulWidget {
-  const InterestsScreen({super.key});
+  final String nickname;
+  const InterestsScreen({super.key, this.nickname = '경제왕'});
 
   @override
   State<InterestsScreen> createState() => _InterestsScreenState();
@@ -117,7 +118,7 @@ class _InterestsScreenState extends State<InterestsScreen> {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => const LevelTestScreen(),
+          builder: (context) => LevelTestIntroScreen(nickname: widget.nickname),
         ),
       );
     }
