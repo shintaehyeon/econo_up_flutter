@@ -199,8 +199,9 @@ class _LevelTestScreenState extends State<LevelTestScreen> {
 
     final attemptPayload = {
       "questionId": currentQ['id'],
-      "selectedChoiceId": _selectedAnswer,
-      "isCorrect": isCorrect
+      "answer": {
+        "choiceIds": [_selectedAnswer]
+      }
     };
     debugPrint('Submitting answer to level test: $attemptPayload');
   }

@@ -71,7 +71,9 @@ class ApiEndpoints {
   static String equipCharacter(String characterId) => '/characters/$characterId/equip';
 
   // 12. 재화 및 BM
-  static const String wallets = '/wallets';
+  static const String wallet = '/wallet';
+  static const String grantBills = '/wallet/bills/grant';
+  static const String spendBills = '/wallet/bills/spend';
   static const String shopProducts = '/shop/products';
   static const String verifyReceipt = '/shop/receipt/verify';
   static const String refillHearts = '/shop/hearts/refill';
