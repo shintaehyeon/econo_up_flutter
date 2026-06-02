@@ -76,77 +76,7 @@ class _LevelTestScreenState extends State<LevelTestScreen> {
   int _score = 0;
 
   // 5 high-quality finance/economics questions
-  final List<Map<String, dynamic>> _questions = [
-    {
-      'type': 'MULTIPLE_CHOICE',
-      'id': 'q_level_01',
-      'categoryText': '경제 상식 · 금리',
-      'resourceTitle': '💰 → 📈 → 💳',
-      'resourceText': '금리란 돈을 빌린 대가로 지급하는 비용의 비율입니다.\n기준금리는 한 나라의 모든 시중금리의 기준이 되는 금리로,\n이것이 오르면 예금·대출 금리가 함께 오르는 경향이 있습니다.',
-      'subtitle': '위 내용을 바탕으로 유추해볼 때,',
-      'prompt': '금리가 오르면 주식시장은 보통 어떻게 반응할까요?',
-      'choices': [
-        {'id': 'A', 'text': '주식시장으로 자금이 몰려 주가가 상승한다'},
-        {'id': 'B', 'text': '은행 예적금으로 자금이 이동해 주가가 하락한다'},
-        {'id': 'C', 'text': '주식과 금리는 연관성이 없어 아무 변화가 없다'},
-        {'id': 'D', 'text': '무조건 대형주만 상승한다'},
-      ],
-      'answer': 'B',
-      'explanation': '금리가 오르면 안전하고 이자를 많이 주는 은행으로 자금이 이동하며, 기업의 자금조달 비용이 증가하므로 주식시장은 보통 하락하는 경향이 있습니다.',
-    },
-    {
-      'type': 'MATCHING',
-      'id': 'q_level_02',
-      'prompt': '카드를 올바른 설명에 드래그하여 매칭하세요',
-      'draggableItems': ['매파', '비둘기파'],
-      'targetDescriptions': ['금리 인상 선호\n물가 안정 우선', '금리 인하 선호\n경기 부양 우선'],
-      'correctMapping': {
-        '금리 인상 선호\n물가 안정 우선': '매파',
-        '금리 인하 선호\n경기 부양 우선': '비둘기파',
-      },
-      'explanation': '매파는 물가 안정을 위해 금리 인상과 긴축을 선호하며, 비둘기파는 경기 부양을 위해 금리 인하와 완화 정책을 선호하는 경제 성향을 비유한 용어입니다.',
-    },
-    {
-      'type': 'REORDER',
-      'id': 'q_level_04',
-      'subtitle': '드래그해서 올바른 순서로 나열하세요',
-      'prompt': '기준금리 인상 → 소비 감소 과정',
-      'choices': [
-        {'id': 'A', 'text': 'A. 기준금리 인상'},
-        {'id': 'B', 'text': 'B. 대출 이자 부담↑'},
-        {'id': 'C', 'text': 'C. 시중금리 상승'},
-        {'id': 'D', 'text': 'D. 가처분소득↓'},
-        {'id': 'E', 'text': 'E. 소비 감소'},
-      ],
-      'initialOrder': ['A', 'B', 'C', 'D', 'E'],
-      'answer': ['A', 'C', 'B', 'D', 'E'],
-      'explanation': '기준금리가 인상되면 시중금리가 오르고, 대출 이자 부담이 커지면서 가처분소득이 줄어 소비가 감소하게 됩니다.',
-    },
-    {
-      'type': 'MULTIPLE_CHOICE',
-      'id': 'q_level_03',
-      'subtitle': '금리가 내려갈 때',
-      'prompt': '일반적으로 가격이 오르는\n자산은 무엇일까요?',
-      'choices': [
-        {'id': 'A', 'text': '현금', 'subtitle': '투자 전 제대로 알고 싶어요'},
-        {'id': 'B', 'text': '채권', 'subtitle': '돈을 불리는 방법이 궁금해요'},
-        {'id': 'C', 'text': '단기 정기예금', 'subtitle': '연말정산·청약 등 실용 지식'},
-        {'id': 'D', 'text': '외화(달러)', 'subtitle': '경제 상식을 쌓고 싶어요'},
-      ],
-      'answer': 'B',
-      'explanation': '금리가 내려가면 기존에 발행된, 상대적으로 높은 금리를 주는 채권의 가치가 높아져 채권 가격이 오르는 경향이 있습니다.',
-    },
-    {
-      'type': 'GRAPH_INPUT',
-      'id': 'q_level_05',
-      'subtitle': '그래프에서 금리 최고점을 터치하세요',
-      'prompt': '현재 기준금리를 입력하세요',
-      'graphPoints': [0.3, 0.8, 0.6, 0.7, 0.1, 0.4, 0.5, 0.2, 0.35],
-      'highestIndex': 1,
-      'answerText': '3.5',
-      'explanation': '현재 우리나라의 한국은행 기준금리는 3.5% (2024년 기준)입니다.',
-    },
-  ];
+  final List<Map<String, dynamic>> _questions = [];
 
   @override
   void dispose() {
@@ -197,7 +127,7 @@ class _LevelTestScreenState extends State<LevelTestScreen> {
       selectedIds = _matchingAnswers.values.toList();
     } else if (type == 'REORDER') {
       isCorrect = true;
-      final answer = currentQ['answer'] as List<String>;
+      final answer = List<String>.from(currentQ['answer'] as List);
       for (int i = 0; i < answer.length; i++) {
         if (_reorderList[i] != answer[i]) {
           isCorrect = false;
@@ -268,6 +198,30 @@ class _LevelTestScreenState extends State<LevelTestScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_questions.isEmpty) {
+      return Scaffold(
+        backgroundColor: Colors.white,
+        appBar: AppBar(
+          backgroundColor: Colors.white,
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Color(0xFF6A7282), size: 20),
+            onPressed: () => Navigator.pop(context),
+          ),
+        ),
+        body: const Center(
+          child: Text(
+            '문항을 불러오는 중입니다...',
+            style: TextStyle(
+              fontFamily: 'Pretendard',
+              fontSize: 16,
+              color: Color(0xFF6A7282),
+            ),
+          ),
+        ),
+      );
+    }
+
     final currentQ = _questions[_currentIdx];
     final totalQuestions = _questions.length;
     final type = currentQ['type'];
