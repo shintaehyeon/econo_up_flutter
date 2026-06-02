@@ -18,7 +18,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _currentTabIdx = 0; // 0: 홈, 1: 학습, 2: 커넥트, 3: 배틀, 4: 마이
 
-  // 테마 색상 정의 (Figma CSS의 #122711 브랜드 잉크 및 온보딩 그린 대응)
+  // 테마 색상 정의
   static const Color brandInk = Color(0xFF122711);
   static const Color themeGreen = Color(0xFF00EE94);
   static const Color textMuted = Color(0xFF6A7282);
@@ -32,7 +32,7 @@ class _HomeScreenState extends State<HomeScreen> {
         bottom: false,
         child: Column(
           children: [
-            // 1. Custom Top Welcome Area (Figma height 136px, background #F7F7F7)
+            // 1. Custom Top Welcome Area
             _buildCustomTopHeader(),
 
             // 2. Scrollable main body
@@ -42,27 +42,27 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // Card 1: Streak / Review Card (Height 100px)
+                    // Card 1: Streak / Review Card
                     _buildStreakReviewCard(),
                     const SizedBox(height: 14),
 
-                    // Card 2: News Card (Height 74px)
+                    // Card 2: News Card
                     _buildNewsCard(),
                     const SizedBox(height: 14),
 
-                    // Card 3: Golden Ticket Card (Height 74px)
+                    // Card 3: Golden Ticket Card
                     _buildGoldenTicketCard(),
                     const SizedBox(height: 24),
 
-                    // Card 4: Continue Learning Section (Height 153px)
+                    // Card 4: Continue Learning Section
                     _buildContinueLearningSection(),
                     const SizedBox(height: 14),
 
-                    // Card 5: Weekly League Card (Height 62px)
+                    // Card 5: Weekly League Card
                     _buildLeagueCard(),
                     const SizedBox(height: 14),
 
-                    // Card 6: Simulation Challenge Card (Height 98px)
+                    // Card 6: Simulation Challenge Card
                     _buildSimulationCard(),
                     const SizedBox(height: 20),
                   ],
@@ -70,7 +70,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
 
-            // 3. Pinned Bottom Navigation Tab Bar (Height 77px)
+            // 3. Pinned Bottom Navigation Tab Bar
             _buildBottomNavigationBar(),
           ],
         ),
@@ -78,13 +78,12 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // Figma-aligned Top Welcome Header Area (Height 136px)
+  // Figma-aligned Top Welcome Header Area
   Widget _buildCustomTopHeader() {
     return Container(
       width: double.infinity,
-      height: 136,
       color: const Color(0xFFF7F7F7),
-      padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+      padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -106,14 +105,12 @@ class _HomeScreenState extends State<HomeScreen> {
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Heart Asset Pill (3 hearts)
                   _buildAssetPill(
-                    iconPath: 'assets/heart_vector', // Mock vector using custom colors
+                    iconPath: 'assets/heart_vector', 
                     iconColor: const Color(0xFFFF7C7C),
                     value: '3',
                   ),
                   const SizedBox(width: 12),
-                  // Cash Asset Pill (5 bills)
                   _buildAssetPill(
                     iconPath: 'assets/cash_vector',
                     iconColor: const Color(0xFFA1E669),
@@ -123,7 +120,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ],
           ),
-          const Spacer(),
+          const SizedBox(height: 24),
           // Heading 2: Welcome dynamic nickname message
           Text(
             '${widget.nickname} 님, 환영해요!',
@@ -135,7 +132,6 @@ class _HomeScreenState extends State<HomeScreen> {
               height: 32 / 22,
             ),
           ),
-          const SizedBox(height: 15), // Align space dynamically
         ],
       ),
     );
@@ -148,7 +144,6 @@ class _HomeScreenState extends State<HomeScreen> {
     required String value,
   }) {
     return Container(
-      height: 32,
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -178,91 +173,83 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // Card 1: Fire Streak / Review Card
+  // Card 1: Fire Streak / Review Card (Refactored to be flexible)
   Widget _buildStreakReviewCard() {
     return Container(
       width: double.infinity,
-      height: 100,
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
       ),
-      child: Stack(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Fire badge
-          Positioned(
-            left: 19,
-            top: 17,
-            child: Container(
-              height: 28,
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: const Color(0xFFFFEADB),
-                borderRadius: BorderRadius.circular(16777216),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: const [
-                  Icon(Icons.local_fire_department_rounded, size: 14, color: Color(0xFFFF6900)),
-                  SizedBox(width: 4),
-                  Text(
-                    '14일 연속 학습 중!',
-                    style: TextStyle(
-                      fontFamily: 'Pretendard',
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: brandInk,
-                      height: 14 / 12,
-                    ),
-                  ),
-                ],
-              ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFEADB),
+              borderRadius: BorderRadius.circular(16777216),
             ),
-          ),
-          // Heading description
-          const Positioned(
-            left: 22,
-            top: 54,
-            child: Text(
-              '어제 틀린 문제\n다시 풀어볼까요?',
-              style: TextStyle(
-                fontFamily: 'Pretendard',
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-                color: brandInk,
-                height: 28 / 18,
-              ),
-            ),
-          ),
-          // "복습" Button
-          Positioned(
-            left: 323,
-            top: 49,
-            child: GestureDetector(
-              onTap: () {
-                HapticFeedback.mediumImpact();
-                // Navigate to review (Phase 2 scope)
-              },
-              child: Container(
-                width: 63,
-                height: 34,
-                decoration: BoxDecoration(
-                  color: themeGreen,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                alignment: Alignment.center,
-                child: const Text(
-                  '복습',
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: const [
+                Icon(Icons.local_fire_department_rounded, size: 14, color: Color(0xFFFF6900)),
+                SizedBox(width: 4),
+                Text(
+                  '14일 연속 학습 중!',
                   style: TextStyle(
                     fontFamily: 'Pretendard',
-                    fontSize: 14,
+                    fontSize: 12,
                     fontWeight: FontWeight.w600,
                     color: brandInk,
-                    height: 17 / 14,
+                    height: 14 / 12,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          // Heading description and Button
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              const Expanded(
+                child: Text(
+                  '어제 틀린 문제\n다시 풀어볼까요?',
+                  style: TextStyle(
+                    fontFamily: 'Pretendard',
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: brandInk,
+                    height: 1.4,
                   ),
                 ),
               ),
-            ),
+              GestureDetector(
+                onTap: () {
+                  HapticFeedback.mediumImpact();
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: themeGreen,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: const Text(
+                    '복습',
+                    style: TextStyle(
+                      fontFamily: 'Pretendard',
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: brandInk,
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -273,7 +260,6 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildNewsCard() {
     return Container(
       width: double.infinity,
-      height: 74,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -281,7 +267,6 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       child: Row(
         children: [
-          // Icon wrapper
           Container(
             width: 40,
             height: 40,
@@ -290,14 +275,9 @@ class _HomeScreenState extends State<HomeScreen> {
               borderRadius: BorderRadius.circular(20),
             ),
             alignment: Alignment.center,
-            child: const Icon(
-              Icons.article_rounded,
-              color: Color(0xFF4A5565),
-              size: 20,
-            ),
+            child: const Icon(Icons.article_rounded, color: Color(0xFF4A5565), size: 20),
           ),
           const SizedBox(width: 12),
-          // Titles
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -310,9 +290,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
                     color: brandInk,
-                    height: 20 / 14,
                   ),
                 ),
+                SizedBox(height: 2),
                 Text(
                   '미 연준 금리 동결 결정...',
                   style: TextStyle(
@@ -320,17 +300,12 @@ class _HomeScreenState extends State<HomeScreen> {
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
                     color: Color(0xFF6A7282),
-                    height: 16 / 12,
                   ),
                 ),
               ],
             ),
           ),
-          const Icon(
-            Icons.arrow_forward_ios_rounded,
-            color: Color(0xFFB2B2B2),
-            size: 14,
-          ),
+          const Icon(Icons.arrow_forward_ios_rounded, color: Color(0xFFB2B2B2), size: 14),
         ],
       ),
     );
@@ -340,7 +315,6 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildGoldenTicketCard() {
     return Container(
       width: double.infinity,
-      height: 74,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -348,7 +322,6 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       child: Row(
         children: [
-          // Icon wrapper
           Container(
             width: 40,
             height: 40,
@@ -357,14 +330,9 @@ class _HomeScreenState extends State<HomeScreen> {
               borderRadius: BorderRadius.circular(20),
             ),
             alignment: Alignment.center,
-            child: const Icon(
-              Icons.confirmation_num_rounded,
-              color: Color(0xFFFCD31F),
-              size: 20,
-            ),
+            child: const Icon(Icons.confirmation_num_rounded, color: Color(0xFFFCD31F), size: 20),
           ),
           const SizedBox(width: 12),
-          // Titles
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -377,9 +345,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
                     color: brandInk,
-                    height: 20 / 14,
                   ),
                 ),
+                SizedBox(height: 2),
                 Text(
                   '12:34:56 후 만료',
                   style: TextStyle(
@@ -387,17 +355,12 @@ class _HomeScreenState extends State<HomeScreen> {
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
                     color: Color(0xFF6A7282),
-                    height: 16 / 12,
                   ),
                 ),
               ],
             ),
           ),
-          const Icon(
-            Icons.arrow_forward_ios_rounded,
-            color: Color(0xFFB2B2B2),
-            size: 14,
-          ),
+          const Icon(Icons.arrow_forward_ios_rounded, color: Color(0xFFB2B2B2), size: 14),
         ],
       ),
     );
@@ -407,7 +370,6 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildContinueLearningSection() {
     return Column(
       children: [
-        // Title block
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: const [
@@ -418,24 +380,16 @@ class _HomeScreenState extends State<HomeScreen> {
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
                 color: brandInk,
-                height: 19 / 16,
               ),
             ),
-            Icon(
-              Icons.settings_rounded,
-              color: Color(0xFFB2B2B2),
-              size: 18,
-            ),
+            Icon(Icons.settings_rounded, color: Color(0xFFB2B2B2), size: 18),
           ],
         ),
         const SizedBox(height: 12),
-        // Content Row with exactly two cards
         Row(
           children: [
-            // Card 4.1: 경제 상식
             Expanded(child: _buildContinueCard(isEconomy: true)),
             const SizedBox(width: 12),
-            // Card 4.2: 저축
             Expanded(child: _buildContinueCard(isEconomy: false)),
           ],
         ),
@@ -445,7 +399,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildContinueCard({required bool isEconomy}) {
     return Container(
-      height: 113,
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
@@ -453,10 +406,10 @@ class _HomeScreenState extends State<HomeScreen> {
       padding: const EdgeInsets.all(12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min, // Allow it to shrink wrap height
         children: [
           Row(
             children: [
-              // Icon block
               Container(
                 width: 48,
                 height: 48,
@@ -471,7 +424,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
               const Spacer(),
-              // Arrow "→"
               const Text(
                 '→',
                 style: TextStyle(
@@ -483,8 +435,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ],
           ),
-          const Spacer(),
-          // Titles
+          const SizedBox(height: 12), // Replaced Spacer to fix overflow
           Text(
             isEconomy ? '경제 상식' : '저축',
             style: const TextStyle(
@@ -492,7 +443,6 @@ class _HomeScreenState extends State<HomeScreen> {
               fontSize: 16,
               fontWeight: FontWeight.w700,
               color: brandInk,
-              height: 19 / 16,
             ),
           ),
           const SizedBox(height: 2),
@@ -503,11 +453,9 @@ class _HomeScreenState extends State<HomeScreen> {
               fontSize: 12,
               fontWeight: FontWeight.w600,
               color: textMuted,
-              height: 14 / 12,
             ),
           ),
-          const SizedBox(height: 8),
-          // Progress indicator background
+          const SizedBox(height: 12),
           Container(
             width: double.infinity,
             height: 6,
@@ -517,7 +465,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             alignment: Alignment.centerLeft,
             child: FractionallySizedBox(
-              widthFactor: isEconomy ? 0.6 : 0.3, // 60% vs 30% progress
+              widthFactor: isEconomy ? 0.6 : 0.3,
               child: Container(
                 height: 6,
                 decoration: BoxDecoration(
@@ -536,15 +484,13 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildLeagueCard() {
     return Container(
       width: double.infinity,
-      height: 62,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
         children: [
-          // Crown Icon wrapper
           Container(
             width: 40,
             height: 40,
@@ -553,14 +499,9 @@ class _HomeScreenState extends State<HomeScreen> {
               borderRadius: BorderRadius.circular(20),
             ),
             alignment: Alignment.center,
-            child: const Icon(
-              Icons.emoji_events_rounded,
-              color: Color(0xFFFCB94D),
-              size: 24,
-            ),
+            child: const Icon(Icons.emoji_events_rounded, color: Color(0xFFFCB94D), size: 24),
           ),
           const SizedBox(width: 12),
-          // Text Titles
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -573,9 +514,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
                     color: brandInk,
-                    height: 16 / 13,
                   ),
                 ),
+                SizedBox(height: 2),
                 Text(
                   '주간 랭킹 3위 · 승급까지 24점',
                   style: TextStyle(
@@ -583,7 +524,6 @@ class _HomeScreenState extends State<HomeScreen> {
                     fontSize: 11,
                     fontWeight: FontWeight.w500,
                     color: Color(0xFF6A7282),
-                    height: 13 / 11,
                   ),
                 ),
               ],
@@ -594,21 +534,20 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // Card 6: Simulation Challenge Card
+  // Card 6: Simulation Challenge Card (Refactored to be flexible)
   Widget _buildSimulationCard() {
     return Container(
       width: double.infinity,
-      height: 98,
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
       ),
-      child: Stack(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Subtext
-          const Positioned(
-            left: 21,
-            top: 15,
+          const Padding(
+            padding: EdgeInsets.only(left: 4),
             child: Text(
               '오늘 배운 내용으로 실전 체험!',
               style: TextStyle(
@@ -616,88 +555,74 @@ class _HomeScreenState extends State<HomeScreen> {
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
                 color: Color(0xFF6A7282),
-                height: 20 / 12,
               ),
             ),
           ),
-          // Main Title
-          const Positioned(
-            left: 48,
-            top: 35,
-            child: Text(
-              '시뮬레이션 도전',
-              style: TextStyle(
-                fontFamily: 'Pretendard',
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-                color: brandInk,
-                height: 28 / 18,
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF6FEE8),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    alignment: Alignment.center,
+                    child: const Icon(Icons.sports_esports_rounded, color: Color(0xFFA1E669), size: 24),
+                  ),
+                  const SizedBox(width: 12),
+                  const Text(
+                    '시뮬레이션 도전',
+                    style: TextStyle(
+                      fontFamily: 'Pretendard',
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: brandInk,
+                    ),
+                  ),
+                ],
               ),
-            ),
-          ),
-          // Icon container
-          Positioned(
-            left: 16,
-            top: 44,
-            child: Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: const Color(0xFFF6FEE8),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              alignment: Alignment.center,
-              child: const Icon(
-                Icons.sports_esports_rounded,
-                color: Color(0xFFA1E669),
-                size: 24,
-              ),
-            ),
-          ),
-          // Button "도전"
-          Positioned(
-            left: 323,
-            top: 45,
-            child: GestureDetector(
-              onTap: () {
-                HapticFeedback.mediumImpact();
-              },
-              child: Container(
-                width: 63,
-                height: 34,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF3F4F6),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                alignment: Alignment.center,
-                child: const Text(
-                  '도전',
-                  style: TextStyle(
-                    fontFamily: 'Pretendard',
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF4B505A),
-                    height: 17 / 14,
+              GestureDetector(
+                onTap: () {
+                  HapticFeedback.mediumImpact();
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF3F4F6),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: const Text(
+                    '도전',
+                    style: TextStyle(
+                      fontFamily: 'Pretendard',
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF4B505A),
+                    ),
                   ),
                 ),
               ),
-            ),
+            ],
           ),
         ],
       ),
     );
   }
 
-  // Pinned Bottom Navigation Tab Bar (Height 77px)
+  // Pinned Bottom Navigation Tab Bar
   Widget _buildBottomNavigationBar() {
     return Container(
       width: double.infinity,
-      height: 77,
       decoration: const BoxDecoration(
         color: Colors.white,
         border: Border(top: BorderSide(color: borderLight, width: 1)),
       ),
-      padding: const EdgeInsets.only(top: 9, bottom: 8),
+      padding: const EdgeInsets.only(top: 8, bottom: 20),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
@@ -729,12 +654,9 @@ class _HomeScreenState extends State<HomeScreen> {
       behavior: HitTestBehavior.opaque,
       child: Container(
         width: 56,
-        height: 60,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
-        ),
+        padding: const EdgeInsets.only(top: 8),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
           children: [
             Icon(icon, size: 24, color: itemColor),
             const SizedBox(height: 4),
@@ -745,7 +667,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
                 color: itemColor,
-                height: 16 / 12,
               ),
             ),
           ],

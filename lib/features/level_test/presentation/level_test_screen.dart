@@ -2,7 +2,46 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'dart:ui';
 import 'level_test_result_screen.dart';
+
+class DashedRectPainter extends CustomPainter {
+  final Color color;
+  final double strokeWidth;
+  final double gap;
+
+  DashedRectPainter({this.color = Colors.black, this.strokeWidth = 1.0, this.gap = 5.0});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    var paint = Paint()
+      ..color = color
+      ..strokeWidth = strokeWidth
+      ..style = PaintingStyle.stroke;
+
+    var path = Path()
+      ..addRRect(RRect.fromRectAndRadius(
+          Rect.fromLTWH(0, 0, size.width, size.height), const Radius.circular(10)));
+
+    Path dashPath = Path();
+    double distance = 0.0;
+    for (PathMetric pathMetric in path.computeMetrics()) {
+      while (distance < pathMetric.length) {
+        dashPath.addPath(
+          pathMetric.extractPath(distance, distance + gap),
+          Offset.zero,
+        );
+        distance += gap * 2;
+      }
+      distance = 0.0; // Reset for next metric if any
+    }
+
+    canvas.drawPath(dashPath, paint);
+  }
+
+  @override
+  bool shouldRepaint(CustomPainter oldDelegate) => false;
+}
 
 class LevelTestScreen extends StatefulWidget {
   final String nickname;
@@ -18,189 +57,175 @@ class LevelTestScreen extends StatefulWidget {
 
 class _LevelTestScreenState extends State<LevelTestScreen> {
   int _currentIdx = 0;
+  
+  // State for MULTIPLE_CHOICE
   String? _selectedAnswer;
+
+  // State for MATCHING
+  Map<String, String> _matchingAnswers = {};
+
+  // State for REORDER
+  List<String> _reorderList = []; // target -> draggable
+
+  // State for GRAPH_INPUT
+  int? _selectedGraphIndex;
+  final TextEditingController _baseRateController = TextEditingController();
+
   bool _isAnswered = false;
   bool _isCorrect = false;
   int _score = 0;
 
-  // 10 high-quality finance/economics questions matching the progress bar
+  // 5 high-quality finance/economics questions
   final List<Map<String, dynamic>> _questions = [
     {
+      'type': 'MULTIPLE_CHOICE',
       'id': 'q_level_01',
       'categoryText': '경제 상식 · 금리',
-      'subtitle': '금리가 오르면 일반적으로',
-      'prompt': '채권 가격은 어떻게 될까요?',
+      'resourceTitle': '💰 → 📈 → 💳',
+      'resourceText': '금리란 돈을 빌린 대가로 지급하는 비용의 비율입니다.\n기준금리는 한 나라의 모든 시중금리의 기준이 되는 금리로,\n이것이 오르면 예금·대출 금리가 함께 오르는 경향이 있습니다.',
+      'subtitle': '위 내용을 바탕으로 유추해볼 때,',
+      'prompt': '금리가 오르면 주식시장은 보통 어떻게 반응할까요?',
       'choices': [
-        {'id': 'A', 'text': '오른다'},
-        {'id': 'B', 'text': '내려간다'},
-        {'id': 'C', 'text': '변화 없다'},
-        {'id': 'D', 'text': '알 수 없다'},
+        {'id': 'A', 'text': '주식시장으로 자금이 몰려 주가가 상승한다'},
+        {'id': 'B', 'text': '은행 예적금으로 자금이 이동해 주가가 하락한다'},
+        {'id': 'C', 'text': '주식과 금리는 연관성이 없어 아무 변화가 없다'},
+        {'id': 'D', 'text': '무조건 대형주만 상승한다'},
       ],
       'answer': 'B',
-      'explanation': '금리가 상승하면 새로 발행되는 채권의 금리가 더 높아지기 때문에, 상대적으로 낮은 금리를 제공하는 기존 채권의 매력도가 떨어져 가격이 내려갑니다.',
+      'explanation': '금리가 오르면 안전하고 이자를 많이 주는 은행으로 자금이 이동하며, 기업의 자금조달 비용이 증가하므로 주식시장은 보통 하락하는 경향이 있습니다.',
     },
     {
+      'type': 'MATCHING',
       'id': 'q_level_02',
-      'categoryText': '경제 상식 · 물가',
-      'subtitle': '물가가 지속적으로 상승하여',
-      'prompt': '화폐 가치가 떨어지는 현상은?',
-      'choices': [
-        {'id': 'A', 'text': '디플레이션'},
-        {'id': 'B', 'text': '인플레이션'},
-        {'id': 'C', 'text': '스태그플레이션'},
-        {'id': 'D', 'text': '리플레이션'},
-      ],
-      'answer': 'B',
-      'explanation': '인플레이션은 상품 및 서비스의 전반적인 가격 수준이 지속적으로 상승하고, 그에 따라 화폐의 구매력이 떨어지는 현상입니다.',
+      'prompt': '카드를 올바른 설명에 드래그하여 매칭하세요',
+      'draggableItems': ['매파', '비둘기파'],
+      'targetDescriptions': ['금리 인상 선호\n물가 안정 우선', '금리 인하 선호\n경기 부양 우선'],
+      'correctMapping': {
+        '금리 인상 선호\n물가 안정 우선': '매파',
+        '금리 인하 선호\n경기 부양 우선': '비둘기파',
+      },
+      'explanation': '매파는 물가 안정을 위해 금리 인상과 긴축을 선호하며, 비둘기파는 경기 부양을 위해 금리 인하와 완화 정책을 선호하는 경제 성향을 비유한 용어입니다.',
     },
     {
-      'id': 'q_level_03',
-      'categoryText': '경제 상식 · 환율',
-      'subtitle': '원·달러 환율이 상승하면',
-      'prompt': '수출 기업의 원화 기준 실적은?',
-      'choices': [
-        {'id': 'A', 'text': '악화된다'},
-        {'id': 'B', 'text': '개선된다'},
-        {'id': 'C', 'text': '영향 없다'},
-        {'id': 'D', 'text': '예측 불가능하다'},
-      ],
-      'answer': 'B',
-      'explanation': '원·달러 환율이 오르면 달러당 받을 수 있는 원화가 많아지므로, 달러로 수출 대금을 받는 수출 기업의 원화 환산 매출과 이익이 늘어납니다.',
-    },
-    {
+      'type': 'REORDER',
       'id': 'q_level_04',
-      'categoryText': '투자 상식 · 주식',
-      'subtitle': '기업이 벌어들인 이익의 일부를',
-      'prompt': '주주들에게 분배하는 돈은?',
+      'subtitle': '드래그해서 올바른 순서로 나열하세요',
+      'prompt': '기준금리 인상 → 소비 감소 과정',
       'choices': [
-        {'id': 'A', 'text': '배당금'},
-        {'id': 'B', 'text': '이자'},
-        {'id': 'C', 'text': '양도 차익'},
-        {'id': 'D', 'text': '공모 자금'},
+        {'id': 'A', 'text': 'A. 기준금리 인상'},
+        {'id': 'B', 'text': 'B. 대출 이자 부담↑'},
+        {'id': 'C', 'text': 'C. 시중금리 상승'},
+        {'id': 'D', 'text': 'D. 가처분소득↓'},
+        {'id': 'E', 'text': 'E. 소비 감소'},
       ],
-      'answer': 'A',
-      'explanation': '배당금은 기업이 영업 활동을 통해 얻은 순이익 중 일부를 소유주인 주주들에게 지분에 따라 환원하는 금액입니다.',
+      'initialOrder': ['A', 'B', 'C', 'D', 'E'],
+      'answer': ['A', 'C', 'B', 'D', 'E'],
+      'explanation': '기준금리가 인상되면 시중금리가 오르고, 대출 이자 부담이 커지면서 가처분소득이 줄어 소비가 감소하게 됩니다.',
     },
     {
+      'type': 'MULTIPLE_CHOICE',
+      'id': 'q_level_03',
+      'subtitle': '금리가 내려갈 때',
+      'prompt': '일반적으로 가격이 오르는\n자산은 무엇일까요?',
+      'choices': [
+        {'id': 'A', 'text': '현금', 'subtitle': '투자 전 제대로 알고 싶어요'},
+        {'id': 'B', 'text': '채권', 'subtitle': '돈을 불리는 방법이 궁금해요'},
+        {'id': 'C', 'text': '단기 정기예금', 'subtitle': '연말정산·청약 등 실용 지식'},
+        {'id': 'D', 'text': '외화(달러)', 'subtitle': '경제 상식을 쌓고 싶어요'},
+      ],
+      'answer': 'B',
+      'explanation': '금리가 내려가면 기존에 발행된, 상대적으로 높은 금리를 주는 채권의 가치가 높아져 채권 가격이 오르는 경향이 있습니다.',
+    },
+    {
+      'type': 'GRAPH_INPUT',
       'id': 'q_level_05',
-      'categoryText': '투자 상식 · 주식',
-      'subtitle': '주식시장에서 기업의 가치를',
-      'prompt': '나타내는 지표인 \'시가총액\'이란?',
-      'choices': [
-        {'id': 'A', 'text': '연간 총 매출액'},
-        {'id': 'B', 'text': '발행주식수 × 주가'},
-        {'id': 'C', 'text': '자산 총합에서 부채를 뺀 것'},
-        {'id': 'D', 'text': '자본금의 총 액수'},
-      ],
-      'answer': 'B',
-      'explanation': '시가총액(Market Capitalization)은 그 기업의 상장주식 수에 현재 주가를 곱한 것으로, 시장이 평가하는 기업의 총 가치입니다.',
-    },
-    {
-      'id': 'q_level_06',
-      'categoryText': '생활 금융 · 세금',
-      'subtitle': '소득세 등을 납부할 때',
-      'prompt': '세액공제와 소득공제의 차이는?',
-      'choices': [
-        {'id': 'A', 'text': '세액공제는 소득에서 빼고, 소득공제는 세금에서 뺀다'},
-        {'id': 'B', 'text': '둘 다 차이가 없이 명칭만 다르다'},
-        {'id': 'C', 'text': '소득공제는 세율을 낮추고, 세액공제는 소득을 낮출 뿐이다'},
-        {'id': 'D', 'text': '소득공제는 과세소득을 줄이고, 세액공제는 세금 자체를 깎아준다'},
-      ],
-      'answer': 'D',
-      'explanation': '소득공제는 세금을 매기는 기준이 되는 소득 자체를 낮춰주는 것이고, 세액공제는 세액을 계산한 후 최종 납부할 세금에서 직접 빼주는 것이라 혜택이 더 큽니다.',
-    },
-    {
-      'id': 'q_level_07',
-      'categoryText': '생활 금융 · 신용',
-      'subtitle': '개인의 신용점수를',
-      'prompt': '올바르게 관리하는 가장 좋은 방법은?',
-      'choices': [
-        {'id': 'A', 'text': '연체 없이 대금을 성실히 납부한다'},
-        {'id': 'B', 'text': '신용카드를 아예 발급받지 않는다'},
-        {'id': 'C', 'text': '여러 금융기관에서 동시에 대출을 받는다'},
-        {'id': 'D', 'text': '대출을 최대한 많이 받고 갚기를 반복한다'},
-      ],
-      'answer': 'A',
-      'explanation': '신용점수 관리의 핵심은 상환 능력을 증명하는 것으로, 소액이라도 카드 연체나 대출 연체 없이 꾸준히 상환하는 실적이 가장 중요합니다.',
-    },
-    {
-      'id': 'q_level_08',
-      'categoryText': '생활 금융 · 부동산',
-      'subtitle': '부동산 계약 후 임대차 보증금을',
-      'prompt': '보호하기 위해 최우선으로 받아야 하는 것은?',
-      'choices': [
-        {'id': 'A', 'text': '등기필증'},
-        {'id': 'B', 'text': '인감증명서'},
-        {'id': 'C', 'text': '확정일자와 전입신고'},
-        {'id': 'D', 'text': '공인중개사 자격증'},
-      ],
-      'answer': 'C',
-      'explanation': '전입신고와 확정일자를 받아두면 주택임대차보호법상 대항력과 우선변제권을 확보하여 보증금을 안전하게 지킬 수 있습니다.',
-    },
-    {
-      'id': 'q_level_09',
-      'categoryText': '금융 상품 · 펀드',
-      'subtitle': '여러 투자자의 자금을 모아',
-      'prompt': '전문가가 대신 굴려주는 \'간접투자상품\'은?',
-      'choices': [
-        {'id': 'A', 'text': '보통예금'},
-        {'id': 'B', 'text': '회사채'},
-        {'id': 'C', 'text': '주식예탁증서 (DR)'},
-        {'id': 'D', 'text': '펀드 (Fund)'},
-      ],
-      'answer': 'D',
-      'explanation': '펀드는 다수의 투자자로부터 모은 자금을 펀드매니저라는 전문가가 주식이나 채권 등에 대리 투자하여 그 수익을 분배하는 간접투자 상품입니다.',
-    },
-    {
-      'id': 'q_level_10',
-      'categoryText': '거시 경제 · 지표',
-      'subtitle': '한 나라의 경제 규모를',
-      'prompt': '측정하는 대표적 지표인 GDP의 뜻은?',
-      'choices': [
-        {'id': 'A', 'text': '국민총생산 (GNP)'},
-        {'id': 'B', 'text': '국내총생산 (GDP)'},
-        {'id': 'C', 'text': '소비자물가지수 (CPI)'},
-        {'id': 'D', 'text': '종합주가지수 (KOSPI)'},
-      ],
-      'answer': 'B',
-      'explanation': 'GDP(Gross Domestic Product)는 일정 기간 동안 한 나라 영토 안에서 생산된 최종 생산물의 시장가치 합계인 국내총생산입니다.',
+      'subtitle': '그래프에서 금리 최고점을 터치하세요',
+      'prompt': '현재 기준금리를 입력하세요',
+      'graphPoints': [0.3, 0.8, 0.6, 0.7, 0.1, 0.4, 0.5, 0.2, 0.35],
+      'highestIndex': 1,
+      'answerText': '3.5',
+      'explanation': '현재 우리나라의 한국은행 기준금리는 3.5% (2024년 기준)입니다.',
     },
   ];
 
-  String getCircleNumber(int index) {
+  @override
+  void dispose() {
+    _baseRateController.dispose();
+    super.dispose();
+  }
+
+  String getAlphabetLetter(int index) {
     switch (index) {
       case 0:
-        return '①';
+        return 'A.';
       case 1:
-        return '②';
+        return 'B.';
       case 2:
-        return '③';
+        return 'C.';
       case 3:
-        return '④';
+        return 'D.';
       default:
         return '';
     }
   }
 
   void _submitAnswer() {
-    if (_selectedAnswer == null || _isAnswered) return;
+    if (_isAnswered) return;
 
     final currentQ = _questions[_currentIdx];
-    final isCorrect = _selectedAnswer == currentQ['answer'];
+    final String type = currentQ['type'];
+
+    bool isCorrect = false;
+    List<String> selectedIds = [];
+
+    if (type == 'MULTIPLE_CHOICE') {
+      if (_selectedAnswer == null) return;
+      isCorrect = _selectedAnswer == currentQ['answer'];
+      selectedIds = [_selectedAnswer!];
+    } else if (type == 'MATCHING') {
+      final targets = currentQ['targetDescriptions'] as List<String>;
+      if (_matchingAnswers.length != targets.length) return;
+
+      final correctMapping = currentQ['correctMapping'] as Map<String, String>;
+      isCorrect = true;
+      for (var target in targets) {
+        if (_matchingAnswers[target] != correctMapping[target]) {
+          isCorrect = false;
+          break;
+        }
+      }
+      selectedIds = _matchingAnswers.values.toList();
+    } else if (type == 'REORDER') {
+      isCorrect = true;
+      final answer = currentQ['answer'] as List<String>;
+      for (int i = 0; i < answer.length; i++) {
+        if (_reorderList[i] != answer[i]) {
+          isCorrect = false;
+          break;
+        }
+      }
+      selectedIds = _reorderList;
+    } else if (type == 'GRAPH_INPUT') {
+      final textAns = _baseRateController.text.trim();
+      final bool isTextCorrect = textAns == currentQ['answerText'] || textAns == '${currentQ['answerText']}0' || textAns == '${currentQ['answerText']}%';
+      final bool isGraphCorrect = _selectedGraphIndex == currentQ['highestIndex'];
+      isCorrect = isTextCorrect && isGraphCorrect;
+      selectedIds = [_selectedGraphIndex.toString(), textAns];
+    }
 
     HapticFeedback.mediumImpact();
     setState(() {
       _isAnswered = true;
       _isCorrect = isCorrect;
       if (isCorrect) {
-        _score += 10; // 10문항이므로 한 문항당 10점
+        _score += 20; 
       }
     });
 
     final attemptPayload = {
       "questionId": currentQ['id'],
       "answer": {
-        "choiceIds": [_selectedAnswer]
+        "choiceIds": selectedIds
       }
     };
     debugPrint('Submitting answer to level test: $attemptPayload');
@@ -213,6 +238,15 @@ class _LevelTestScreenState extends State<LevelTestScreen> {
         _currentIdx++;
         _selectedAnswer = null;
         _isAnswered = false;
+        _matchingAnswers.clear();
+        _reorderList.clear();
+        _selectedGraphIndex = null;
+        _baseRateController.clear();
+        
+        final nextQ = _questions[_currentIdx];
+        if (nextQ['type'] == 'REORDER') {
+          _reorderList = List<String>.from(nextQ['initialOrder'] as List);
+        }
       });
     } else {
       _finishTest();
@@ -235,18 +269,21 @@ class _LevelTestScreenState extends State<LevelTestScreen> {
   @override
   Widget build(BuildContext context) {
     final currentQ = _questions[_currentIdx];
+    final totalQuestions = _questions.length;
+    final type = currentQ['type'];
 
     return Scaffold(
       backgroundColor: const Color(0xFFFFFFFF),
       body: SafeArea(
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // 1. Top Status Bar Container (Figma: padding 16px 24px 0px, height 44px)
+            // 1. Top App Bar & Progress Bar Area
             Container(
               width: double.infinity,
-              height: 44,
-              padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
-              child: Row(
+              padding: const EdgeInsets.fromLTRB(24, 12, 24, 0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   GestureDetector(
                     onTap: () {
@@ -254,63 +291,19 @@ class _LevelTestScreenState extends State<LevelTestScreen> {
                       Navigator.pop(context);
                     },
                     child: const Icon(
-                      Icons.close_rounded,
-                      color: Color(0xFF111827),
+                      Icons.arrow_back_ios_new_rounded,
+                      color: Color(0xFF6A7282),
                       size: 20,
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  const Text(
-                    '9:41',
-                    style: TextStyle(
-                      fontFamily: 'Pretendard',
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF111827),
-                      height: 20 / 14,
-                    ),
-                  ),
-                  const Spacer(),
-                  // Battery / Wifi Icon Placeholder
+                  const SizedBox(height: 14),
                   Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.wifi, size: 14, color: Color(0xFF111827)),
-                      const SizedBox(width: 4),
-                      Container(
-                        width: 20,
-                        height: 10,
-                        decoration: BoxDecoration(
-                          border: Border.all(color: const Color(0xFF111827), width: 1),
-                          borderRadius: BorderRadius.circular(2),
-                        ),
-                        padding: const EdgeInsets.all(1),
-                        child: Container(
-                          color: const Color(0xFF111827),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-
-            // 2. 10-Segmented Progress Indicator Section (Figma: padding 12px 24px 0px, height 52px)
-            Container(
-              width: double.infinity,
-              height: 52,
-              padding: const EdgeInsets.fromLTRB(24, 12, 24, 0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // 10 Segments Row
-                  Row(
-                    children: List.generate(10, (idx) {
+                    children: List.generate(totalQuestions, (idx) {
                       bool isActive = idx <= _currentIdx;
                       return Expanded(
                         child: Container(
                           height: 4,
-                          margin: EdgeInsets.only(right: idx == 9 ? 0 : 8),
+                          margin: EdgeInsets.only(right: idx == totalQuestions - 1 ? 0 : 8),
                           decoration: BoxDecoration(
                             color: isActive ? const Color(0xFF00EE94) : const Color(0xFFE4E8F0),
                             borderRadius: BorderRadius.circular(16777216),
@@ -319,11 +312,10 @@ class _LevelTestScreenState extends State<LevelTestScreen> {
                       );
                     }),
                   ),
-                  const SizedBox(height: 8),
-                  // Centered Step Counter "1/10"
+                  const SizedBox(height: 14),
                   Center(
                     child: Text(
-                      '${_currentIdx + 1}/10',
+                      '${_currentIdx + 1}/$totalQuestions',
                       style: const TextStyle(
                         fontFamily: 'Pretendard',
                         fontSize: 12,
@@ -337,148 +329,28 @@ class _LevelTestScreenState extends State<LevelTestScreen> {
               ),
             ),
 
-            // 3. Question Prompt Section (Figma: top 32px, left 24px, right 24px)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 32, 24, 0),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    currentQ['subtitle'] as String,
-                    style: const TextStyle(
-                      fontFamily: 'Pretendard',
-                      fontSize: 14,
-                      fontWeight: FontWeight.w400,
-                      color: Color(0xFF4B5563),
-                      height: 16 / 14,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    currentQ['prompt'] as String,
-                    style: const TextStyle(
-                      fontFamily: 'Pretendard',
-                      fontSize: 20,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF111827),
-                      height: 24 / 20,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    currentQ['categoryText'] as String,
-                    style: const TextStyle(
-                      fontFamily: 'Pretendard',
-                      fontSize: 10,
-                      fontWeight: FontWeight.w400,
-                      color: Color(0xFF9CA3AF),
-                      height: 13 / 10,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 32),
-
-            // 4. Choices Buttons List (Figma: gap 12px)
+            // 2. Main Content Area
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                child: Column(
-                  children: List.generate((currentQ['choices'] as List).length, (choiceIdx) {
-                    final choice = (currentQ['choices'] as List)[choiceIdx] as Map<String, String>;
-                    final choiceId = choice['id']!;
-                    final choiceText = choice['text']!;
-                    final isSelected = _selectedAnswer == choiceId;
-
-                    // Dynamic colors based on answer & selection state
-                    Color btnBg = const Color(0xFFFFFFFF);
-                    Color borderCol = const Color(0xFFD0D5E0);
-                    double borderW = 1.0;
-                    Color txtCol = const Color(0xFF4B5563);
-                    FontWeight fontW = FontWeight.w500;
-
-                    if (_isAnswered) {
-                      if (choiceId == currentQ['answer']) {
-                        // Correct choice
-                        btnBg = const Color(0xFFF2FFFA);
-                        borderCol = const Color(0xFF00EE94);
-                        borderW = 2.0;
-                        txtCol = const Color(0xFF0DE593);
-                        fontW = FontWeight.w700;
-                      } else if (isSelected) {
-                        // Incorrect selection
-                        btnBg = const Color(0xFFFFF5F5);
-                        borderCol = const Color(0xFFEF4444);
-                        borderW = 2.0;
-                        txtCol = const Color(0xFFEF4444);
-                        fontW = FontWeight.w700;
-                      }
-                    } else if (isSelected) {
-                      // Normal selected state
-                      btnBg = const Color(0xFFF2FFFA);
-                      borderCol = const Color(0xFF00EE94);
-                      borderW = 2.0;
-                      txtCol = const Color(0xFF0DE593);
-                      fontW = FontWeight.w700;
+                padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 32.0),
+                child: Builder(
+                  builder: (context) {
+                    if (type == 'MULTIPLE_CHOICE') {
+                      return _buildMultipleChoiceContent(currentQ);
+                    } else if (type == 'MATCHING') {
+                      return _buildMatchingContent(currentQ);
+                    } else if (type == 'REORDER') {
+                      return _buildReorderContent(currentQ);
+                    } else if (type == 'GRAPH_INPUT') {
+                      return _buildGraphInputContent(currentQ);
                     }
-
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 12.0),
-                      child: GestureDetector(
-                        onTap: _isAnswered
-                            ? null
-                            : () {
-                                HapticFeedback.lightImpact();
-                                setState(() {
-                                  _selectedAnswer = choiceId;
-                                });
-                              },
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 150),
-                          width: double.infinity,
-                          height: 52,
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          decoration: BoxDecoration(
-                            color: btnBg,
-                            border: Border.all(color: borderCol, width: borderW),
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Row(
-                            children: [
-                              // Text combining circled number and choice text
-                              Expanded(
-                                child: Text(
-                                  '${getCircleNumber(choiceIdx)}  $choiceText',
-                                  style: TextStyle(
-                                    fontFamily: 'Pretendard',
-                                    fontSize: 13,
-                                    fontWeight: fontW,
-                                    color: txtCol,
-                                    height: 16 / 13,
-                                  ),
-                                ),
-                              ),
-                              // Visual check/cancel icon in answered state
-                              if (_isAnswered && choiceId == currentQ['answer'])
-                                const Icon(Icons.check_circle_rounded, color: Color(0xFF00EE94), size: 20)
-                              else if (_isAnswered && isSelected)
-                                const Icon(Icons.cancel_rounded, color: Color(0xFFEF4444), size: 20)
-                            ],
-                          ),
-                        ),
-                      ),
-                    );
-                  }),
+                    return const SizedBox.shrink();
+                  },
                 ),
               ),
             ),
 
-            // 5. Bottom Action Section (Figma: height 120px with padding 24px)
+            // 3. Bottom Action Section (Answer Check / Next Banner)
             _buildBottomActionSection(currentQ),
           ],
         ),
@@ -486,9 +358,641 @@ class _LevelTestScreenState extends State<LevelTestScreen> {
     );
   }
 
+  Widget _buildMultipleChoiceContent(Map<String, dynamic> currentQ) {
+    return Column(
+      children: [
+        if (currentQ['resourceTitle'] != null && currentQ['resourceText'] != null) ...[
+          Text(
+            currentQ['resourceTitle'] as String,
+            style: const TextStyle(
+              fontFamily: 'Pretendard',
+              fontSize: 20,
+              fontWeight: FontWeight.w400,
+              color: Color(0xFF111827),
+              height: 1.0,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 24),
+          Text(
+            currentQ['resourceText'] as String,
+            style: const TextStyle(
+              fontFamily: 'Pretendard',
+              fontSize: 14,
+              fontWeight: FontWeight.w400,
+              color: Color(0xFF4B5563),
+              height: 20 / 14,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 40),
+        ],
+        Text(
+          currentQ['subtitle'] as String,
+          style: const TextStyle(
+            fontFamily: 'Pretendard',
+            fontSize: 14,
+            fontWeight: FontWeight.w400,
+            color: Color(0xFF4B5563),
+            height: 16 / 14,
+          ),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 8),
+        Text(
+          currentQ['prompt'] as String,
+          style: const TextStyle(
+            fontFamily: 'Pretendard',
+            fontSize: 20,
+            fontWeight: FontWeight.w700,
+            color: Color(0xFF111827),
+            height: 24 / 20,
+          ),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 12),
+        if (currentQ['categoryText'] != null)
+          Text(
+            currentQ['categoryText'] as String,
+            style: const TextStyle(
+              fontFamily: 'Pretendard',
+              fontSize: 10,
+              fontWeight: FontWeight.w400,
+              color: Color(0xFF9CA3AF),
+              height: 13 / 10,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        const SizedBox(height: 32),
+        Column(
+          children: List.generate((currentQ['choices'] as List).length, (choiceIdx) {
+            final choice = (currentQ['choices'] as List)[choiceIdx] as Map<String, String>;
+            final choiceId = choice['id']!;
+            final choiceText = choice['text']!;
+            final choiceSubtitle = choice['subtitle'];
+            final isSelected = _selectedAnswer == choiceId;
+
+            Color btnBg = const Color(0xFFFFFFFF);
+            Color borderCol = const Color(0xFFD0D5E0);
+            double borderW = 1.0;
+            Color txtCol = const Color(0xFF111827);
+            Color circleCol = const Color(0xFFD0D5E0);
+
+            if (_isAnswered) {
+              if (choiceId == currentQ['answer']) {
+                btnBg = const Color(0xFFF2FFFA);
+                borderCol = const Color(0xFF00EE94);
+                borderW = 2.0;
+                circleCol = const Color(0xFF00EE94);
+              } else if (isSelected) {
+                btnBg = const Color(0xFFFFF5F5);
+                borderCol = const Color(0xFFEF4444);
+                borderW = 2.0;
+                circleCol = const Color(0xFFEF4444);
+              }
+            } else if (isSelected) {
+              btnBg = const Color(0xFFF2FFFA);
+              borderCol = const Color(0xFF00EE94);
+              borderW = 2.0;
+              circleCol = const Color(0xFF00EE94);
+            }
+
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 12.0),
+              child: GestureDetector(
+                onTap: _isAnswered
+                    ? null
+                    : () {
+                        HapticFeedback.lightImpact();
+                        setState(() {
+                          _selectedAnswer = choiceId;
+                        });
+                      },
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 150),
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: btnBg,
+                    border: Border.all(color: borderCol, width: borderW),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              '${getAlphabetLetter(choiceIdx)} $choiceText',
+                              style: TextStyle(
+                                fontFamily: 'Pretendard',
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: txtCol,
+                                height: 16 / 14,
+                              ),
+                            ),
+                            if (choiceSubtitle != null) ...[
+                              const SizedBox(height: 4),
+                              Text(
+                                choiceSubtitle,
+                                style: const TextStyle(
+                                  fontFamily: 'Pretendard',
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w500,
+                                  color: Color(0xFF9CA3AF),
+                                  height: 14 / 10,
+                                ),
+                              ),
+                            ]
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Container(
+                        width: 20,
+                        height: 20,
+                        decoration: BoxDecoration(
+                          color: circleCol,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.check_rounded,
+                          color: Colors.white,
+                          size: 14,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          }),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMatchingContent(Map<String, dynamic> currentQ) {
+    final draggables = currentQ['draggableItems'] as List<String>;
+    final targets = currentQ['targetDescriptions'] as List<String>;
+
+    // Filter out items that are already matched
+    final availableDraggables = draggables.where((item) => !_matchingAnswers.containsValue(item)).toList();
+
+    return Column(
+      children: [
+        const SizedBox(height: 16),
+        Text(
+          currentQ['prompt'] as String,
+          style: const TextStyle(
+            fontFamily: 'Pretendard',
+            fontSize: 14,
+            fontWeight: FontWeight.w400,
+            color: Color(0xFF9CA3AF),
+            height: 16 / 14,
+          ),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 32),
+
+        // Draggable Cards Row
+        Row(
+          children: [
+            Expanded(child: _buildDraggableItem(draggables[0], availableDraggables.contains(draggables[0]))),
+            const SizedBox(width: 7),
+            Expanded(child: _buildDraggableItem(draggables[1], availableDraggables.contains(draggables[1]))),
+          ],
+        ),
+        
+        const SizedBox(height: 30),
+
+        // Drag Targets (Dashed Slots)
+        Row(
+          children: [
+            Expanded(child: _buildDragTarget(targets[0])),
+            const SizedBox(width: 7),
+            Expanded(child: _buildDragTarget(targets[1])),
+          ],
+        ),
+
+        const SizedBox(height: 8),
+
+        // Descriptions Row
+        Row(
+          children: [
+            Expanded(child: _buildDescriptionCard(targets[0])),
+            const SizedBox(width: 7),
+            Expanded(child: _buildDescriptionCard(targets[1])),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDraggableItem(String text, bool isAvailable) {
+    if (!isAvailable) {
+      // Return an empty placeholder if it's already dragged
+      return const SizedBox(height: 51);
+    }
+
+    final card = Container(
+      height: 51,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(color: const Color(0xFFD0D5E0), width: 1),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        text,
+        style: const TextStyle(
+          fontFamily: 'Pretendard',
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
+          color: Color(0xFF111827),
+          height: 16 / 14,
+        ),
+      ),
+    );
+
+    return Draggable<String>(
+      data: text,
+      feedback: Material(
+        color: Colors.transparent,
+        child: Opacity(
+          opacity: 0.8,
+          child: SizedBox(
+            width: 196, // Fixed width for feedback to look similar
+            child: card,
+          ),
+        ),
+      ),
+      childWhenDragging: Opacity(
+        opacity: 0.3,
+        child: card,
+      ),
+      child: card,
+    );
+  }
+
+  Widget _buildDragTarget(String targetDesc) {
+    return DragTarget<String>(
+      onAcceptWithDetails: (details) {
+        HapticFeedback.lightImpact();
+        setState(() {
+          // If another target has this draggable, clear it
+          _matchingAnswers.removeWhere((key, value) => value == details.data);
+          _matchingAnswers[targetDesc] = details.data;
+        });
+      },
+      builder: (context, candidateData, rejectedData) {
+        final droppedItem = _matchingAnswers[targetDesc];
+
+        if (droppedItem != null) {
+          // Show the dropped card, make it tappable to remove
+          return GestureDetector(
+            onTap: _isAnswered
+                ? null
+                : () {
+                    HapticFeedback.lightImpact();
+                    setState(() {
+                      _matchingAnswers.remove(targetDesc);
+                    });
+                  },
+            child: Container(
+              height: 51,
+              decoration: BoxDecoration(
+                color: _isAnswered ? const Color(0xFFF2FFFA) : Colors.white,
+                border: Border.all(color: _isAnswered ? const Color(0xFF00EE94) : const Color(0xFF00EE94), width: _isAnswered ? 2 : 1),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              alignment: Alignment.center,
+              child: Text(
+                droppedItem,
+                style: TextStyle(
+                  fontFamily: 'Pretendard',
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: _isAnswered ? const Color(0xFF0DE593) : const Color(0xFF111827),
+                  height: 16 / 14,
+                ),
+              ),
+            ),
+          );
+        }
+
+        // Dashed Empty Slot
+        return CustomPaint(
+          painter: DashedRectPainter(
+            color: const Color(0xFFD0D5E0),
+            strokeWidth: 1.0,
+            gap: 4.0,
+          ),
+          child: Container(
+            height: 51,
+            alignment: Alignment.center,
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildReorderContent(Map<String, dynamic> currentQ) {
+    final choices = currentQ['choices'] as List;
+    final Map<String, String> idToText = {
+      for (var choice in choices) (choice as Map<String, String>)['id']!: choice['text']!
+    };
+
+    return Theme(
+      data: Theme.of(context).copyWith(
+        canvasColor: Colors.transparent,
+      ),
+      child: ReorderableListView(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        onReorder: (int oldIndex, int newIndex) {
+          if (_isAnswered) return;
+          setState(() {
+            if (oldIndex < newIndex) {
+              newIndex -= 1;
+            }
+            final String item = _reorderList.removeAt(oldIndex);
+            _reorderList.insert(newIndex, item);
+          });
+        },
+        children: [
+          for (int i = 0; i < _reorderList.length; i++)
+            Container(
+              key: ValueKey(_reorderList[i]),
+              margin: const EdgeInsets.only(bottom: 12.0),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                border: Border.all(color: const Color(0xFFD0D5E0), width: 2),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Row(
+                  children: [
+                    const Text(
+                      '⠿',
+                      style: TextStyle(
+                        fontFamily: 'Noto Sans KR',
+                        fontSize: 14,
+                        fontWeight: FontWeight.w400,
+                        color: Color(0xFF9CA3AF),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        idToText[_reorderList[i]] ?? '',
+                        style: const TextStyle(
+                          fontFamily: 'Pretendard',
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF111827),
+                          height: 16 / 14,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGraphInputContent(Map<String, dynamic> currentQ) {
+    final points = currentQ['graphPoints'] as List<double>;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Graph Container
+        Container(
+          width: double.infinity,
+          height: 150,
+          margin: const EdgeInsets.only(bottom: 24),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            border: Border.all(color: const Color(0xFFD0D5E0), width: 1),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Row(
+              children: [
+                // Y-Axis Labels
+                Column(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: const [
+                    Text('5%', style: TextStyle(color: Color(0xFF9CA3AF), fontSize: 10)),
+                    Text('3%', style: TextStyle(color: Color(0xFF9CA3AF), fontSize: 10)),
+                    Text('1%', style: TextStyle(color: Color(0xFF9CA3AF), fontSize: 10)),
+                  ],
+                ),
+                const SizedBox(width: 8),
+                // Graph area
+                Expanded(
+                  child: Stack(
+                    children: [
+                      // X & Y Axis Lines
+                      Positioned.fill(
+                        child: CustomPaint(
+                          painter: AxisPainter(),
+                        ),
+                      ),
+                      // Line Graph
+                      Positioned.fill(
+                        child: GestureDetector(
+                          onTapDown: _isAnswered ? null : (details) {
+                            final box = context.findRenderObject() as RenderBox?;
+                            if (box == null) return;
+                            final width = box.size.width; // Actually need the layout builder for exact width, but we can just use details.localPosition
+                            final dx = details.localPosition.dx;
+                            // Width is roughly Expanded width
+                            // We have points.length points.
+                            // approximate
+                          },
+                          child: LayoutBuilder(
+                            builder: (context, constraints) {
+                              return GestureDetector(
+                                onTapDown: _isAnswered ? null : (details) {
+                                  final double stepX = constraints.maxWidth / (points.length - 1);
+                                  final dx = details.localPosition.dx;
+                                  final int index = (dx / stepX).round();
+                                  if (index >= 0 && index < points.length) {
+                                    HapticFeedback.lightImpact();
+                                    setState(() {
+                                      _selectedGraphIndex = index;
+                                    });
+                                  }
+                                },
+                                child: CustomPaint(
+                                  size: Size(constraints.maxWidth, constraints.maxHeight),
+                                  painter: GraphLinePainter(
+                                    points: points,
+                                    selectedIndex: _selectedGraphIndex,
+                                    isAnswered: _isAnswered,
+                                    correctIndex: currentQ['highestIndex'],
+                                  ),
+                                ),
+                              );
+                            }
+                          ),
+                        ),
+                      ),
+                      // Tooltip
+                      if (_selectedGraphIndex != null)
+                        LayoutBuilder(
+                          builder: (context, constraints) {
+                            final double stepX = constraints.maxWidth / (points.length - 1);
+                            final double x = _selectedGraphIndex! * stepX;
+                            final double y = (1 - points[_selectedGraphIndex!]) * constraints.maxHeight;
+                            return Positioned(
+                              left: x - 25, // center tooltip
+                              top: y - 28,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFF2FFFA),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: const Text(
+                                  '최고점!',
+                                  style: TextStyle(
+                                    color: Color(0xFF0DE593),
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            );
+                          }
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        
+        // Input Title
+        const Text(
+          '현재 기준금리를 입력하세요',
+          style: TextStyle(
+            fontFamily: 'Noto Sans KR',
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF111827),
+          ),
+        ),
+        const SizedBox(height: 8),
+        // TextField
+        TextField(
+          controller: _baseRateController,
+          enabled: !_isAnswered,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          decoration: InputDecoration(
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: const BorderSide(color: Color(0xFFD0D5E0)),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: const BorderSide(color: Color(0xFFD0D5E0)),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: const BorderSide(color: Color(0xFF00EE94), width: 2),
+            ),
+            hintText: '입력해주세요 (예: 3.5)',
+            hintStyle: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 14),
+          ),
+          onChanged: (val) {
+            setState(() {});
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDescriptionCard(String text) {
+    return Container(
+      height: 71,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(color: const Color(0xFFD0D5E0), width: 1),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        text,
+        textAlign: TextAlign.center,
+        style: const TextStyle(
+          fontFamily: 'Noto Sans KR',
+          fontSize: 12,
+          fontWeight: FontWeight.w400,
+          color: Color(0xFF4B5563),
+          height: 14 / 12,
+        ),
+      ),
+    );
+  }
+
   Widget _buildBottomActionSection(Map<String, dynamic> currentQ) {
     if (!_isAnswered) {
-      final hasSelected = _selectedAnswer != null;
+      bool canSubmit = false;
+      if (currentQ['type'] == 'MULTIPLE_CHOICE') {
+        canSubmit = _selectedAnswer != null;
+      } else if (currentQ['type'] == 'MATCHING') {
+        canSubmit = _matchingAnswers.length == 2;
+      } else if (currentQ['type'] == 'REORDER') {
+        canSubmit = _reorderList.isNotEmpty;
+      } else if (currentQ['type'] == 'GRAPH_INPUT') {
+        canSubmit = _selectedGraphIndex != null && _baseRateController.text.trim().isNotEmpty;
+      }
+      
+      if (!_isAnswered && currentQ['type'] == 'REORDER') {
+        return Container(
+          width: double.infinity,
+          height: 48,
+          margin: const EdgeInsets.only(top: 24),
+          child: ElevatedButton(
+            onPressed: canSubmit ? _submitAnswer : null,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF00EE94),
+              foregroundColor: Colors.white,
+              disabledBackgroundColor: const Color(0xFFD0D5E0),
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+            child: const Text(
+              '제출',
+              style: TextStyle(
+                fontFamily: 'Pretendard',
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        );
+      }
+
+      if (!_isAnswered && currentQ['type'] == 'REORDER') return const SizedBox.shrink(); // fallback
+
       return Container(
         width: double.infinity,
         padding: const EdgeInsets.fromLTRB(24, 24, 24, 20),
@@ -496,19 +1000,18 @@ class _LevelTestScreenState extends State<LevelTestScreen> {
           color: Colors.white,
           border: Border(top: BorderSide(color: Color(0xFFE4E8F0), width: 1)),
         ),
-        child: SizedBox(
+        child: Container(
           width: double.infinity,
-          height: 48,
+          margin: const EdgeInsets.only(top: 24),
           child: ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: hasSelected ? const Color(0xFF00EE94) : const Color(0xFFD0D5E0),
-              foregroundColor: Colors.white,
+              backgroundColor: canSubmit ? const Color(0xFF00EE94) : const Color(0xFFD0D5E0),
               elevation: 0,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(10),
               ),
             ),
-            onPressed: hasSelected ? _submitAnswer : null,
+            onPressed: canSubmit ? _submitAnswer : null,
             child: const Text(
               '정답 확인',
               style: TextStyle(
@@ -524,7 +1027,6 @@ class _LevelTestScreenState extends State<LevelTestScreen> {
       );
     }
 
-    // Feedback state Duolingo-style Banner Sheet
     final isCorrect = _isCorrect;
     return Container(
       width: double.infinity,
@@ -603,3 +1105,93 @@ class _LevelTestScreenState extends State<LevelTestScreen> {
     );
   }
 }
+
+class AxisPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = const Color(0xFFE4E8F0)
+      ..strokeWidth = 1.0;
+    
+    // Y-axis line
+    canvas.drawLine(Offset(0, 0), Offset(0, size.height), paint);
+    
+    // X-axis line
+    canvas.drawLine(Offset(0, size.height), Offset(size.width, size.height), paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+class GraphLinePainter extends CustomPainter {
+  final List<double> points;
+  final int? selectedIndex;
+  final bool isAnswered;
+  final int correctIndex;
+
+  GraphLinePainter({
+    required this.points,
+    required this.selectedIndex,
+    required this.isAnswered,
+    required this.correctIndex,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (points.isEmpty) return;
+
+    final linePaint = Paint()
+      ..color = const Color(0xFF00EE94)
+      ..strokeWidth = 2.0
+      ..style = PaintingStyle.stroke;
+
+    final path = Path();
+    final double stepX = size.width / (points.length - 1);
+
+    for (int i = 0; i < points.length; i++) {
+      final double x = i * stepX;
+      final double y = (1 - points[i]) * size.height;
+      if (i == 0) {
+        path.moveTo(x, y);
+      } else {
+        path.lineTo(x, y);
+      }
+    }
+    
+    canvas.drawPath(path, linePaint);
+
+    // Draw selected circle
+    if (selectedIndex != null) {
+      final double x = selectedIndex! * stepX;
+      final double y = (1 - points[selectedIndex!]) * size.height;
+      
+      Color circleColor = const Color(0xFF00EE94);
+      if (isAnswered && selectedIndex != correctIndex) {
+        circleColor = const Color(0xFFEF4444); // wrong selection
+      }
+
+      final circlePaint = Paint()
+        ..color = circleColor
+        ..style = PaintingStyle.fill;
+        
+      canvas.drawCircle(Offset(x, y), 6.0, circlePaint);
+    }
+    
+    // If answered correctly, or if we want to show correct answer on wrong
+    if (isAnswered && selectedIndex != correctIndex) {
+      final double x = correctIndex * stepX;
+      final double y = (1 - points[correctIndex]) * size.height;
+      final correctPaint = Paint()
+        ..color = const Color(0xFF00EE94)
+        ..style = PaintingStyle.fill;
+      canvas.drawCircle(Offset(x, y), 6.0, correctPaint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant GraphLinePainter oldDelegate) {
+    return oldDelegate.selectedIndex != selectedIndex || oldDelegate.isAnswered != isAnswered;
+  }
+}
+
