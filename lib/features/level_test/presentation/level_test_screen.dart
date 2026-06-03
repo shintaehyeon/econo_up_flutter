@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:ui';
 import 'level_test_result_screen.dart';
+import 'level_test_feedback_screen.dart';
 
 class DashedRectPainter extends CustomPainter {
   final Color color;
@@ -76,7 +77,43 @@ class _LevelTestScreenState extends State<LevelTestScreen> {
   int _score = 0;
 
   // 5 high-quality finance/economics questions
-  final List<Map<String, dynamic>> _questions = [];
+  // 실제 로컬 시연을 위해, 방금 주신 캡처본(기획안)과 동일한 문항 2개만 임시로 넣습니다.
+  // 추후 API 연동 시 이 배열은 비우거나 서버 데이터로 교체하시면 됩니다.
+  final List<Map<String, dynamic>> _questions = [
+    {
+      'type': 'MULTIPLE_CHOICE',
+      'id': 'q_demo_01',
+      'categoryText': '경제 상식 · 금리',
+      'prompt': '금리가 오르면 일반적으로\n채권 가격은 어떻게 될까요?',
+      'subtitle': '',
+      'choices': [
+        {'id': 'A', 'text': '오른다'},
+        {'id': 'B', 'text': '내려간다'},
+        {'id': 'C', 'text': '변화 없다'},
+        {'id': 'D', 'text': '알 수 없다'},
+      ],
+      'answer': 'B',
+      'explanation': '금리↓ → 기존 채권의 이자가 상대적으로\n매력적 → 채권 수요↑ → 채권 가격↑',
+      'highlightText': '금리와 채권 가격은 반대로 움직인다.',
+    },
+    {
+      'type': 'REORDER',
+      'id': 'q_demo_02',
+      'subtitle': '드래그해서 올바른 순서로 나열하세요',
+      'prompt': '기준금리 인상 → 소비 감소 과정',
+      'choices': [
+        {'id': 'A', 'text': 'A. 기준금리 인상'},
+        {'id': 'B', 'text': 'B. 대출 이자 부담↑'},
+        {'id': 'C', 'text': 'C. 시중금리 상승'},
+        {'id': 'D', 'text': 'D. 가처분소득↓'},
+        {'id': 'E', 'text': 'E. 소비 감소'},
+      ],
+      'initialOrder': ['A', 'B', 'C', 'D', 'E'],
+      'answer': ['A', 'C', 'B', 'D', 'E'],
+      'explanation': '기준금리가 인상되면 시중금리가 오르고, 대출 이자 부담이 커지면서 가처분소득이 줄어 소비가 감소하게 됩니다.',
+      'highlightText': '',
+    },
+  ];
 
   @override
   void dispose() {
@@ -159,6 +196,31 @@ class _LevelTestScreenState extends State<LevelTestScreen> {
       }
     };
     debugPrint('Submitting answer to level test: $attemptPayload');
+
+    Navigator.push(
+      context,
+      PageRouteBuilder(
+        pageBuilder: (context, animation, secondaryAnimation) => LevelTestFeedbackScreen(
+          isCorrect: isCorrect,
+          explanation: currentQ['explanation'] as String? ?? '',
+          highlightText: currentQ['highlightText'] as String? ?? '',
+          isLastQuestion: _currentIdx == _questions.length - 1,
+          onNext: _nextQuestion,
+        ),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          const begin = Offset(0.0, 1.0);
+          const end = Offset.zero;
+          const curve = Curves.easeInOut;
+
+          var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+
+          return SlideTransition(
+            position: animation.drive(tween),
+            child: child,
+          );
+        },
+      ),
+    );
   }
 
   void _nextQuestion() {
@@ -917,36 +979,6 @@ class _LevelTestScreenState extends State<LevelTestScreen> {
         canSubmit = _selectedGraphIndex != null && _baseRateController.text.trim().isNotEmpty;
       }
       
-      if (!_isAnswered && currentQ['type'] == 'REORDER') {
-        return Container(
-          width: double.infinity,
-          height: 48,
-          margin: const EdgeInsets.only(top: 24),
-          child: ElevatedButton(
-            onPressed: canSubmit ? _submitAnswer : null,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF00EE94),
-              foregroundColor: Colors.white,
-              disabledBackgroundColor: const Color(0xFFD0D5E0),
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-            ),
-            child: const Text(
-              '제출',
-              style: TextStyle(
-                fontFamily: 'Pretendard',
-                fontSize: 14,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-        );
-      }
-
-      if (!_isAnswered && currentQ['type'] == 'REORDER') return const SizedBox.shrink(); // fallback
-
       return Container(
         width: double.infinity,
         padding: const EdgeInsets.fromLTRB(24, 24, 24, 20),
@@ -958,22 +990,23 @@ class _LevelTestScreenState extends State<LevelTestScreen> {
           width: double.infinity,
           margin: const EdgeInsets.only(top: 24),
           child: ElevatedButton(
+            onPressed: canSubmit ? _submitAnswer : null,
             style: ElevatedButton.styleFrom(
-              backgroundColor: canSubmit ? const Color(0xFF00EE94) : const Color(0xFFD0D5E0),
+              backgroundColor: const Color(0xFF00EE94),
+              foregroundColor: Colors.white,
+              disabledBackgroundColor: const Color(0xFFD0D5E0),
               elevation: 0,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(10),
               ),
+              padding: const EdgeInsets.symmetric(vertical: 14),
             ),
-            onPressed: canSubmit ? _submitAnswer : null,
-            child: const Text(
-              '정답 확인',
-              style: TextStyle(
+            child: Text(
+              currentQ['type'] == 'MULTIPLE_CHOICE' ? '정답 확인' : '다음',
+              style: const TextStyle(
                 fontFamily: 'Pretendard',
                 fontSize: 14,
                 fontWeight: FontWeight.w700,
-                color: Colors.white,
-                height: 20 / 14,
               ),
             ),
           ),
@@ -981,82 +1014,7 @@ class _LevelTestScreenState extends State<LevelTestScreen> {
       );
     }
 
-    final isCorrect = _isCorrect;
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: isCorrect ? const Color(0xFFF2FFFA) : const Color(0xFFFFF0F2),
-        border: Border(
-          top: BorderSide(
-            color: isCorrect ? const Color(0xFF00EE94).withOpacity(0.3) : const Color(0xFFEF4444).withOpacity(0.3),
-            width: 1.5,
-          ),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Row(
-            children: [
-              Icon(
-                isCorrect ? Icons.check_circle_rounded : Icons.error_outline_rounded,
-                color: isCorrect ? const Color(0xFF00EE94) : const Color(0xFFEF4444),
-                size: 24,
-              ),
-              const SizedBox(width: 8),
-              Text(
-                isCorrect ? '훌륭합니다! 정답이에요.' : '아쉬워요, 오답입니다.',
-                style: TextStyle(
-                  fontFamily: 'Pretendard',
-                  fontSize: 16,
-                  fontWeight: FontWeight.w900,
-                  color: isCorrect ? const Color(0xFF0DE593) : const Color(0xFFEF4444),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            currentQ['explanation'] as String,
-            style: TextStyle(
-              fontFamily: 'Pretendard',
-              fontSize: 12,
-              height: 1.4,
-              color: isCorrect ? const Color(0xFF4B5563) : const Color(0xFFBC3347),
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          const SizedBox(height: 16),
-          SizedBox(
-            width: double.infinity,
-            height: 48,
-            child: ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: isCorrect ? const Color(0xFF00EE94) : const Color(0xFFEF4444),
-                foregroundColor: Colors.white,
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-              onPressed: _nextQuestion,
-              child: Text(
-                _currentIdx == _questions.length - 1 ? '결과 확인하기 🎉' : '다음',
-                style: const TextStyle(
-                  fontFamily: 'Pretendard',
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.white,
-                  height: 20 / 14,
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
+    return const SizedBox.shrink();
   }
 }
 
