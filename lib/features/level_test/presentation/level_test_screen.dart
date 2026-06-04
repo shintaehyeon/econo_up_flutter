@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'dart:ui';
 import 'level_test_result_screen.dart';
 import 'level_test_feedback_screen.dart';
+import '../data/level_test_mock_data.dart';
 
 class DashedRectPainter extends CustomPainter {
   final Color color;
@@ -77,43 +78,8 @@ class _LevelTestScreenState extends State<LevelTestScreen> {
   int _score = 0;
 
   // 5 high-quality finance/economics questions
-  // 실제 로컬 시연을 위해, 방금 주신 캡처본(기획안)과 동일한 문항 2개만 임시로 넣습니다.
-  // 추후 API 연동 시 이 배열은 비우거나 서버 데이터로 교체하시면 됩니다.
-  final List<Map<String, dynamic>> _questions = [
-    {
-      'type': 'MULTIPLE_CHOICE',
-      'id': 'q_demo_01',
-      'categoryText': '경제 상식 · 금리',
-      'prompt': '금리가 오르면 일반적으로\n채권 가격은 어떻게 될까요?',
-      'subtitle': '',
-      'choices': [
-        {'id': 'A', 'text': '오른다'},
-        {'id': 'B', 'text': '내려간다'},
-        {'id': 'C', 'text': '변화 없다'},
-        {'id': 'D', 'text': '알 수 없다'},
-      ],
-      'answer': 'B',
-      'explanation': '금리↓ → 기존 채권의 이자가 상대적으로\n매력적 → 채권 수요↑ → 채권 가격↑',
-      'highlightText': '금리와 채권 가격은 반대로 움직인다.',
-    },
-    {
-      'type': 'REORDER',
-      'id': 'q_demo_02',
-      'subtitle': '드래그해서 올바른 순서로 나열하세요',
-      'prompt': '기준금리 인상 → 소비 감소 과정',
-      'choices': [
-        {'id': 'A', 'text': 'A. 기준금리 인상'},
-        {'id': 'B', 'text': 'B. 대출 이자 부담↑'},
-        {'id': 'C', 'text': 'C. 시중금리 상승'},
-        {'id': 'D', 'text': 'D. 가처분소득↓'},
-        {'id': 'E', 'text': 'E. 소비 감소'},
-      ],
-      'initialOrder': ['A', 'B', 'C', 'D', 'E'],
-      'answer': ['A', 'C', 'B', 'D', 'E'],
-      'explanation': '기준금리가 인상되면 시중금리가 오르고, 대출 이자 부담이 커지면서 가처분소득이 줄어 소비가 감소하게 됩니다.',
-      'highlightText': '',
-    },
-  ];
+  // 분리된 목업 파일에서 데이터를 가져옵니다. 백엔드 API 연동 시 이 부분을 교체하면 됩니다.
+  final List<Map<String, dynamic>> _questions = List.from(levelTestMockData);
 
   @override
   void dispose() {
