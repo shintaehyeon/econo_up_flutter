@@ -47,7 +47,6 @@ final List<Map<String, dynamic>> levelTestMockData = [
     'initialOrder': ['A', 'B', 'C', 'D', 'E'],
     'answer': ['A', 'C', 'B', 'D', 'E'],
     'explanation': '기준금리가 인상되면 시중금리가 오르고, 대출 이자 부담이 커지면서 가처분소득이 줄어 소비가 감소하게 됩니다.',
-    'highlightText': '',
   },
   {
     'type': 'MULTIPLE_CHOICE',
@@ -61,8 +60,8 @@ final List<Map<String, dynamic>> levelTestMockData = [
       {'id': 'D', 'text': '외화(달러)', 'subtitle': '경제 상식을 쌓고 싶어요'},
     ],
     'answer': 'B',
-    'explanation': '금리가 내려가면 기존에 발행된, 상대적으로 높은 금리를 주는 채권의 가치가 높아져 채권 가격이 오르는 경향이 있습니다.',
-    'highlightText': '금리 인하 시 채권 가격 상승',
+    'explanation': '금리↓ → 채권 매력↑ → 채권 수요↑ → 채권 가격↑',
+    'highlightText': '정답은 ② 채권 입니다.',
   },
   {
     'type': 'GRAPH_INPUT',

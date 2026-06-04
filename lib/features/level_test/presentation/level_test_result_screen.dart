@@ -31,7 +31,7 @@ class LevelTestResultScreen extends StatelessWidget {
       levelColor = AppColors.gold;
       levelBg = const Color(0xFFFFFDF2);
       iconData = Icons.workspace_premium_rounded;
-    } else if (score >= 40) {
+    } else if (score >= 50) {
       levelName = '성장하는 실버 투자자';
       description = '기초적인 경제 흐름을 잘 이해하고 계십니다!';
       levelColor = AppColors.brand;
@@ -67,18 +67,8 @@ class LevelTestResultScreen extends StatelessWidget {
                             height: 4,
                             width: double.infinity,
                             decoration: BoxDecoration(
-                              color: const Color(0xFFE4E8F0),
+                              color: const Color(0xFF00EE94),
                               borderRadius: BorderRadius.circular(20),
-                            ),
-                          ),
-                          FractionallySizedBox(
-                            widthFactor: progressRatio,
-                            child: Container(
-                              height: 4,
-                              decoration: BoxDecoration(
-                                color: const Color(0xFF00EE94),
-                                borderRadius: BorderRadius.circular(20),
-                              ),
                             ),
                           ),
                         ],
@@ -86,7 +76,7 @@ class LevelTestResultScreen extends StatelessWidget {
                     ],
                   ),
                 ),
-                const SizedBox(height: 32),
+                const SizedBox(height: 16),
 
                 // Main Card
                 Padding(
@@ -154,7 +144,7 @@ class LevelTestResultScreen extends StatelessWidget {
                     ),
                   ),
                 ),
-                const SizedBox(height: 40),
+                const SizedBox(height: 24),
 
                 // Recommended Content
                 Padding(
@@ -182,7 +172,7 @@ class LevelTestResultScreen extends StatelessWidget {
                               subtitle: 'Unit 1. 금리',
                             ),
                           ),
-                          const SizedBox(height: 13),
+                          const SizedBox(width: 12),
                           Expanded(
                             child: _buildRecommendedCard(
                               emoji: '💰',
@@ -249,7 +239,7 @@ class LevelTestResultScreen extends StatelessWidget {
   }) {
     return Container(
       height: 84,
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
       decoration: BoxDecoration(
         color: Colors.white,
         border: Border.all(color: const Color(0xFFD0D5E0)),
@@ -271,37 +261,40 @@ class LevelTestResultScreen extends StatelessWidget {
               style: const TextStyle(fontSize: 24),
             ),
           ),
-          const SizedBox(height: 0, width: 8), // Replaced padding with width spacing
+          const SizedBox(width: 6), // Use designer's 6px gap
           Expanded(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontFamily: 'Pretendard',
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF111827),
-                    height: 1.18,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontFamily: 'Pretendard',
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF111827),
+                      height: 1.18,
+                    ),
                   ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  subtitle,
-                  style: const TextStyle(
-                    fontFamily: 'Pretendard',
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF6A7282),
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(
+                      fontFamily: 'Pretendard',
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF6A7282),
+                    ),
                   ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
+                ],
+              ),
             ),
           ),
+          const SizedBox(width: 4), // Small padding before arrow to ensure it's not sticking
           const Text(
             '→',
             style: TextStyle(

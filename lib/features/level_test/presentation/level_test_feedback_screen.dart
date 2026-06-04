@@ -19,10 +19,10 @@ class LevelTestFeedbackScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Color mainColor = isCorrect ? const Color(0xFF0DE593) : const Color(0xFFEF4444);
-    final Color bgColor = isCorrect ? const Color(0xFFF2FFFA) : const Color(0xFFFFF0F2);
+    final Color mainColor = isCorrect ? const Color(0xFF0DE593) : const Color(0xFFFF7C1F);
+    final Color bgColor = isCorrect ? const Color(0xFFF2FFFA) : const Color(0xFFFFF6F2);
     final String title = isCorrect ? '정답!' : '오답!';
-    final IconData icon = isCorrect ? Icons.check_circle_rounded : Icons.cancel_rounded;
+    final IconData icon = isCorrect ? Icons.check_rounded : Icons.close_rounded;
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -44,7 +44,15 @@ class LevelTestFeedbackScreen extends StatelessWidget {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(icon, color: mainColor, size: 20),
+                    Container(
+                      width: 20,
+                      height: 20,
+                      decoration: BoxDecoration(
+                        color: mainColor,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(icon, color: Colors.white, size: 14),
+                    ),
                     const SizedBox(width: 8),
                     Text(
                       title,
@@ -110,23 +118,61 @@ class LevelTestFeedbackScreen extends StatelessWidget {
               ),
               const SizedBox(height: 11),
               
-              // XP Badge
+              // XP or Penalty Badge
               if (isCorrect)
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF2FFFA),
+                    color: bgColor,
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: const Text(
+                  child: Text(
                     '+10 XP',
                     style: TextStyle(
                       fontFamily: 'Pretendard',
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
-                      color: Color(0xFF0DE593),
+                      color: mainColor,
                     ),
                   ),
+                )
+              else
+                Column(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: bgColor,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.favorite, color: mainColor, size: 14),
+                          const SizedBox(width: 4),
+                          Text(
+                            '-1',
+                            style: TextStyle(
+                              fontFamily: 'Pretendard',
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: mainColor,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      '하트는 유닛당 카운트 됩니다.',
+                      style: TextStyle(
+                        fontFamily: 'Noto Sans KR',
+                        fontSize: 10,
+                        fontWeight: FontWeight.w400,
+                        color: mainColor,
+                      ),
+                    ),
+                  ],
                 ),
               
               const Spacer(),

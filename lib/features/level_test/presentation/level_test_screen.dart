@@ -87,19 +87,9 @@ class _LevelTestScreenState extends State<LevelTestScreen> {
     super.dispose();
   }
 
-  String getAlphabetLetter(int index) {
-    switch (index) {
-      case 0:
-        return 'A.';
-      case 1:
-        return 'B.';
-      case 2:
-        return 'C.';
-      case 3:
-        return 'D.';
-      default:
-        return '';
-    }
+  String _getCircleNumber(int index) {
+    const circles = ['①', '②', '③', '④', '⑤', '⑥', '⑦', '⑧', '⑨', '⑩'];
+    return (index >= 0 && index < circles.length) ? circles[index] : '${index + 1}.';
   }
 
   void _submitAnswer() {
@@ -163,13 +153,32 @@ class _LevelTestScreenState extends State<LevelTestScreen> {
     };
     debugPrint('Submitting answer to level test: $attemptPayload');
 
+    String generatedHighlight = currentQ['highlightText'] as String? ?? '';
+    if (generatedHighlight.isEmpty && !isCorrect) {
+      if (type == 'MULTIPLE_CHOICE') {
+        final choices = currentQ['choices'] as List<dynamic>?;
+        if (choices != null) {
+          Map<String, dynamic>? correctChoice;
+          for (var c in choices) {
+            if (c['id'] == currentQ['answer']) {
+              correctChoice = c as Map<String, dynamic>;
+              break;
+            }
+          }
+          if (correctChoice != null) {
+            generatedHighlight = '정답은 ${correctChoice['id']}. ${correctChoice['text']} 입니다.';
+          }
+        }
+      }
+    }
+
     Navigator.push(
       context,
       PageRouteBuilder(
         pageBuilder: (context, animation, secondaryAnimation) => LevelTestFeedbackScreen(
           isCorrect: isCorrect,
           explanation: currentQ['explanation'] as String? ?? '',
-          highlightText: currentQ['highlightText'] as String? ?? '',
+          highlightText: generatedHighlight,
           isLastQuestion: _currentIdx == _questions.length - 1,
           onNext: _nextQuestion,
         ),
@@ -211,6 +220,113 @@ class _LevelTestScreenState extends State<LevelTestScreen> {
     }
   }
 
+  Future<bool> _showExitDialog() async {
+    HapticFeedback.lightImpact();
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+            side: const BorderSide(color: Color(0xFFD0D5E0)),
+          ),
+          backgroundColor: Colors.white,
+          insetPadding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Container(
+            width: 335,
+            padding: const EdgeInsets.fromLTRB(34, 22, 34, 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Text(
+                  '😢',
+                  style: TextStyle(fontSize: 32),
+                ),
+                const SizedBox(height: 14),
+                const Text(
+                  '벌써 가시려고요?',
+                  style: TextStyle(
+                    fontFamily: 'Pretendard',
+                    fontWeight: FontWeight.w700,
+                    fontSize: 18,
+                    color: Color(0xFF111827),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  '지금까지 배운 내용이\n저장되지 않을 수 있어요.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontFamily: 'Pretendard',
+                    fontWeight: FontWeight.w400,
+                    fontSize: 13,
+                    color: Color(0xFF9CA3AF),
+                    height: 1.23,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Expanded(
+                      child: SizedBox(
+                        height: 38,
+                        child: TextButton(
+                          onPressed: () => Navigator.pop(context, true),
+                          style: TextButton.styleFrom(
+                            backgroundColor: const Color(0xFFF0F2F7),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                          ),
+                          child: const Text(
+                            '나가기',
+                            style: TextStyle(
+                              fontFamily: 'Pretendard',
+                              fontWeight: FontWeight.w500,
+                              fontSize: 14,
+                              color: Color(0xFF4B5563),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: SizedBox(
+                        height: 38,
+                        child: TextButton(
+                          onPressed: () => Navigator.pop(context, false),
+                          style: TextButton.styleFrom(
+                            backgroundColor: const Color(0xFF00EE94),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                          ),
+                          child: const Text(
+                            '계속 학습',
+                            style: TextStyle(
+                              fontFamily: 'Pretendard',
+                              fontWeight: FontWeight.w700,
+                              fontSize: 14,
+                              color: Color(0xFF4B5563),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+    return result ?? false;
+  }
+
   void _finishTest() {
     debugPrint('Completing level test with score: $_score');
     Navigator.pushReplacement(
@@ -227,14 +343,19 @@ class _LevelTestScreenState extends State<LevelTestScreen> {
   @override
   Widget build(BuildContext context) {
     if (_questions.isEmpty) {
-      return Scaffold(
+      return WillPopScope(
+        onWillPop: _showExitDialog,
+        child: Scaffold(
         backgroundColor: Colors.white,
         appBar: AppBar(
           backgroundColor: Colors.white,
           elevation: 0,
           leading: IconButton(
             icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Color(0xFF6A7282), size: 20),
-            onPressed: () => Navigator.pop(context),
+            onPressed: () async {
+              final shouldPop = await _showExitDialog();
+              if (shouldPop && mounted) Navigator.pop(context);
+            },
           ),
         ),
         body: const Center(
@@ -247,6 +368,7 @@ class _LevelTestScreenState extends State<LevelTestScreen> {
             ),
           ),
         ),
+        ),
       );
     }
 
@@ -254,8 +376,10 @@ class _LevelTestScreenState extends State<LevelTestScreen> {
     final totalQuestions = _questions.length;
     final type = currentQ['type'];
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFFFFFFF),
+    return WillPopScope(
+      onWillPop: _showExitDialog,
+      child: Scaffold(
+        backgroundColor: const Color(0xFFFFFFFF),
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -268,9 +392,9 @@ class _LevelTestScreenState extends State<LevelTestScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   GestureDetector(
-                    onTap: () {
-                      HapticFeedback.lightImpact();
-                      Navigator.pop(context);
+                    onTap: () async {
+                      final shouldPop = await _showExitDialog();
+                      if (shouldPop && mounted) Navigator.pop(context);
                     },
                     child: const Icon(
                       Icons.arrow_back_ios_new_rounded,
@@ -335,6 +459,7 @@ class _LevelTestScreenState extends State<LevelTestScreen> {
             // 3. Bottom Action Section (Answer Check / Next Banner)
             _buildBottomActionSection(currentQ),
           ],
+        ),
         ),
       ),
     );
@@ -417,26 +542,29 @@ class _LevelTestScreenState extends State<LevelTestScreen> {
             Color btnBg = const Color(0xFFFFFFFF);
             Color borderCol = const Color(0xFFD0D5E0);
             double borderW = 1.0;
-            Color txtCol = const Color(0xFF111827);
-            Color circleCol = const Color(0xFFD0D5E0);
+            Color txtCol = const Color(0xFF4B5563);
+            FontWeight txtWeight = FontWeight.w500;
 
             if (_isAnswered) {
               if (choiceId == currentQ['answer']) {
                 btnBg = const Color(0xFFF2FFFA);
                 borderCol = const Color(0xFF00EE94);
                 borderW = 2.0;
-                circleCol = const Color(0xFF00EE94);
+                txtCol = const Color(0xFF0DE593);
+                txtWeight = FontWeight.w700;
               } else if (isSelected) {
                 btnBg = const Color(0xFFFFF5F5);
                 borderCol = const Color(0xFFEF4444);
                 borderW = 2.0;
-                circleCol = const Color(0xFFEF4444);
+                txtCol = const Color(0xFFEF4444);
+                txtWeight = FontWeight.w700;
               }
             } else if (isSelected) {
               btnBg = const Color(0xFFF2FFFA);
               borderCol = const Color(0xFF00EE94);
               borderW = 2.0;
-              circleCol = const Color(0xFF00EE94);
+              txtCol = const Color(0xFF0DE593);
+              txtWeight = FontWeight.w700;
             }
 
             return Padding(
@@ -453,7 +581,7 @@ class _LevelTestScreenState extends State<LevelTestScreen> {
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 150),
                   width: double.infinity,
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                   decoration: BoxDecoration(
                     color: btnBg,
                     border: Border.all(color: borderCol, width: borderW),
@@ -468,13 +596,13 @@ class _LevelTestScreenState extends State<LevelTestScreen> {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Text(
-                              '${getAlphabetLetter(choiceIdx)} $choiceText',
+                              '${choiceId}. $choiceText',
                               style: TextStyle(
                                 fontFamily: 'Pretendard',
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
+                                fontSize: 13,
+                                fontWeight: txtWeight,
                                 color: txtCol,
-                                height: 16 / 14,
+                                height: 16 / 13,
                               ),
                             ),
                             if (choiceSubtitle != null) ...[
@@ -493,12 +621,12 @@ class _LevelTestScreenState extends State<LevelTestScreen> {
                           ],
                         ),
                       ),
-                      const SizedBox(width: 12),
+                      const SizedBox(width: 8),
                       Container(
                         width: 20,
                         height: 20,
                         decoration: BoxDecoration(
-                          color: circleCol,
+                          color: isSelected ? const Color(0xFF00EE94) : const Color(0xFFD0D5E0),
                           shape: BoxShape.circle,
                         ),
                         child: const Icon(
@@ -689,13 +817,40 @@ class _LevelTestScreenState extends State<LevelTestScreen> {
       for (var choice in choices) (choice as Map<String, String>)['id']!: choice['text']!
     };
 
-    return Theme(
+    return Column(
+      children: [
+        const SizedBox(height: 8),
+        const Text(
+          '드래그해서 올바른 순서로 나열하세요',
+          style: TextStyle(
+            fontFamily: 'Pretendard',
+            fontSize: 14,
+            fontWeight: FontWeight.w400,
+            color: Color(0xFF9CA3AF),
+          ),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 12),
+        Text(
+          currentQ['prompt'] as String,
+          style: const TextStyle(
+            fontFamily: 'Pretendard',
+            fontSize: 18,
+            fontWeight: FontWeight.w700,
+            color: Color(0xFF111827),
+            height: 26 / 18,
+          ),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 32),
+        Theme(
       data: Theme.of(context).copyWith(
         canvasColor: Colors.transparent,
       ),
       child: ReorderableListView(
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
+        buildDefaultDragHandles: false,
         onReorder: (int oldIndex, int newIndex) {
           if (_isAnswered) return;
           setState(() {
@@ -717,19 +872,26 @@ class _LevelTestScreenState extends State<LevelTestScreen> {
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Padding(
-                padding: const EdgeInsets.all(16.0),
+                padding: const EdgeInsets.fromLTRB(8, 8, 16, 8),
                 child: Row(
                   children: [
-                    const Text(
-                      '⠿',
-                      style: TextStyle(
-                        fontFamily: 'Noto Sans KR',
-                        fontSize: 14,
-                        fontWeight: FontWeight.w400,
-                        color: Color(0xFF9CA3AF),
+                    ReorderableDragStartListener(
+                      index: i,
+                      child: Container(
+                        padding: const EdgeInsets.all(8.0),
+                        color: Colors.transparent,
+                        child: const Text(
+                          '⠿',
+                          style: TextStyle(
+                            fontFamily: 'Noto Sans KR',
+                            fontSize: 14,
+                            fontWeight: FontWeight.w400,
+                            color: Color(0xFF9CA3AF),
+                          ),
+                        ),
                       ),
                     ),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: 4),
                     Expanded(
                       child: Text(
                         idToText[_reorderList[i]] ?? '',
@@ -748,7 +910,9 @@ class _LevelTestScreenState extends State<LevelTestScreen> {
             ),
         ],
       ),
-    );
+    ),
+  ],
+);
   }
 
   Widget _buildGraphInputContent(Map<String, dynamic> currentQ) {
@@ -834,31 +998,37 @@ class _LevelTestScreenState extends State<LevelTestScreen> {
                       ),
                       // Tooltip
                       if (_selectedGraphIndex != null)
-                        LayoutBuilder(
-                          builder: (context, constraints) {
-                            final double stepX = constraints.maxWidth / (points.length - 1);
-                            final double x = _selectedGraphIndex! * stepX;
-                            final double y = (1 - points[_selectedGraphIndex!]) * constraints.maxHeight;
-                            return Positioned(
-                              left: x - 25, // center tooltip
-                              top: y - 28,
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFF2FFFA),
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                child: const Text(
-                                  '최고점!',
-                                  style: TextStyle(
-                                    color: Color(0xFF0DE593),
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold,
+                        Positioned.fill(
+                          child: LayoutBuilder(
+                            builder: (context, constraints) {
+                              final double stepX = constraints.maxWidth / (points.length - 1);
+                              final double x = _selectedGraphIndex! * stepX;
+                              final double y = (1 - points[_selectedGraphIndex!]) * constraints.maxHeight;
+                              return Stack(
+                                children: [
+                                  Positioned(
+                                    left: x - 25, // center tooltip
+                                    top: y - 28,
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFF2FFFA),
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                      child: const Text(
+                                        '최고점!',
+                                        style: TextStyle(
+                                          color: Color(0xFF0DE593),
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
                                   ),
-                                ),
-                              ),
-                            );
-                          }
+                                ],
+                              );
+                            },
+                          ),
                         ),
                     ],
                   ),
@@ -967,9 +1137,9 @@ class _LevelTestScreenState extends State<LevelTestScreen> {
               ),
               padding: const EdgeInsets.symmetric(vertical: 14),
             ),
-            child: Text(
-              currentQ['type'] == 'MULTIPLE_CHOICE' ? '정답 확인' : '다음',
-              style: const TextStyle(
+            child: const Text(
+              '제출',
+              style: TextStyle(
                 fontFamily: 'Pretendard',
                 fontSize: 14,
                 fontWeight: FontWeight.w700,
