@@ -2,56 +2,14 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'dart:ui';
 import 'level_test_result_screen.dart';
 import 'level_test_feedback_screen.dart';
 import '../data/level_test_mock_data.dart';
 
-class DashedRectPainter extends CustomPainter {
-  final Color color;
-  final double strokeWidth;
-  final double gap;
-
-  DashedRectPainter({
-    this.color = Colors.black,
-    this.strokeWidth = 1.0,
-    this.gap = 5.0,
-  });
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    var paint = Paint()
-      ..color = color
-      ..strokeWidth = strokeWidth
-      ..style = PaintingStyle.stroke;
-
-    var path = Path()
-      ..addRRect(
-        RRect.fromRectAndRadius(
-          Rect.fromLTWH(0, 0, size.width, size.height),
-          const Radius.circular(10),
-        ),
-      );
-
-    Path dashPath = Path();
-    double distance = 0.0;
-    for (PathMetric pathMetric in path.computeMetrics()) {
-      while (distance < pathMetric.length) {
-        dashPath.addPath(
-          pathMetric.extractPath(distance, distance + gap),
-          Offset.zero,
-        );
-        distance += gap * 2;
-      }
-      distance = 0.0; // Reset for next metric if any
-    }
-
-    canvas.drawPath(dashPath, paint);
-  }
-
-  @override
-  bool shouldRepaint(CustomPainter oldDelegate) => false;
-}
+import 'widgets/question_single_choice.dart';
+import 'widgets/question_matching.dart';
+import 'widgets/question_reorder.dart';
+import 'widgets/question_graph_input.dart';
 
 class LevelTestScreen extends StatefulWidget {
   final String nickname;
@@ -79,7 +37,6 @@ class _LevelTestScreenState extends State<LevelTestScreen> {
   final TextEditingController _baseRateController = TextEditingController();
 
   bool _isAnswered = false;
-  bool _isCorrect = false;
   int _score = 0;
 
   // 5 high-quality finance/economics questions
@@ -87,17 +44,20 @@ class _LevelTestScreenState extends State<LevelTestScreen> {
   final List<Map<String, dynamic>> _questions = List.from(levelTestMockData);
 
   @override
+  void initState() {
+    super.initState();
+    _baseRateController.addListener(() {
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
   void dispose() {
     _baseRateController.dispose();
     super.dispose();
   }
 
-  String _getCircleNumber(int index) {
-    const circles = ['①', '②', '③', '④', '⑤', '⑥', '⑦', '⑧', '⑨', '⑩'];
-    return (index >= 0 && index < circles.length)
-        ? circles[index]
-        : '${index + 1}.';
-  }
+
 
   void _submitAnswer() {
     if (_isAnswered) return;
@@ -150,7 +110,6 @@ class _LevelTestScreenState extends State<LevelTestScreen> {
     HapticFeedback.mediumImpact();
     setState(() {
       _isAnswered = true;
-      _isCorrect = isCorrect;
       if (isCorrect) {
         _score += 20;
       }
@@ -509,13 +468,42 @@ class _LevelTestScreenState extends State<LevelTestScreen> {
                   child: Builder(
                     builder: (context) {
                       if (type == 'MULTIPLE_CHOICE') {
-                        return _buildMultipleChoiceContent(currentQ);
+                        return QuestionSingleChoice(
+                          currentQ: currentQ,
+                          selectedAnswer: _selectedAnswer,
+                          isAnswered: _isAnswered,
+                          onAnswerSelected: (val) {
+                            setState(() => _selectedAnswer = val);
+                          },
+                        );
                       } else if (type == 'MATCHING') {
-                        return _buildMatchingContent(currentQ);
+                        return QuestionMatching(
+                          currentQ: currentQ,
+                          matchingAnswers: _matchingAnswers,
+                          isAnswered: _isAnswered,
+                          onMatchingChanged: (val) {
+                            setState(() => _matchingAnswers = val);
+                          },
+                        );
                       } else if (type == 'REORDER') {
-                        return _buildReorderContent(currentQ);
+                        return QuestionReorder(
+                          currentQ: currentQ,
+                          reorderList: _reorderList,
+                          isAnswered: _isAnswered,
+                          onReorderChanged: (val) {
+                            setState(() => _reorderList = val);
+                          },
+                        );
                       } else if (type == 'GRAPH_INPUT') {
-                        return _buildGraphInputContent(currentQ);
+                        return QuestionGraphInput(
+                          currentQ: currentQ,
+                          selectedGraphIndex: _selectedGraphIndex,
+                          baseRateController: _baseRateController,
+                          isAnswered: _isAnswered,
+                          onGraphIndexSelected: (val) {
+                            setState(() => _selectedGraphIndex = val);
+                          },
+                        );
                       }
                       return const SizedBox.shrink();
                     },
@@ -527,696 +515,6 @@ class _LevelTestScreenState extends State<LevelTestScreen> {
               _buildBottomActionSection(currentQ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildMultipleChoiceContent(Map<String, dynamic> currentQ) {
-    return Column(
-      children: [
-        if (currentQ['resourceTitle'] != null &&
-            currentQ['resourceText'] != null) ...[
-          Text(
-            currentQ['resourceTitle'] as String,
-            style: const TextStyle(
-              fontFamily: 'Pretendard',
-              fontSize: 20,
-              fontWeight: FontWeight.w400,
-              color: Color(0xFF111827),
-              height: 1.0,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 24),
-          Text(
-            currentQ['resourceText'] as String,
-            style: const TextStyle(
-              fontFamily: 'Pretendard',
-              fontSize: 14,
-              fontWeight: FontWeight.w400,
-              color: Color(0xFF4B5563),
-              height: 20 / 14,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 40),
-        ],
-        Text(
-          currentQ['subtitle'] as String,
-          style: const TextStyle(
-            fontFamily: 'Pretendard',
-            fontSize: 14,
-            fontWeight: FontWeight.w400,
-            color: Color(0xFF4B5563),
-            height: 16 / 14,
-          ),
-          textAlign: TextAlign.center,
-        ),
-        const SizedBox(height: 8),
-        Text(
-          currentQ['prompt'] as String,
-          style: const TextStyle(
-            fontFamily: 'Pretendard',
-            fontSize: 20,
-            fontWeight: FontWeight.w700,
-            color: Color(0xFF111827),
-            height: 24 / 20,
-          ),
-          textAlign: TextAlign.center,
-        ),
-        const SizedBox(height: 12),
-        if (currentQ['categoryText'] != null)
-          Text(
-            currentQ['categoryText'] as String,
-            style: const TextStyle(
-              fontFamily: 'Pretendard',
-              fontSize: 10,
-              fontWeight: FontWeight.w400,
-              color: Color(0xFF9CA3AF),
-              height: 13 / 10,
-            ),
-            textAlign: TextAlign.center,
-          ),
-        const SizedBox(height: 32),
-        Column(
-          children: List.generate((currentQ['choices'] as List).length, (
-            choiceIdx,
-          ) {
-            final choice =
-                (currentQ['choices'] as List)[choiceIdx] as Map<String, String>;
-            final choiceId = choice['id']!;
-            final choiceText = choice['text']!;
-            final choiceSubtitle = choice['subtitle'];
-            final isSelected = _selectedAnswer == choiceId;
-
-            Color btnBg = const Color(0xFFFFFFFF);
-            Color borderCol = const Color(0xFFD0D5E0);
-            double borderW = 1.0;
-            Color txtCol = const Color(0xFF4B5563);
-            FontWeight txtWeight = FontWeight.w500;
-
-            if (_isAnswered) {
-              if (choiceId == currentQ['answer']) {
-                btnBg = const Color(0xFFF2FFFA);
-                borderCol = const Color(0xFF00EE94);
-                borderW = 2.0;
-                txtCol = const Color(0xFF0DE593);
-                txtWeight = FontWeight.w700;
-              } else if (isSelected) {
-                btnBg = const Color(0xFFFFF5F5);
-                borderCol = const Color(0xFFEF4444);
-                borderW = 2.0;
-                txtCol = const Color(0xFFEF4444);
-                txtWeight = FontWeight.w700;
-              }
-            } else if (isSelected) {
-              btnBg = const Color(0xFFF2FFFA);
-              borderCol = const Color(0xFF00EE94);
-              borderW = 2.0;
-              txtCol = const Color(0xFF0DE593);
-              txtWeight = FontWeight.w700;
-            }
-
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 12.0),
-              child: GestureDetector(
-                onTap: _isAnswered
-                    ? null
-                    : () {
-                        HapticFeedback.lightImpact();
-                        setState(() {
-                          _selectedAnswer = choiceId;
-                        });
-                      },
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 150),
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 16,
-                  ),
-                  decoration: BoxDecoration(
-                    color: btnBg,
-                    border: Border.all(color: borderCol, width: borderW),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              '${choiceId}. $choiceText',
-                              style: TextStyle(
-                                fontFamily: 'Pretendard',
-                                fontSize: 13,
-                                fontWeight: txtWeight,
-                                color: txtCol,
-                                height: 16 / 13,
-                              ),
-                            ),
-                            if (choiceSubtitle != null) ...[
-                              const SizedBox(height: 4),
-                              Text(
-                                choiceSubtitle,
-                                style: const TextStyle(
-                                  fontFamily: 'Pretendard',
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w500,
-                                  color: Color(0xFF9CA3AF),
-                                  height: 14 / 10,
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Container(
-                        width: 20,
-                        height: 20,
-                        decoration: BoxDecoration(
-                          color: isSelected
-                              ? const Color(0xFF00EE94)
-                              : const Color(0xFFD0D5E0),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.check_rounded,
-                          color: Colors.white,
-                          size: 14,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            );
-          }),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildMatchingContent(Map<String, dynamic> currentQ) {
-    final draggables = currentQ['draggableItems'] as List<String>;
-    final targets = currentQ['targetDescriptions'] as List<String>;
-
-    // Filter out items that are already matched
-    final availableDraggables = draggables
-        .where((item) => !_matchingAnswers.containsValue(item))
-        .toList();
-
-    return Column(
-      children: [
-        const SizedBox(height: 16),
-        Text(
-          currentQ['prompt'] as String,
-          style: const TextStyle(
-            fontFamily: 'Pretendard',
-            fontSize: 14,
-            fontWeight: FontWeight.w400,
-            color: Color(0xFF9CA3AF),
-            height: 16 / 14,
-          ),
-          textAlign: TextAlign.center,
-        ),
-        const SizedBox(height: 32),
-
-        // Draggable Cards Row
-        Row(
-          children: [
-            Expanded(
-              child: _buildDraggableItem(
-                draggables[0],
-                availableDraggables.contains(draggables[0]),
-              ),
-            ),
-            const SizedBox(width: 7),
-            Expanded(
-              child: _buildDraggableItem(
-                draggables[1],
-                availableDraggables.contains(draggables[1]),
-              ),
-            ),
-          ],
-        ),
-
-        const SizedBox(height: 30),
-
-        // Drag Targets (Dashed Slots)
-        Row(
-          children: [
-            Expanded(child: _buildDragTarget(targets[0])),
-            const SizedBox(width: 7),
-            Expanded(child: _buildDragTarget(targets[1])),
-          ],
-        ),
-
-        const SizedBox(height: 8),
-
-        // Descriptions Row
-        Row(
-          children: [
-            Expanded(child: _buildDescriptionCard(targets[0])),
-            const SizedBox(width: 7),
-            Expanded(child: _buildDescriptionCard(targets[1])),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildDraggableItem(String text, bool isAvailable) {
-    if (!isAvailable) {
-      // Return an empty placeholder if it's already dragged
-      return const SizedBox(height: 51);
-    }
-
-    final card = Container(
-      height: 51,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: const Color(0xFFD0D5E0), width: 1),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      alignment: Alignment.center,
-      child: Text(
-        text,
-        style: const TextStyle(
-          fontFamily: 'Pretendard',
-          fontSize: 14,
-          fontWeight: FontWeight.w600,
-          color: Color(0xFF111827),
-          height: 16 / 14,
-        ),
-      ),
-    );
-
-    return Draggable<String>(
-      data: text,
-      feedback: Material(
-        color: Colors.transparent,
-        child: Opacity(
-          opacity: 0.8,
-          child: SizedBox(
-            width: 196, // Fixed width for feedback to look similar
-            child: card,
-          ),
-        ),
-      ),
-      childWhenDragging: Opacity(opacity: 0.3, child: card),
-      child: card,
-    );
-  }
-
-  Widget _buildDragTarget(String targetDesc) {
-    return DragTarget<String>(
-      onAcceptWithDetails: (details) {
-        HapticFeedback.lightImpact();
-        setState(() {
-          // If another target has this draggable, clear it
-          _matchingAnswers.removeWhere((key, value) => value == details.data);
-          _matchingAnswers[targetDesc] = details.data;
-        });
-      },
-      builder: (context, candidateData, rejectedData) {
-        final droppedItem = _matchingAnswers[targetDesc];
-
-        if (droppedItem != null) {
-          // Show the dropped card, make it tappable to remove
-          return GestureDetector(
-            onTap: _isAnswered
-                ? null
-                : () {
-                    HapticFeedback.lightImpact();
-                    setState(() {
-                      _matchingAnswers.remove(targetDesc);
-                    });
-                  },
-            child: Container(
-              height: 51,
-              decoration: BoxDecoration(
-                color: _isAnswered ? const Color(0xFFF2FFFA) : Colors.white,
-                border: Border.all(
-                  color: _isAnswered
-                      ? const Color(0xFF00EE94)
-                      : const Color(0xFF00EE94),
-                  width: _isAnswered ? 2 : 1,
-                ),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              alignment: Alignment.center,
-              child: Text(
-                droppedItem,
-                style: TextStyle(
-                  fontFamily: 'Pretendard',
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: _isAnswered
-                      ? const Color(0xFF0DE593)
-                      : const Color(0xFF111827),
-                  height: 16 / 14,
-                ),
-              ),
-            ),
-          );
-        }
-
-        // Dashed Empty Slot
-        return CustomPaint(
-          painter: DashedRectPainter(
-            color: const Color(0xFFD0D5E0),
-            strokeWidth: 1.0,
-            gap: 4.0,
-          ),
-          child: Container(height: 51, alignment: Alignment.center),
-        );
-      },
-    );
-  }
-
-  Widget _buildReorderContent(Map<String, dynamic> currentQ) {
-    final choices = currentQ['choices'] as List;
-    final Map<String, String> idToText = {
-      for (var choice in choices)
-        (choice as Map<String, String>)['id']!: choice['text']!,
-    };
-
-    return Column(
-      children: [
-        const SizedBox(height: 8),
-        const Text(
-          '드래그해서 올바른 순서로 나열하세요',
-          style: TextStyle(
-            fontFamily: 'Pretendard',
-            fontSize: 14,
-            fontWeight: FontWeight.w400,
-            color: Color(0xFF9CA3AF),
-          ),
-          textAlign: TextAlign.center,
-        ),
-        const SizedBox(height: 12),
-        Text(
-          currentQ['prompt'] as String,
-          style: const TextStyle(
-            fontFamily: 'Pretendard',
-            fontSize: 18,
-            fontWeight: FontWeight.w700,
-            color: Color(0xFF111827),
-            height: 26 / 18,
-          ),
-          textAlign: TextAlign.center,
-        ),
-        const SizedBox(height: 32),
-        Theme(
-          data: Theme.of(context).copyWith(canvasColor: Colors.transparent),
-          child: ReorderableListView(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            buildDefaultDragHandles: false,
-            onReorder: (int oldIndex, int newIndex) {
-              if (_isAnswered) return;
-              setState(() {
-                if (oldIndex < newIndex) {
-                  newIndex -= 1;
-                }
-                final String item = _reorderList.removeAt(oldIndex);
-                _reorderList.insert(newIndex, item);
-              });
-            },
-            children: [
-              for (int i = 0; i < _reorderList.length; i++)
-                Container(
-                  key: ValueKey(_reorderList[i]),
-                  margin: const EdgeInsets.only(bottom: 12.0),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    border: Border.all(
-                      color: const Color(0xFFD0D5E0),
-                      width: 2,
-                    ),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(8, 8, 16, 8),
-                    child: Row(
-                      children: [
-                        ReorderableDragStartListener(
-                          index: i,
-                          child: Container(
-                            padding: const EdgeInsets.all(8.0),
-                            color: Colors.transparent,
-                            child: const Text(
-                              '⠿',
-                              style: TextStyle(
-                                fontFamily: 'Noto Sans KR',
-                                fontSize: 14,
-                                fontWeight: FontWeight.w400,
-                                color: Color(0xFF9CA3AF),
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 4),
-                        Expanded(
-                          child: Text(
-                            idToText[_reorderList[i]] ?? '',
-                            style: const TextStyle(
-                              fontFamily: 'Pretendard',
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              color: Color(0xFF111827),
-                              height: 16 / 14,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildGraphInputContent(Map<String, dynamic> currentQ) {
-    final points = currentQ['graphPoints'] as List<double>;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Graph Container
-        Container(
-          width: double.infinity,
-          height: 150,
-          margin: const EdgeInsets.only(bottom: 24),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            border: Border.all(color: const Color(0xFFD0D5E0), width: 1),
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Row(
-              children: [
-                // Y-Axis Labels
-                Column(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: const [
-                    Text(
-                      '5%',
-                      style: TextStyle(color: Color(0xFF9CA3AF), fontSize: 10),
-                    ),
-                    Text(
-                      '3%',
-                      style: TextStyle(color: Color(0xFF9CA3AF), fontSize: 10),
-                    ),
-                    Text(
-                      '1%',
-                      style: TextStyle(color: Color(0xFF9CA3AF), fontSize: 10),
-                    ),
-                  ],
-                ),
-                const SizedBox(width: 8),
-                // Graph area
-                Expanded(
-                  child: Stack(
-                    children: [
-                      // X & Y Axis Lines
-                      Positioned.fill(
-                        child: CustomPaint(painter: AxisPainter()),
-                      ),
-                      // Line Graph
-                      Positioned.fill(
-                        child: GestureDetector(
-                          onTapDown: _isAnswered
-                              ? null
-                              : (details) {
-                                  final box =
-                                      context.findRenderObject() as RenderBox?;
-                                  if (box == null) return;
-                                  final width = box
-                                      .size
-                                      .width; // Actually need the layout builder for exact width, but we can just use details.localPosition
-                                  final dx = details.localPosition.dx;
-                                  // Width is roughly Expanded width
-                                  // We have points.length points.
-                                  // approximate
-                                },
-                          child: LayoutBuilder(
-                            builder: (context, constraints) {
-                              return GestureDetector(
-                                onTapDown: _isAnswered
-                                    ? null
-                                    : (details) {
-                                        final double stepX =
-                                            constraints.maxWidth /
-                                            (points.length - 1);
-                                        final dx = details.localPosition.dx;
-                                        final int index = (dx / stepX).round();
-                                        if (index >= 0 &&
-                                            index < points.length) {
-                                          HapticFeedback.lightImpact();
-                                          setState(() {
-                                            _selectedGraphIndex = index;
-                                          });
-                                        }
-                                      },
-                                child: CustomPaint(
-                                  size: Size(
-                                    constraints.maxWidth,
-                                    constraints.maxHeight,
-                                  ),
-                                  painter: GraphLinePainter(
-                                    points: points,
-                                    selectedIndex: _selectedGraphIndex,
-                                    isAnswered: _isAnswered,
-                                    correctIndex: currentQ['highestIndex'],
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-                        ),
-                      ),
-                      // Tooltip
-                      if (_selectedGraphIndex != null)
-                        Positioned.fill(
-                          child: LayoutBuilder(
-                            builder: (context, constraints) {
-                              final double stepX =
-                                  constraints.maxWidth / (points.length - 1);
-                              final double x = _selectedGraphIndex! * stepX;
-                              final double y =
-                                  (1 - points[_selectedGraphIndex!]) *
-                                  constraints.maxHeight;
-                              return Stack(
-                                children: [
-                                  Positioned(
-                                    left: x - 25, // center tooltip
-                                    top: y - 28,
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 8,
-                                        vertical: 4,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xFFF2FFFA),
-                                        borderRadius: BorderRadius.circular(10),
-                                      ),
-                                      child: const Text(
-                                        '최고점!',
-                                        style: TextStyle(
-                                          color: Color(0xFF0DE593),
-                                          fontSize: 10,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              );
-                            },
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-
-        // Input Title
-        const Text(
-          '현재 기준금리를 입력하세요',
-          style: TextStyle(
-            fontFamily: 'Noto Sans KR',
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-            color: Color(0xFF111827),
-          ),
-        ),
-        const SizedBox(height: 8),
-        // TextField
-        TextField(
-          controller: _baseRateController,
-          enabled: !_isAnswered,
-          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          decoration: InputDecoration(
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 16,
-            ),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(color: Color(0xFFD0D5E0)),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(color: Color(0xFFD0D5E0)),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(color: Color(0xFF00EE94), width: 2),
-            ),
-            hintText: '입력해주세요 (예: 3.5)',
-            hintStyle: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 14),
-          ),
-          onChanged: (val) {
-            setState(() {});
-          },
-        ),
-      ],
-    );
-  }
-
-  Widget _buildDescriptionCard(String text) {
-    return Container(
-      height: 71,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: const Color(0xFFD0D5E0), width: 1),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      alignment: Alignment.center,
-      child: Text(
-        text,
-        textAlign: TextAlign.center,
-        style: const TextStyle(
-          fontFamily: 'Noto Sans KR',
-          fontSize: 12,
-          fontWeight: FontWeight.w400,
-          color: Color(0xFF4B5563),
-          height: 14 / 12,
         ),
       ),
     );
@@ -1273,99 +571,5 @@ class _LevelTestScreenState extends State<LevelTestScreen> {
     }
 
     return const SizedBox.shrink();
-  }
-}
-
-class AxisPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = const Color(0xFFE4E8F0)
-      ..strokeWidth = 1.0;
-
-    // Y-axis line
-    canvas.drawLine(Offset(0, 0), Offset(0, size.height), paint);
-
-    // X-axis line
-    canvas.drawLine(
-      Offset(0, size.height),
-      Offset(size.width, size.height),
-      paint,
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
-
-class GraphLinePainter extends CustomPainter {
-  final List<double> points;
-  final int? selectedIndex;
-  final bool isAnswered;
-  final int correctIndex;
-
-  GraphLinePainter({
-    required this.points,
-    required this.selectedIndex,
-    required this.isAnswered,
-    required this.correctIndex,
-  });
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    if (points.isEmpty) return;
-
-    final linePaint = Paint()
-      ..color = const Color(0xFF00EE94)
-      ..strokeWidth = 2.0
-      ..style = PaintingStyle.stroke;
-
-    final path = Path();
-    final double stepX = size.width / (points.length - 1);
-
-    for (int i = 0; i < points.length; i++) {
-      final double x = i * stepX;
-      final double y = (1 - points[i]) * size.height;
-      if (i == 0) {
-        path.moveTo(x, y);
-      } else {
-        path.lineTo(x, y);
-      }
-    }
-
-    canvas.drawPath(path, linePaint);
-
-    // Draw selected circle
-    if (selectedIndex != null) {
-      final double x = selectedIndex! * stepX;
-      final double y = (1 - points[selectedIndex!]) * size.height;
-
-      Color circleColor = const Color(0xFF00EE94);
-      if (isAnswered && selectedIndex != correctIndex) {
-        circleColor = const Color(0xFFEF4444); // wrong selection
-      }
-
-      final circlePaint = Paint()
-        ..color = circleColor
-        ..style = PaintingStyle.fill;
-
-      canvas.drawCircle(Offset(x, y), 6.0, circlePaint);
-    }
-
-    // If answered correctly, or if we want to show correct answer on wrong
-    if (isAnswered && selectedIndex != correctIndex) {
-      final double x = correctIndex * stepX;
-      final double y = (1 - points[correctIndex]) * size.height;
-      final correctPaint = Paint()
-        ..color = const Color(0xFF00EE94)
-        ..style = PaintingStyle.fill;
-      canvas.drawCircle(Offset(x, y), 6.0, correctPaint);
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant GraphLinePainter oldDelegate) {
-    return oldDelegate.selectedIndex != selectedIndex ||
-        oldDelegate.isAnswered != isAnswered;
   }
 }
