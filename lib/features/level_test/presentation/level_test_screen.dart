@@ -37,7 +37,23 @@ class _LevelTestScreenState extends State<LevelTestScreen> {
   final TextEditingController _baseRateController = TextEditingController();
 
   bool _isAnswered = false;
+  bool _isLoading = false;
   int _score = 0;
+
+  // Private correct answers for Mock API grading
+  static const Map<String, dynamic> _correctAnswers = {
+    'q_demo_01': 'B',
+    'q_demo_02': {
+      '금리 인상 선호\n물가 안정 우선': '매파',
+      '금리 인하 선호\n경기 부양 우선': '비둘기파',
+    },
+    'q_demo_03': ['A', 'C', 'B', 'D', 'E'],
+    'q_demo_04': 'B',
+    'q_demo_05': {
+      'highestIndex': 1,
+      'answerText': '3.5',
+    },
+  };
 
   // 5 high-quality finance/economics questions
   // 분리된 목업 파일에서 데이터를 가져옵니다. 백엔드 API 연동 시 이 부분을 교체하면 됩니다.
@@ -59,67 +75,112 @@ class _LevelTestScreenState extends State<LevelTestScreen> {
 
 
 
-  void _submitAnswer() {
-    if (_isAnswered) return;
+  Future<void> _submitAnswer() async {
+    if (_isAnswered || _isLoading) return;
 
     final currentQ = _questions[_currentIdx];
     final String type = currentQ['type'];
 
-    bool isCorrect = false;
-    List<String> selectedIds = [];
-
+    // 1. Validate answer selected
+    bool hasAnswer = false;
     if (type == 'MULTIPLE_CHOICE') {
-      if (_selectedAnswer == null) return;
-      isCorrect = _selectedAnswer == currentQ['answer'];
-      selectedIds = [_selectedAnswer!];
+      hasAnswer = _selectedAnswer != null;
     } else if (type == 'MATCHING') {
       final targets = currentQ['targetDescriptions'] as List<String>;
-      if (_matchingAnswers.length != targets.length) return;
+      hasAnswer = _matchingAnswers.length == targets.length;
+    } else if (type == 'REORDER') {
+      hasAnswer = _reorderList.isNotEmpty;
+    } else if (type == 'GRAPH_INPUT') {
+      hasAnswer = _selectedGraphIndex != null &&
+          _baseRateController.text.trim().isNotEmpty;
+    }
+    if (!hasAnswer) return;
 
-      final correctMapping = currentQ['correctMapping'] as Map<String, String>;
+    // 2. Set loading state
+    setState(() {
+      _isLoading = true;
+    });
+
+    // 3. Construct JSON Payload according to API spec (Section 9.2)
+    final String questionId = currentQ['id'];
+    Map<String, dynamic> answerPayload;
+    if (type == 'MULTIPLE_CHOICE') {
+      answerPayload = {
+        "choiceIds": [_selectedAnswer!],
+      };
+    } else if (type == 'MATCHING') {
+      answerPayload = {
+        "matchingPairs": _matchingAnswers,
+      };
+    } else if (type == 'REORDER') {
+      answerPayload = {
+        "orderedItemIds": _reorderList,
+      };
+    } else if (type == 'GRAPH_INPUT') {
+      answerPayload = {
+        "highestIndex": _selectedGraphIndex,
+        "answerText": _baseRateController.text.trim(),
+      };
+    } else {
+      answerPayload = {};
+    }
+
+    final attemptPayload = {
+      "questionId": questionId,
+      "answer": answerPayload,
+    };
+    debugPrint('Submitting answer to level test Mock API: $attemptPayload');
+
+    // 4. Async delay (Mock Network latency: 800ms)
+    await Future.delayed(const Duration(milliseconds: 800));
+
+    if (!mounted) return;
+
+    // 5. Evaluate correctness (Mocking Server-side Evaluation)
+    bool isCorrect = false;
+    if (type == 'MULTIPLE_CHOICE') {
+      isCorrect = _selectedAnswer == _correctAnswers[questionId];
+    } else if (type == 'MATCHING') {
+      final correctMapping = _correctAnswers[questionId] as Map<String, String>;
       isCorrect = true;
-      for (var target in targets) {
+      for (var target in correctMapping.keys) {
         if (_matchingAnswers[target] != correctMapping[target]) {
           isCorrect = false;
           break;
         }
       }
-      selectedIds = _matchingAnswers.values.toList();
     } else if (type == 'REORDER') {
-      isCorrect = true;
-      final answer = List<String>.from(currentQ['answer'] as List);
-      for (int i = 0; i < answer.length; i++) {
-        if (_reorderList[i] != answer[i]) {
-          isCorrect = false;
-          break;
+      final correctOrder = _correctAnswers[questionId] as List<String>;
+      isCorrect = _reorderList.length == correctOrder.length;
+      if (isCorrect) {
+        for (int i = 0; i < correctOrder.length; i++) {
+          if (_reorderList[i] != correctOrder[i]) {
+            isCorrect = false;
+            break;
+          }
         }
       }
-      selectedIds = _reorderList;
     } else if (type == 'GRAPH_INPUT') {
-      final textAns = _baseRateController.text.trim();
-      final bool isTextCorrect =
-          textAns == currentQ['answerText'] ||
-          textAns == '${currentQ['answerText']}0' ||
-          textAns == '${currentQ['answerText']}%';
+      final correctGraph = _correctAnswers[questionId] as Map<String, dynamic>;
       final bool isGraphCorrect =
-          _selectedGraphIndex == currentQ['highestIndex'];
-      isCorrect = isTextCorrect && isGraphCorrect;
-      selectedIds = [_selectedGraphIndex.toString(), textAns];
+          _selectedGraphIndex == correctGraph['highestIndex'];
+      final textAns = _baseRateController.text.trim();
+      final String correctText = correctGraph['answerText'] as String;
+      final bool isTextCorrect = textAns == correctText ||
+          textAns == '${correctText}0' ||
+          textAns == '$correctText%';
+      isCorrect = isGraphCorrect && isTextCorrect;
     }
 
     HapticFeedback.mediumImpact();
+
     setState(() {
+      _isLoading = false;
       _isAnswered = true;
       if (isCorrect) {
         _score += 20;
       }
     });
-
-    final attemptPayload = {
-      "questionId": currentQ['id'],
-      "answer": {"choiceIds": selectedIds},
-    };
-    debugPrint('Submitting answer to level test: $attemptPayload');
 
     String generatedHighlight = currentQ['highlightText'] as String? ?? '';
     if (generatedHighlight.isEmpty && !isCorrect) {
@@ -127,8 +188,9 @@ class _LevelTestScreenState extends State<LevelTestScreen> {
         final choices = currentQ['choices'] as List<dynamic>?;
         if (choices != null) {
           Map<String, dynamic>? correctChoice;
+          final correctAnswerId = _correctAnswers[questionId];
           for (var c in choices) {
-            if (c['id'] == currentQ['answer']) {
+            if (c['id'] == correctAnswerId) {
               correctChoice = c as Map<String, dynamic>;
               break;
             }
@@ -372,8 +434,9 @@ class _LevelTestScreenState extends State<LevelTestScreen> {
                 size: 20,
               ),
               onPressed: () async {
+                final navigator = Navigator.of(context);
                 final shouldPop = await _showExitDialog();
-                if (shouldPop && mounted) Navigator.pop(context);
+                if (shouldPop && mounted) navigator.pop();
               },
             ),
           ),
@@ -412,8 +475,9 @@ class _LevelTestScreenState extends State<LevelTestScreen> {
                   children: [
                     GestureDetector(
                       onTap: () async {
+                        final navigator = Navigator.of(context);
                         final shouldPop = await _showExitDialog();
-                        if (shouldPop && mounted) Navigator.pop(context);
+                        if (shouldPop && mounted) navigator.pop();
                       },
                       child: const Icon(
                         Icons.arrow_back_ios_new_rounded,
@@ -546,7 +610,7 @@ class _LevelTestScreenState extends State<LevelTestScreen> {
           width: double.infinity,
           margin: const EdgeInsets.only(top: 24),
           child: ElevatedButton(
-            onPressed: canSubmit ? _submitAnswer : null,
+            onPressed: (canSubmit && !_isLoading) ? _submitAnswer : null,
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF00EE94),
               foregroundColor: Colors.white,
@@ -557,14 +621,23 @@ class _LevelTestScreenState extends State<LevelTestScreen> {
               ),
               padding: const EdgeInsets.symmetric(vertical: 14),
             ),
-            child: const Text(
-              '제출',
-              style: TextStyle(
-                fontFamily: 'Pretendard',
-                fontSize: 14,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
+            child: _isLoading
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      color: Colors.white,
+                      strokeWidth: 2,
+                    ),
+                  )
+                : const Text(
+                    '제출',
+                    style: TextStyle(
+                      fontFamily: 'Pretendard',
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
           ),
         ),
       );

@@ -1,5 +1,6 @@
 // API 연동 전 프론트엔드 UI 시각화 및 테스트를 위한 목업(Mock) 데이터입니다.
 // 백엔드 개발자님: 이 파일의 구조를 참고하여 API 응답 데이터 모델(JSON)을 설계하시면 됩니다!
+// (클라이언트 채점용 정답 데이터는 API 명세서 매핑에 맞춰 제거되었습니다.)
 
 final List<Map<String, dynamic>> levelTestMockData = [
   {
@@ -14,7 +15,6 @@ final List<Map<String, dynamic>> levelTestMockData = [
       {'id': 'C', 'text': '변화 없다'},
       {'id': 'D', 'text': '알 수 없다'},
     ],
-    'answer': 'B',
     'explanation': '금리↓ → 기존 채권의 이자가 상대적으로\n매력적 → 채권 수요↑ → 채권 가격↑',
     'highlightText': '금리와 채권 가격은 반대로 움직인다.',
   },
@@ -25,10 +25,6 @@ final List<Map<String, dynamic>> levelTestMockData = [
     'prompt': '카드를 올바른 설명에 드래그하여 매칭하세요',
     'draggableItems': ['매파', '비둘기파'],
     'targetDescriptions': ['금리 인상 선호\n물가 안정 우선', '금리 인하 선호\n경기 부양 우선'],
-    'correctMapping': {
-      '금리 인상 선호\n물가 안정 우선': '매파',
-      '금리 인하 선호\n경기 부양 우선': '비둘기파',
-    },
     'explanation': '매파는 물가 안정을 위해 금리 인상을, 비둘기파는 경기 부양을 위해 금리 인하를 선호합니다.',
     'highlightText': '매파 = 금리 인상, 비둘기파 = 금리 인하',
   },
@@ -45,7 +41,6 @@ final List<Map<String, dynamic>> levelTestMockData = [
       {'id': 'E', 'text': 'E. 소비 감소'},
     ],
     'initialOrder': ['A', 'B', 'C', 'D', 'E'],
-    'answer': ['A', 'C', 'B', 'D', 'E'],
     'explanation': '기준금리가 인상되면 시중금리가 오르고, 대출 이자 부담이 커지면서 가처분소득이 줄어 소비가 감소하게 됩니다.',
   },
   {
@@ -59,7 +54,6 @@ final List<Map<String, dynamic>> levelTestMockData = [
       {'id': 'C', 'text': '단기 정기예금', 'subtitle': '연말정산·청약 등 실용 지식'},
       {'id': 'D', 'text': '외화(달러)', 'subtitle': '경제 상식을 쌓고 싶어요'},
     ],
-    'answer': 'B',
     'explanation': '금리↓ → 채권 매력↑ → 채권 수요↑ → 채권 가격↑',
     'highlightText': '정답은 ② 채권 입니다.',
   },
@@ -69,8 +63,6 @@ final List<Map<String, dynamic>> levelTestMockData = [
     'subtitle': '그래프에서 금리 최고점을 터치하세요',
     'prompt': '현재 기준금리를 입력하세요',
     'graphPoints': [0.3, 0.625, 0.48, 0.56, 0.1, 0.4, 0.5, 0.2, 0.35],
-    'highestIndex': 1,
-    'answerText': '3.5',
     'explanation': '현재 우리나라의 한국은행 기준금리는 3.5% (2024년 기준)입니다.',
     'highlightText': '한국은행 기준금리: 3.5%',
   },
