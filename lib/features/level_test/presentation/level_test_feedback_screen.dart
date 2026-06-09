@@ -116,8 +116,88 @@ class LevelTestFeedbackScreen extends StatelessWidget {
                   ],
                 ),
               ),
-              // Level test does not show XP/Heart badge, keeping it aligned with Figma
-              
+              if (isCorrect) ...[
+                Container(
+                  width: double.infinity,
+                  height: 77,
+                  padding: const EdgeInsets.only(top: 10),
+                  alignment: Alignment.topCenter,
+                  child: Container(
+                    width: 79,
+                    height: 25,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF2FFFA),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Text(
+                      '+10 XP',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontFamily: 'Pretendard',
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF0DE593),
+                        height: 15 / 14,
+                      ),
+                    ),
+                  ),
+                ),
+              ] else ...[
+                Container(
+                  width: double.infinity,
+                  height: 77,
+                  padding: const EdgeInsets.only(top: 10),
+                  alignment: Alignment.topCenter,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 79,
+                        height: 25,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFFF6F2),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.favorite_rounded,
+                              color: Color(0xFFFF7C1F),
+                              size: 12,
+                            ),
+                            SizedBox(width: 3),
+                            Text(
+                              '-1',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontFamily: 'Pretendard',
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFFFF7C1F),
+                                height: 15 / 14,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      const Text(
+                        '하트는 유닛당 카운트 됩니다.',
+                        style: TextStyle(
+                          fontFamily: 'Noto Sans KR',
+                          fontSize: 10,
+                          fontWeight: FontWeight.w400,
+                          color: Color(0xFFFF7C1F),
+                          height: 12 / 10,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
               const Spacer(),
               
               // Bottom Button
@@ -138,7 +218,7 @@ class LevelTestFeedbackScreen extends StatelessWidget {
                     onNext(); // Trigger next question
                   },
                   child: Text(
-                    isLastQuestion ? '결과 확인하기 🎉' : '다음 문제',
+                    isLastQuestion ? '결과 확인하기 🎉' : (isCorrect ? '다음 문제' : '계속 하기'),
                     style: const TextStyle(
                       fontFamily: 'Pretendard',
                       fontSize: 14,

@@ -2,6 +2,8 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'study_detail_screen.dart';
+import '../../curriculum/presentation/curriculum_roadmap_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final String nickname;
@@ -228,7 +230,7 @@ class _HomeScreenState extends State<HomeScreen> {
             children: [
               const Expanded(
                 child: Text(
-                  '어제 틀린 문제\n다시 풀어볼까요?',
+                  '어제 배운 용어 복습하기 →',
                   style: TextStyle(
                     fontFamily: 'Pretendard',
                     fontSize: 18,
@@ -427,84 +429,112 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildContinueCard({required bool isEconomy}) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      padding: const EdgeInsets.all(12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min, // Allow it to shrink wrap height
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF7F7F7),
-                  borderRadius: BorderRadius.circular(20),
+    return GestureDetector(
+      onTap: () async {
+        HapticFeedback.lightImpact();
+        final result = await Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => CurriculumRoadmapScreen(
+              title: isEconomy ? '경제 상식' : '저축',
+            ),
+          ),
+        );
+        if (result is int) {
+          setState(() {
+            _currentTabIdx = result;
+          });
+        }
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF7F7F7),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(
+                    isEconomy ? '📚' : '💰',
+                    style: const TextStyle(fontSize: 20, height: 1),
+                  ),
                 ),
-                alignment: Alignment.center,
-                child: Text(
-                  isEconomy ? '📚' : '💰',
-                  style: const TextStyle(fontSize: 24, height: 1),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        isEconomy ? '경제 상식' : '저축',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontFamily: 'Pretendard',
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: brandInk,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        isEconomy ? 'Unit 1. 금리' : 'Unit 1. 현금 관리',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontFamily: 'Pretendard',
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                          color: textMuted,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 4),
+                const Text(
+                  '→',
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFFB2B2B2),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Container(
+              width: double.infinity,
+              height: 6,
+              decoration: BoxDecoration(
+                color: const Color(0xFFF3F4F6),
+                borderRadius: BorderRadius.circular(16777216),
+              ),
+              alignment: Alignment.centerLeft,
+              child: FractionallySizedBox(
+                widthFactor: isEconomy ? 0.6 : 0.3,
+                child: Container(
+                  height: 6,
+                  decoration: BoxDecoration(
+                    color: themeGreen,
+                    borderRadius: BorderRadius.circular(16777216),
+                  ),
                 ),
               ),
-              const Spacer(),
-              const Text(
-                '→',
-                style: TextStyle(
-                  fontFamily: 'Inter',
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFFB2B2B2),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12), // Replaced Spacer to fix overflow
-          Text(
-            isEconomy ? '경제 상식' : '저축',
-            style: const TextStyle(
-              fontFamily: 'Pretendard',
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-              color: brandInk,
             ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            isEconomy ? 'Unit 1. 금리' : 'Unit 1. 현금 관리',
-            style: const TextStyle(
-              fontFamily: 'Pretendard',
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: textMuted,
-            ),
-          ),
-          const SizedBox(height: 12),
-          Container(
-            width: double.infinity,
-            height: 6,
-            decoration: BoxDecoration(
-              color: const Color(0xFFF3F4F6),
-              borderRadius: BorderRadius.circular(16777216),
-            ),
-            alignment: Alignment.centerLeft,
-            child: FractionallySizedBox(
-              widthFactor: isEconomy ? 0.6 : 0.3,
-              child: Container(
-                height: 6,
-                decoration: BoxDecoration(
-                  color: themeGreen,
-                  borderRadius: BorderRadius.circular(16777216),
-                ),
-              ),
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -529,7 +559,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             alignment: Alignment.center,
             child: const Icon(
-              Icons.emoji_events_rounded,
+              Icons.workspace_premium_rounded,
               color: Color(0xFFFCB94D),
               size: 24,
             ),
@@ -605,10 +635,9 @@ class _HomeScreenState extends State<HomeScreen> {
                       borderRadius: BorderRadius.circular(20),
                     ),
                     alignment: Alignment.center,
-                    child: const Icon(
-                      Icons.sports_esports_rounded,
-                      color: Color(0xFFA1E669),
+                    child: const JoystickIcon(
                       size: 24,
+                      color: Color(0xFFA1E669),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -775,8 +804,10 @@ class _HomeScreenState extends State<HomeScreen> {
                             height: 205 * scale,
                             child: _buildLearningCategoryCard(
                               scale: scale,
-                              icon: Icons.sports_esports_rounded,
-                              iconColor: const Color(0xFFA1E669),
+                              customIcon: JoystickIcon(
+                                size: 46 * scale,
+                                color: const Color(0xFFA1E669),
+                              ),
                               title: '시뮬레이션 도전',
                               subtitle: '오늘 배운 내용으로 실전 체험!',
                               buttonLabel: '도전하기',
@@ -802,6 +833,7 @@ class _HomeScreenState extends State<HomeScreen> {
     required double scale,
     String? emoji,
     IconData? icon,
+    Widget? customIcon,
     Color iconColor = brandInk,
     required String title,
     required String subtitle,
@@ -811,81 +843,111 @@ class _HomeScreenState extends State<HomeScreen> {
     required Color buttonTextColor,
     bool showProgress = true,
   }) {
-    return Container(
-      padding: EdgeInsets.fromLTRB(12 * scale, 24 * scale, 12 * scale, 16 * scale),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20 * scale),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0x12000000),
-            blurRadius: 12 * scale,
-            offset: Offset(0, 2 * scale),
-          ),
-        ],
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.start,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          SizedBox(
-            width: 64 * scale,
-            height: 64 * scale,
-            child: Center(
-              child: emoji != null
-                  ? Text(
-                      emoji,
-                      style: TextStyle(
-                        fontFamily: 'Inter',
-                        fontSize: 46 * scale,
-                        fontWeight: FontWeight.w500,
-                        height: 1,
-                      ),
-                    )
-                  : Icon(icon, color: iconColor, size: 46 * scale),
+    return GestureDetector(
+      onTap: () async {
+        HapticFeedback.lightImpact();
+        if (title == '경제 상식' || title == '저축') {
+          final result = await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => CurriculumRoadmapScreen(
+                title: title,
+              ),
             ),
-          ),
-          SizedBox(height: 12 * scale),
-          Text(
-            title,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontFamily: 'Pretendard',
-              fontSize: 15 * scale,
-              fontWeight: FontWeight.w700,
-              color: brandInk,
-              height: 19 / 15,
-              letterSpacing: -0.23 * scale,
+          );
+          if (result is int) {
+            setState(() {
+              _currentTabIdx = result;
+            });
+          }
+        } else {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => StudyDetailScreen(
+                title: title,
+              ),
             ),
-          ),
-          SizedBox(height: 4 * scale),
-          Text(
-            subtitle,
-            textAlign: TextAlign.center,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              fontFamily: 'Pretendard',
-              fontSize: 10 * scale,
-              fontWeight: FontWeight.w500,
-              color: const Color(0xFF9CA3AF),
-              height: 15 / 10,
-              letterSpacing: 0.12 * scale,
+          );
+        }
+      },
+      child: Container(
+        padding: EdgeInsets.fromLTRB(12 * scale, 24 * scale, 12 * scale, 16 * scale),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20 * scale),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0x12000000),
+              blurRadius: 12 * scale,
+              offset: Offset(0, 2 * scale),
             ),
-          ),
-          if (showProgress) ...[
-            SizedBox(height: 14 * scale),
-            _buildLearningProgressBar(progress, scale),
-            SizedBox(height: 11 * scale),
-          ] else
-            const Spacer(),
-          _buildLearningPillButton(
-            scale: scale,
-            label: buttonLabel,
-            backgroundColor: buttonColor,
-            textColor: buttonTextColor,
-          ),
-        ],
+          ],
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            SizedBox(
+              width: 64 * scale,
+              height: 64 * scale,
+              child: Center(
+                child: customIcon ??
+                    (emoji != null
+                        ? Text(
+                            emoji,
+                            style: TextStyle(
+                              fontFamily: 'Inter',
+                              fontSize: 46 * scale,
+                              fontWeight: FontWeight.w500,
+                              height: 1,
+                            ),
+                          )
+                        : Icon(icon, color: iconColor, size: 46 * scale)),
+              ),
+            ),
+            SizedBox(height: 12 * scale),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontFamily: 'Pretendard',
+                fontSize: 15 * scale,
+                fontWeight: FontWeight.w700,
+                color: brandInk,
+                height: 19 / 15,
+                letterSpacing: -0.23 * scale,
+              ),
+            ),
+            SizedBox(height: 4 * scale),
+            Text(
+              subtitle,
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontFamily: 'Pretendard',
+                fontSize: 10 * scale,
+                fontWeight: FontWeight.w500,
+                color: const Color(0xFF9CA3AF),
+                height: 15 / 10,
+                letterSpacing: 0.12 * scale,
+              ),
+            ),
+            if (showProgress) ...[
+              SizedBox(height: 14 * scale),
+              _buildLearningProgressBar(progress, scale),
+              SizedBox(height: 11 * scale),
+            ] else
+              const Spacer(),
+            _buildLearningPillButton(
+              scale: scale,
+              label: buttonLabel,
+              backgroundColor: buttonColor,
+              textColor: buttonTextColor,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1060,12 +1122,12 @@ class _HomeScreenState extends State<HomeScreen> {
           _buildTabItem(idx: 1, icon: Icons.menu_book_rounded, label: '학습', iconSize: 29),
           _buildTabItem(
             idx: 2,
-            icon: Icons.connect_without_contact_rounded,
+            icon: Icons.assignment_rounded,
             label: '커넥트',
             width: 63.14,
             iconSize: 30,
           ),
-          _buildTabItem(idx: 3, icon: Icons.insights_rounded, label: '배틀', iconSize: 31),
+          _buildTabItem(idx: 3, icon: Icons.show_chart_rounded, label: '배틀', iconSize: 31),
           _buildTabItem(idx: 4, icon: Icons.person_rounded, label: '마이', iconSize: 29),
         ],
       ),
@@ -1113,4 +1175,83 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
+}
+
+class JoystickIcon extends StatelessWidget {
+  final double size;
+  final Color color;
+
+  const JoystickIcon({
+    super.key,
+    required this.size,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomPaint(
+      size: Size(size, size),
+      painter: JoystickIconPainter(color: color),
+    );
+  }
+}
+
+class JoystickIconPainter extends CustomPainter {
+  final Color color;
+
+  JoystickIconPainter({required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final factor = size.width / 46.0;
+
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = (3.5 * factor).clamp(2.2, 3.5)
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+
+    final cx = 23.0 * factor;
+
+    // 1. Circle at the top
+    final circleCenter = Offset(cx, 11.0 * factor);
+    final circleRadius = 5.7 * factor;
+    canvas.drawCircle(circleCenter, circleRadius, paint);
+
+    // 2. Base plate (top diamond)
+    final topD = Offset(cx, 20.0 * factor);
+    final leftD = Offset(9.0 * factor, 27.0 * factor);
+    final bottomD = Offset(cx, 34.0 * factor);
+    final rightD = Offset(37.0 * factor, 27.0 * factor);
+
+    final pathTop = Path()
+      ..moveTo(topD.dx, topD.dy)
+      ..lineTo(leftD.dx, leftD.dy)
+      ..lineTo(bottomD.dx, bottomD.dy)
+      ..lineTo(rightD.dx, rightD.dy)
+      ..close();
+    canvas.drawPath(pathTop, paint);
+
+    // 3. Base plate (3D depth below)
+    final depth = 7.0 * factor;
+    final pathDepth = Path()
+      ..moveTo(leftD.dx, leftD.dy)
+      ..lineTo(leftD.dx, leftD.dy + depth)
+      ..lineTo(bottomD.dx, bottomD.dy + depth)
+      ..lineTo(rightD.dx, rightD.dy + depth)
+      ..lineTo(rightD.dx, rightD.dy);
+    canvas.drawPath(pathDepth, paint);
+
+    // Draw the vertical corner line in the middle-bottom
+    canvas.drawLine(bottomD, Offset(bottomD.dx, bottomD.dy + depth), paint);
+
+    // 4. Joystick Stem/Stick
+    final stemTop = Offset(cx, 16.7 * factor); // Bottom of circle (11.0 + 5.7 = 16.7)
+    final stemBottom = Offset(cx, 27.0 * factor); // Center of top diamond
+    canvas.drawLine(stemTop, stemBottom, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

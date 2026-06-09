@@ -17,8 +17,30 @@ class QuestionSingleChoice extends StatelessWidget {
     this.correctAnswer,
   });
 
+  String _getCircleNumber(String choiceId) {
+    switch (choiceId.toUpperCase()) {
+      case 'A':
+      case '1':
+        return '①';
+      case 'B':
+      case '2':
+        return '②';
+      case 'C':
+      case '3':
+        return '③';
+      case 'D':
+      case '4':
+        return '④';
+      default:
+        return choiceId;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final choicesList = currentQ['choices'] as List;
+    final bool isDrillStyle = choicesList.any((c) => (c as Map).containsKey('subtitle') && c['subtitle'] != null);
+
     return Column(
       children: [
         if (currentQ['resourceTitle'] != null &&
@@ -50,11 +72,11 @@ class QuestionSingleChoice extends StatelessWidget {
         ],
         Text(
           currentQ['subtitle'] as String,
-          style: const TextStyle(
+          style: TextStyle(
             fontFamily: 'Pretendard',
             fontSize: 14,
             fontWeight: FontWeight.w400,
-            color: Color(0xFF4B5563),
+            color: isDrillStyle ? const Color(0xFF9CA3AF) : const Color(0xFF4B5563),
             height: 16 / 14,
           ),
           textAlign: TextAlign.center,
@@ -62,12 +84,12 @@ class QuestionSingleChoice extends StatelessWidget {
         const SizedBox(height: 8),
         Text(
           currentQ['prompt'] as String,
-          style: const TextStyle(
+          style: TextStyle(
             fontFamily: 'Pretendard',
-            fontSize: 20,
+            fontSize: isDrillStyle ? 18 : 20,
             fontWeight: FontWeight.w700,
-            color: Color(0xFF111827),
-            height: 24 / 20,
+            color: const Color(0xFF111827),
+            height: (isDrillStyle ? 26 / 18 : 24 / 20),
           ),
           textAlign: TextAlign.center,
         ),
@@ -90,7 +112,7 @@ class QuestionSingleChoice extends StatelessWidget {
             choiceIdx,
           ) {
             final choice =
-                (currentQ['choices'] as List)[choiceIdx] as Map<String, String>;
+                (currentQ['choices'] as List)[choiceIdx] as Map<String, dynamic>;
             final choiceId = choice['id']!;
             final choiceText = choice['text']!;
             final choiceSubtitle = choice['subtitle'];
@@ -99,29 +121,35 @@ class QuestionSingleChoice extends StatelessWidget {
             Color btnBg = const Color(0xFFFFFFFF);
             Color borderCol = const Color(0xFFD0D5E0);
             double borderW = 1.0;
-            Color txtCol = const Color(0xFF4B5563);
-            FontWeight txtWeight = FontWeight.w500;
+            Color txtCol = isDrillStyle ? const Color(0xFF111827) : const Color(0xFF4B5563);
+            FontWeight txtWeight = isDrillStyle ? FontWeight.w600 : FontWeight.w500;
 
             if (isAnswered) {
               if (choiceId == (correctAnswer ?? currentQ['answer'])) {
                 btnBg = const Color(0xFFF2FFFA);
                 borderCol = const Color(0xFF00EE94);
                 borderW = 2.0;
-                txtCol = const Color(0xFF0DE593);
-                txtWeight = FontWeight.w700;
+                if (!isDrillStyle) {
+                  txtCol = const Color(0xFF0DE593);
+                  txtWeight = FontWeight.w700;
+                }
               } else if (isSelected) {
                 btnBg = const Color(0xFFFFF5F5);
                 borderCol = const Color(0xFFEF4444);
                 borderW = 2.0;
-                txtCol = const Color(0xFFEF4444);
-                txtWeight = FontWeight.w700;
+                if (!isDrillStyle) {
+                  txtCol = const Color(0xFFEF4444);
+                  txtWeight = FontWeight.w700;
+                }
               }
             } else if (isSelected) {
               btnBg = const Color(0xFFF2FFFA);
               borderCol = const Color(0xFF00EE94);
               borderW = 2.0;
-              txtCol = const Color(0xFF0DE593);
-              txtWeight = FontWeight.w700;
+              if (!isDrillStyle) {
+                txtCol = const Color(0xFF0DE593);
+                txtWeight = FontWeight.w700;
+              }
             }
 
             return Padding(
@@ -154,13 +182,15 @@ class QuestionSingleChoice extends StatelessWidget {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Text(
-                              '$choiceId. $choiceText',
+                              isDrillStyle
+                                  ? '$choiceId. $choiceText'
+                                  : '${_getCircleNumber(choiceId)} $choiceText',
                               style: TextStyle(
                                 fontFamily: 'Pretendard',
-                                fontSize: 13,
+                                fontSize: isDrillStyle ? 14 : 13,
                                 fontWeight: txtWeight,
                                 color: txtCol,
-                                height: 16 / 13,
+                                height: 16 / (isDrillStyle ? 14 : 13),
                               ),
                             ),
                             if (choiceSubtitle != null) ...[

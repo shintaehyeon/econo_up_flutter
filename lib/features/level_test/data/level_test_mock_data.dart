@@ -7,8 +7,8 @@ final List<Map<String, dynamic>> levelTestMockData = [
     'type': 'MULTIPLE_CHOICE',
     'id': 'q_demo_01',
     'categoryText': '경제 상식 · 금리',
-    'prompt': '금리가 오르면 일반적으로\n채권 가격은 어떻게 될까요?',
-    'subtitle': '',
+    'subtitle': '금리가 오르면 일반적으로',
+    'prompt': '채권 가격은 어떻게 될까요?',
     'choices': [
       {'id': 'A', 'text': '오른다'},
       {'id': 'B', 'text': '내려간다'},
