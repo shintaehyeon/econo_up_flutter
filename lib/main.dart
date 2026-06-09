@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'core/theme/app_colors.dart';
+import 'dart:ui';
 import 'features/auth/presentation/splash_screen.dart';
 
 void main() {

@@ -1,12 +1,10 @@
-// lib/features/level_test/presentation/level_test_result_screen.dart
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../home/presentation/home_screen.dart';
 
 class LevelTestResultScreen extends StatelessWidget {
-  final int score;
+  final int score; // 0 ~ 100
   final String nickname;
 
   const LevelTestResultScreen({
@@ -17,185 +15,189 @@ class LevelTestResultScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 레벨 판단 로직 및 스타일 설정
+    int correctCount = (score / 10).round();
+    double progressRatio = correctCount / 10.0;
+
+    // 레벨 판단 로직
     String levelName;
     String description;
-    IconData icon;
     Color levelColor;
     Color levelBg;
-    String roadmapName;
+    IconData iconData;
 
     if (score >= 80) {
-      levelName = '프로 골드 주주 🏆';
-      description = '기본적인 금리, 채권, 공제 등 핵심 경제 지식을 이미 꿰뚫고 계시네요! 경제 상급 학습 패스로 다이렉트 매칭되었습니다.';
-      icon = Icons.workspace_premium_rounded;
+      levelName = '프로 골드 주주';
+      description = '완벽한 경제 지식을 갖추셨네요!';
       levelColor = AppColors.gold;
-      levelBg = AppColors.goldSoft;
-      roadmapName = '실전 자산 배분 및 고소득 절세 트랙';
-    } else if (score >= 40) {
-      levelName = '성장하는 실버 투자자 📈';
-      description = '기초적인 경제와 실물 자산 흐름을 잘 이해하고 계십니다! 중급 학습 코스에서 자산 증식 노하우를 확장하세요.';
-      icon = Icons.stars_rounded;
+      levelBg = const Color(0xFFFFFDF2);
+      iconData = Icons.workspace_premium_rounded;
+    } else if (score >= 50) {
+      levelName = '성장하는 실버 투자자';
+      description = '기초적인 경제 흐름을 잘 이해하고 계십니다!';
       levelColor = AppColors.brand;
-      levelBg = AppColors.brandSoft;
-      roadmapName = '주식·펀드 투자 집중 마스터 트랙';
+      levelBg = const Color(0xFFF2FFFA);
+      iconData = Icons.stars_rounded;
     } else {
-      levelName = '스마트 새싹 저축가 🌱';
-      description = '지금부터 차근차근 시작하면 됩니다! 기초 저축 예적금과 실생활 경제 용어부터 가장 쉽고 친절하게 알려 드릴게요.';
-      icon = Icons.spa_rounded;
-      levelColor = AppColors.mint;
-      levelBg = AppColors.mintSoft;
-      roadmapName = '초보 탈출 종잣돈 1억 모으기 트랙';
+      levelName = '기초 탄탄 필요형';
+      description = '경제 기본기를 다질 시간이에요!';
+      levelColor = const Color(0xFF0DE593); // Figma spec
+      levelBg = const Color(0xFFF2FFFA);
+      iconData = Icons.eco_rounded; // ph:plant-duotone alternative
     }
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Colors.white,
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const Spacer(flex: 2),
-
-              // 상단 로고 및 폭죽 연출
-              Column(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(24),
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: levelBg,
-                      boxShadow: [
-                        BoxShadow(
-                          color: levelColor.withOpacity(0.12),
-                          blurRadius: 20,
-                          spreadRadius: 2,
-                        )
-                      ],
-                    ),
-                    child: Icon(
-                      icon,
-                      size: 72,
-                      color: levelColor,
-                    ),
+        child: Stack(
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Top Progress Bar Area
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Simulated status bar time is usually handled by OS, skipping mock text to keep it native
+                      const SizedBox(height: 12),
+                      Stack(
+                        children: [
+                          Container(
+                            height: 4,
+                            width: double.infinity,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF00EE94),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 28),
-                  const Text(
-                    '레벨 테스트 완료! 🎉',
-                    style: TextStyle(
-                      fontSize: 26,
-                      fontWeight: FontWeight.w900,
-                      color: AppColors.ink,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    '당신의 정답률은 $score% 입니다.',
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                      color: levelColor,
-                    ),
-                  ),
-                ],
-              ),
-
-              const Spacer(flex: 2),
-
-              // 매핑된 배정 결과 카드 (Glassmorphism & Aesthetics)
-              Container(
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  color: AppColors.paper,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppColors.line, width: 1.0),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.03),
-                      blurRadius: 16,
-                      offset: const Offset(0, 4),
-                    )
-                  ],
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: levelBg,
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(
-                        levelName,
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w900,
-                          color: levelColor,
-                        ),
-                      ),
+                const SizedBox(height: 16),
+
+                // Main Card
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Container(
+                    height: 232,
+                    decoration: BoxDecoration(
+                      color: levelBg,
+                      border: Border.all(color: const Color(0xFF00EE94), width: 2),
+                      borderRadius: BorderRadius.circular(16),
                     ),
-                    const SizedBox(height: 16),
-                    Text(
-                      description,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
-                        color: AppColors.muted,
-                        height: 1.45,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    const Divider(color: AppColors.line),
-                    const SizedBox(height: 8),
-                    const Row(
+                    child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.auto_awesome_rounded, size: 16, color: Colors.amber),
-                        SizedBox(width: 6),
+                        Icon(
+                          iconData,
+                          size: 66,
+                          color: const Color(0xFF00EE94),
+                        ),
+                        const SizedBox(height: 12),
                         Text(
-                          '추천 맞춤 로드맵 배정',
+                          levelName,
                           style: TextStyle(
-                            fontSize: 12,
+                            fontFamily: 'Pretendard',
+                            fontSize: 18,
                             fontWeight: FontWeight.w700,
-                            color: AppColors.muted,
+                            color: levelColor,
+                            height: 1.56,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          description,
+                          style: const TextStyle(
+                            fontFamily: 'Pretendard',
+                            fontSize: 12,
+                            fontWeight: FontWeight.w400,
+                            color: Color(0xFF111827),
+                            height: 1.33,
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        const Text(
+                          '정답률',
+                          style: TextStyle(
+                            fontFamily: 'Pretendard',
+                            fontSize: 10,
+                            fontWeight: FontWeight.w400,
+                            color: Color(0xFF9CA3AF),
+                            height: 1.2,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '$correctCount / 10',
+                          style: const TextStyle(
+                            fontFamily: 'Pretendard',
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF00EE94),
+                            height: 1.33,
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 6),
-                    Text(
-                      roadmapName,
-                      style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.ink,
+                  ),
+                ),
+                const SizedBox(height: 24),
+
+                // Recommended Content
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        '추천 시작 콘텐츠',
+                        style: TextStyle(
+                          fontFamily: 'Pretendard',
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF111827),
+                          height: 1.43,
+                        ),
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _buildRecommendedCard(
+                              emoji: '📚',
+                              title: '경제 상식',
+                              subtitle: 'Unit 1. 금리',
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _buildRecommendedCard(
+                              emoji: '💰',
+                              title: '저축',
+                              subtitle: 'Unit 1. 현금 관리',
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-
-              const Spacer(flex: 3),
-
-              // 서비스 시작 버튼
-              Container(
-                height: 52,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(10),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.brand.withOpacity(0.2),
-                      blurRadius: 16,
-                      offset: const Offset(0, 4),
-                    )
-                  ],
-                ),
+              ],
+            ),
+            
+            // Bottom Button
+            Positioned(
+              left: 24,
+              right: 24,
+              bottom: 24, // Adjust for native home indicator safely
+              child: SizedBox(
+                height: 48,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.brand,
+                    backgroundColor: const Color(0xFF00EE94),
                     foregroundColor: Colors.white,
                     elevation: 0,
                     shape: RoundedRectangleBorder(
@@ -209,21 +211,100 @@ class LevelTestResultScreen extends StatelessWidget {
                       MaterialPageRoute(
                         builder: (context) => HomeScreen(nickname: nickname),
                       ),
-                      (route) => false, // 스택 완전 초기화
+                      (route) => false,
                     );
                   },
                   child: const Text(
-                    '이코노업 학습 시작하기 🚀',
+                    '학습 시작하기',
                     style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w800,
+                      fontFamily: 'Pretendard',
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      height: 1.43,
                     ),
                   ),
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildRecommendedCard({
+    required String emoji,
+    required String title,
+    required String subtitle,
+  }) {
+    return Container(
+      height: 84,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(color: const Color(0xFFD0D5E0)),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Container(
+            width: 48,
+            height: 48,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: const Color(0xFFF7F7F7),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Text(
+              emoji,
+              style: const TextStyle(fontSize: 24),
+            ),
+          ),
+          const SizedBox(width: 6), // Use designer's 6px gap
+          Expanded(
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontFamily: 'Pretendard',
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF111827),
+                      height: 1.18,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(
+                      fontFamily: 'Pretendard',
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF6A7282),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(width: 4), // Small padding before arrow to ensure it's not sticking
+          const Text(
+            '→',
+            style: TextStyle(
+              fontFamily: 'Inter',
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFFB2B2B2),
+            ),
+          ),
+        ],
       ),
     );
   }

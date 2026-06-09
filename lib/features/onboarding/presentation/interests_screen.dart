@@ -101,17 +101,7 @@ class _InterestsScreenState extends State<InterestsScreen> {
     debugPrint('Submitting Study Style: $studyStylePayload to ${ApiEndpoints.onboardingStudyStyle}');
     debugPrint('Submitting Failure Reason: $failureReasonPayload to ${ApiEndpoints.onboardingFailureReason}');
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text(
-          '맞춤형 경제 커리큘럼 설정을 완료했습니다! 🎯',
-          style: TextStyle(fontFamily: 'Pretendard', fontWeight: FontWeight.w600),
-        ),
-        backgroundColor: const Color(0xFF00EE94),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-      ),
-    );
+
 
     // 다음 화면: 레벨테스트 선택 화면(EC-0007)으로 이동
     if (mounted) {
