@@ -535,6 +535,7 @@ class _LevelTestScreenState extends State<LevelTestScreen> {
                         return QuestionSingleChoice(
                           currentQ: currentQ,
                           selectedAnswer: _selectedAnswer,
+                          correctAnswer: _correctAnswers[currentQ['id']] as String?,
                           isAnswered: _isAnswered,
                           onAnswerSelected: (val) {
                             setState(() => _selectedAnswer = val);
@@ -559,11 +560,13 @@ class _LevelTestScreenState extends State<LevelTestScreen> {
                           },
                         );
                       } else if (type == 'GRAPH_INPUT') {
+                        final correctIndex = _correctAnswers[currentQ['id']]?['highestIndex'] as int?;
                         return QuestionGraphInput(
                           currentQ: currentQ,
                           selectedGraphIndex: _selectedGraphIndex,
                           baseRateController: _baseRateController,
                           isAnswered: _isAnswered,
+                          correctIndex: correctIndex,
                           onGraphIndexSelected: (val) {
                             setState(() => _selectedGraphIndex = val);
                           },

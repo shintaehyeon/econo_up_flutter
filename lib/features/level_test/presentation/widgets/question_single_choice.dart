@@ -6,6 +6,7 @@ class QuestionSingleChoice extends StatelessWidget {
   final String? selectedAnswer;
   final bool isAnswered;
   final ValueChanged<String> onAnswerSelected;
+  final String? correctAnswer;
 
   const QuestionSingleChoice({
     super.key,
@@ -13,6 +14,7 @@ class QuestionSingleChoice extends StatelessWidget {
     required this.selectedAnswer,
     required this.isAnswered,
     required this.onAnswerSelected,
+    this.correctAnswer,
   });
 
   @override
@@ -101,7 +103,7 @@ class QuestionSingleChoice extends StatelessWidget {
             FontWeight txtWeight = FontWeight.w500;
 
             if (isAnswered) {
-              if (choiceId == currentQ['answer']) {
+              if (choiceId == (correctAnswer ?? currentQ['answer'])) {
                 btnBg = const Color(0xFFF2FFFA);
                 borderCol = const Color(0xFF00EE94);
                 borderW = 2.0;

@@ -116,64 +116,7 @@ class LevelTestFeedbackScreen extends StatelessWidget {
                   ],
                 ),
               ),
-              const SizedBox(height: 11),
-              
-              // XP or Penalty Badge
-              if (isCorrect)
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: bgColor,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Text(
-                    '+10 XP',
-                    style: TextStyle(
-                      fontFamily: 'Pretendard',
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: mainColor,
-                    ),
-                  ),
-                )
-              else
-                Column(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: bgColor,
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.favorite, color: mainColor, size: 14),
-                          const SizedBox(width: 4),
-                          Text(
-                            '-1',
-                            style: TextStyle(
-                              fontFamily: 'Pretendard',
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              color: mainColor,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      '하트는 유닛당 카운트 됩니다.',
-                      style: TextStyle(
-                        fontFamily: 'Noto Sans KR',
-                        fontSize: 10,
-                        fontWeight: FontWeight.w400,
-                        color: mainColor,
-                      ),
-                    ),
-                  ],
-                ),
+              // Level test does not show XP/Heart badge, keeping it aligned with Figma
               
               const Spacer(),
               

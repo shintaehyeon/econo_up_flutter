@@ -101,6 +101,7 @@ class QuestionGraphInput extends StatelessWidget {
   final TextEditingController baseRateController;
   final bool isAnswered;
   final ValueChanged<int> onGraphIndexSelected;
+  final int? correctIndex;
 
   const QuestionGraphInput({
     super.key,
@@ -109,6 +110,7 @@ class QuestionGraphInput extends StatelessWidget {
     required this.baseRateController,
     required this.isAnswered,
     required this.onGraphIndexSelected,
+    this.correctIndex,
   });
 
   @override
@@ -183,12 +185,12 @@ class QuestionGraphInput extends StatelessWidget {
                                   constraints.maxWidth,
                                   constraints.maxHeight,
                                 ),
-                                painter: GraphLinePainter(
-                                  points: points,
-                                  selectedIndex: selectedGraphIndex,
-                                  isAnswered: isAnswered,
-                                  correctIndex: currentQ['highestIndex'],
-                                ),
+                                  painter: GraphLinePainter(
+                                    points: points,
+                                    selectedIndex: selectedGraphIndex,
+                                    isAnswered: isAnswered,
+                                    correctIndex: correctIndex ?? (currentQ['highestIndex'] as int?) ?? 0,
+                                  ),
                               ),
                             );
                           },
