@@ -12,7 +12,11 @@ class DashedRectPainter extends CustomPainter {
   final double strokeWidth;
   final double gap;
 
-  DashedRectPainter({this.color = Colors.black, this.strokeWidth = 1.0, this.gap = 5.0});
+  DashedRectPainter({
+    this.color = Colors.black,
+    this.strokeWidth = 1.0,
+    this.gap = 5.0,
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -22,8 +26,12 @@ class DashedRectPainter extends CustomPainter {
       ..style = PaintingStyle.stroke;
 
     var path = Path()
-      ..addRRect(RRect.fromRectAndRadius(
-          Rect.fromLTWH(0, 0, size.width, size.height), const Radius.circular(10)));
+      ..addRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(0, 0, size.width, size.height),
+          const Radius.circular(10),
+        ),
+      );
 
     Path dashPath = Path();
     double distance = 0.0;
@@ -48,10 +56,7 @@ class DashedRectPainter extends CustomPainter {
 class LevelTestScreen extends StatefulWidget {
   final String nickname;
 
-  const LevelTestScreen({
-    super.key,
-    this.nickname = '경제왕',
-  });
+  const LevelTestScreen({super.key, this.nickname = '경제왕'});
 
   @override
   State<LevelTestScreen> createState() => _LevelTestScreenState();
@@ -59,7 +64,7 @@ class LevelTestScreen extends StatefulWidget {
 
 class _LevelTestScreenState extends State<LevelTestScreen> {
   int _currentIdx = 0;
-  
+
   // State for MULTIPLE_CHOICE
   String? _selectedAnswer;
 
@@ -89,7 +94,9 @@ class _LevelTestScreenState extends State<LevelTestScreen> {
 
   String _getCircleNumber(int index) {
     const circles = ['①', '②', '③', '④', '⑤', '⑥', '⑦', '⑧', '⑨', '⑩'];
-    return (index >= 0 && index < circles.length) ? circles[index] : '${index + 1}.';
+    return (index >= 0 && index < circles.length)
+        ? circles[index]
+        : '${index + 1}.';
   }
 
   void _submitAnswer() {
@@ -130,8 +137,12 @@ class _LevelTestScreenState extends State<LevelTestScreen> {
       selectedIds = _reorderList;
     } else if (type == 'GRAPH_INPUT') {
       final textAns = _baseRateController.text.trim();
-      final bool isTextCorrect = textAns == currentQ['answerText'] || textAns == '${currentQ['answerText']}0' || textAns == '${currentQ['answerText']}%';
-      final bool isGraphCorrect = _selectedGraphIndex == currentQ['highestIndex'];
+      final bool isTextCorrect =
+          textAns == currentQ['answerText'] ||
+          textAns == '${currentQ['answerText']}0' ||
+          textAns == '${currentQ['answerText']}%';
+      final bool isGraphCorrect =
+          _selectedGraphIndex == currentQ['highestIndex'];
       isCorrect = isTextCorrect && isGraphCorrect;
       selectedIds = [_selectedGraphIndex.toString(), textAns];
     }
@@ -141,15 +152,13 @@ class _LevelTestScreenState extends State<LevelTestScreen> {
       _isAnswered = true;
       _isCorrect = isCorrect;
       if (isCorrect) {
-        _score += 20; 
+        _score += 20;
       }
     });
 
     final attemptPayload = {
       "questionId": currentQ['id'],
-      "answer": {
-        "choiceIds": selectedIds
-      }
+      "answer": {"choiceIds": selectedIds},
     };
     debugPrint('Submitting answer to level test: $attemptPayload');
 
@@ -166,7 +175,8 @@ class _LevelTestScreenState extends State<LevelTestScreen> {
             }
           }
           if (correctChoice != null) {
-            generatedHighlight = '정답은 ${correctChoice['id']}. ${correctChoice['text']} 입니다.';
+            generatedHighlight =
+                '정답은 ${correctChoice['id']}. ${correctChoice['text']} 입니다.';
           }
         }
       }
@@ -175,19 +185,23 @@ class _LevelTestScreenState extends State<LevelTestScreen> {
     Navigator.push(
       context,
       PageRouteBuilder(
-        pageBuilder: (context, animation, secondaryAnimation) => LevelTestFeedbackScreen(
-          isCorrect: isCorrect,
-          explanation: currentQ['explanation'] as String? ?? '',
-          highlightText: generatedHighlight,
-          isLastQuestion: _currentIdx == _questions.length - 1,
-          onNext: _nextQuestion,
-        ),
+        pageBuilder: (context, animation, secondaryAnimation) =>
+            LevelTestFeedbackScreen(
+              isCorrect: isCorrect,
+              explanation: currentQ['explanation'] as String? ?? '',
+              highlightText: generatedHighlight,
+              isLastQuestion: _currentIdx == _questions.length - 1,
+              onNext: _nextQuestion,
+            ),
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
           const begin = Offset(0.0, 1.0);
           const end = Offset.zero;
           const curve = Curves.easeInOut;
 
-          var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+          var tween = Tween(
+            begin: begin,
+            end: end,
+          ).chain(CurveTween(curve: curve));
 
           return SlideTransition(
             position: animation.drive(tween),
@@ -209,7 +223,7 @@ class _LevelTestScreenState extends State<LevelTestScreen> {
         _reorderList.clear();
         _selectedGraphIndex = null;
         _baseRateController.clear();
-        
+
         final nextQ = _questions[_currentIdx];
         if (nextQ['type'] == 'REORDER') {
           _reorderList = List<String>.from(nextQ['initialOrder'] as List);
@@ -226,99 +240,143 @@ class _LevelTestScreenState extends State<LevelTestScreen> {
       context: context,
       builder: (context) {
         return Dialog(
+          backgroundColor: Colors.white,
+          insetPadding: const EdgeInsets.symmetric(horizontal: 20),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(24),
             side: const BorderSide(color: Color(0xFFD0D5E0)),
           ),
-          backgroundColor: Colors.white,
-          insetPadding: const EdgeInsets.symmetric(horizontal: 20),
-          child: Container(
+          child: SizedBox(
             width: 335,
-            padding: const EdgeInsets.fromLTRB(34, 22, 34, 16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Text(
-                  '😢',
-                  style: TextStyle(fontSize: 32),
-                ),
-                const SizedBox(height: 14),
-                const Text(
-                  '벌써 가시려고요?',
-                  style: TextStyle(
-                    fontFamily: 'Pretendard',
-                    fontWeight: FontWeight.w700,
-                    fontSize: 18,
-                    color: Color(0xFF111827),
-                  ),
-                ),
-                const SizedBox(height: 4),
-                const Text(
-                  '지금까지 배운 내용이\n저장되지 않을 수 있어요.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontFamily: 'Pretendard',
-                    fontWeight: FontWeight.w400,
-                    fontSize: 13,
-                    color: Color(0xFF9CA3AF),
-                    height: 1.23,
-                  ),
-                ),
-                const SizedBox(height: 24),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Expanded(
-                      child: SizedBox(
-                        height: 38,
-                        child: TextButton(
-                          onPressed: () => Navigator.pop(context, true),
-                          style: TextButton.styleFrom(
-                            backgroundColor: const Color(0xFFF0F2F7),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                          ),
-                          child: const Text(
-                            '나가기',
+            height: 222,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(34, 22, 34, 16),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const SizedBox(
+                    width: 266,
+                    height: 108,
+                    child: Column(
+                      children: [
+                        SizedBox(
+                          width: 266,
+                          height: 32,
+                          child: Text(
+                            '😢',
+                            textAlign: TextAlign.center,
                             style: TextStyle(
-                              fontFamily: 'Pretendard',
-                              fontWeight: FontWeight.w500,
-                              fontSize: 14,
-                              color: Color(0xFF4B5563),
+                              fontFamily: 'Noto Sans KR',
+                              fontWeight: FontWeight.w400,
+                              fontSize: 32,
+                              height: 38 / 32,
+                              color: Color(0xFF111827),
                             ),
                           ),
                         ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: SizedBox(
-                        height: 38,
-                        child: TextButton(
-                          onPressed: () => Navigator.pop(context, false),
-                          style: TextButton.styleFrom(
-                            backgroundColor: const Color(0xFF00EE94),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
-                            ),
+                        SizedBox(height: 14),
+                        SizedBox(
+                          width: 266,
+                          height: 62,
+                          child: Column(
+                            children: [
+                              SizedBox(
+                                width: 266,
+                                height: 26,
+                                child: Text(
+                                  '벌써 가시려고요?',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    fontFamily: 'Pretendard',
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 18,
+                                    height: 26 / 18,
+                                    color: Color(0xFF111827),
+                                  ),
+                                ),
+                              ),
+                              SizedBox(height: 4),
+                              SizedBox(
+                                width: 266,
+                                height: 32,
+                                child: Text(
+                                  '지금까지 배운 내용이 저장되지 않을 수 있어요.',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    fontFamily: 'Pretendard',
+                                    fontWeight: FontWeight.w400,
+                                    fontSize: 13,
+                                    height: 16 / 13,
+                                    color: Color(0xFF9CA3AF),
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
-                          child: const Text(
-                            '계속 학습',
-                            style: TextStyle(
-                              fontFamily: 'Pretendard',
-                              fontWeight: FontWeight.w700,
-                              fontSize: 14,
-                              color: Color(0xFF4B5563),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    width: 266,
+                    height: 38,
+                    child: Row(
+                      children: [
+                        SizedBox(
+                          width: 129,
+                          height: 38,
+                          child: TextButton(
+                            onPressed: () => Navigator.pop(context, true),
+                            style: TextButton.styleFrom(
+                              padding: EdgeInsets.zero,
+                              minimumSize: const Size(129, 38),
+                              backgroundColor: const Color(0xFFF0F2F7),
+                              shape: const StadiumBorder(),
+                            ),
+                            child: const Text(
+                              '나가기',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontFamily: 'Pretendard',
+                                fontWeight: FontWeight.w500,
+                                fontSize: 10,
+                                height: 13 / 10,
+                                color: Color(0xFF4B5563),
+                              ),
                             ),
                           ),
                         ),
-                      ),
+                        const SizedBox(width: 8),
+                        SizedBox(
+                          width: 129,
+                          height: 38,
+                          child: TextButton(
+                            onPressed: () => Navigator.pop(context, false),
+                            style: TextButton.styleFrom(
+                              padding: EdgeInsets.zero,
+                              minimumSize: const Size(129, 38),
+                              backgroundColor: const Color(0xFF00EE94),
+                              shape: const StadiumBorder(),
+                            ),
+                            child: const Text(
+                              '계속 학습',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontFamily: 'Pretendard',
+                                fontWeight: FontWeight.w700,
+                                fontSize: 10,
+                                height: 13 / 10,
+                                color: Color(0xFF4B5563),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-              ],
+                  ),
+                ],
+              ),
             ),
           ),
         );
@@ -332,10 +390,8 @@ class _LevelTestScreenState extends State<LevelTestScreen> {
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
-        builder: (context) => LevelTestResultScreen(
-          score: _score,
-          nickname: widget.nickname,
-        ),
+        builder: (context) =>
+            LevelTestResultScreen(score: _score, nickname: widget.nickname),
       ),
     );
   }
@@ -346,28 +402,32 @@ class _LevelTestScreenState extends State<LevelTestScreen> {
       return WillPopScope(
         onWillPop: _showExitDialog,
         child: Scaffold(
-        backgroundColor: Colors.white,
-        appBar: AppBar(
           backgroundColor: Colors.white,
-          elevation: 0,
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Color(0xFF6A7282), size: 20),
-            onPressed: () async {
-              final shouldPop = await _showExitDialog();
-              if (shouldPop && mounted) Navigator.pop(context);
-            },
-          ),
-        ),
-        body: const Center(
-          child: Text(
-            '문항을 불러오는 중입니다...',
-            style: TextStyle(
-              fontFamily: 'Pretendard',
-              fontSize: 16,
-              color: Color(0xFF6A7282),
+          appBar: AppBar(
+            backgroundColor: Colors.white,
+            elevation: 0,
+            leading: IconButton(
+              icon: const Icon(
+                Icons.arrow_back_ios_new_rounded,
+                color: Color(0xFF6A7282),
+                size: 20,
+              ),
+              onPressed: () async {
+                final shouldPop = await _showExitDialog();
+                if (shouldPop && mounted) Navigator.pop(context);
+              },
             ),
           ),
-        ),
+          body: const Center(
+            child: Text(
+              '문항을 불러오는 중입니다...',
+              style: TextStyle(
+                fontFamily: 'Pretendard',
+                fontSize: 16,
+                color: Color(0xFF6A7282),
+              ),
+            ),
+          ),
         ),
       );
     }
@@ -380,86 +440,93 @@ class _LevelTestScreenState extends State<LevelTestScreen> {
       onWillPop: _showExitDialog,
       child: Scaffold(
         backgroundColor: const Color(0xFFFFFFFF),
-      body: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // 1. Top App Bar & Progress Bar Area
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.fromLTRB(24, 12, 24, 0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  GestureDetector(
-                    onTap: () async {
-                      final shouldPop = await _showExitDialog();
-                      if (shouldPop && mounted) Navigator.pop(context);
-                    },
-                    child: const Icon(
-                      Icons.arrow_back_ios_new_rounded,
-                      color: Color(0xFF6A7282),
-                      size: 20,
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-                  Row(
-                    children: List.generate(totalQuestions, (idx) {
-                      bool isActive = idx <= _currentIdx;
-                      return Expanded(
-                        child: Container(
-                          height: 4,
-                          margin: EdgeInsets.only(right: idx == totalQuestions - 1 ? 0 : 8),
-                          decoration: BoxDecoration(
-                            color: isActive ? const Color(0xFF00EE94) : const Color(0xFFE4E8F0),
-                            borderRadius: BorderRadius.circular(16777216),
-                          ),
-                        ),
-                      );
-                    }),
-                  ),
-                  const SizedBox(height: 14),
-                  Center(
-                    child: Text(
-                      '${_currentIdx + 1}/$totalQuestions',
-                      style: const TextStyle(
-                        fontFamily: 'Pretendard',
-                        fontSize: 12,
-                        fontWeight: FontWeight.w400,
-                        color: Color(0xFF9CA3AF),
-                        height: 16 / 12,
+        body: SafeArea(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // 1. Top App Bar & Progress Bar Area
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.fromLTRB(24, 12, 24, 0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    GestureDetector(
+                      onTap: () async {
+                        final shouldPop = await _showExitDialog();
+                        if (shouldPop && mounted) Navigator.pop(context);
+                      },
+                      child: const Icon(
+                        Icons.arrow_back_ios_new_rounded,
+                        color: Color(0xFF6A7282),
+                        size: 20,
                       ),
                     ),
-                  ),
-                ],
-              ),
-            ),
-
-            // 2. Main Content Area
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 32.0),
-                child: Builder(
-                  builder: (context) {
-                    if (type == 'MULTIPLE_CHOICE') {
-                      return _buildMultipleChoiceContent(currentQ);
-                    } else if (type == 'MATCHING') {
-                      return _buildMatchingContent(currentQ);
-                    } else if (type == 'REORDER') {
-                      return _buildReorderContent(currentQ);
-                    } else if (type == 'GRAPH_INPUT') {
-                      return _buildGraphInputContent(currentQ);
-                    }
-                    return const SizedBox.shrink();
-                  },
+                    const SizedBox(height: 14),
+                    Row(
+                      children: List.generate(totalQuestions, (idx) {
+                        bool isActive = idx <= _currentIdx;
+                        return Expanded(
+                          child: Container(
+                            height: 4,
+                            margin: EdgeInsets.only(
+                              right: idx == totalQuestions - 1 ? 0 : 8,
+                            ),
+                            decoration: BoxDecoration(
+                              color: isActive
+                                  ? const Color(0xFF00EE94)
+                                  : const Color(0xFFE4E8F0),
+                              borderRadius: BorderRadius.circular(16777216),
+                            ),
+                          ),
+                        );
+                      }),
+                    ),
+                    const SizedBox(height: 14),
+                    Center(
+                      child: Text(
+                        '${_currentIdx + 1}/$totalQuestions',
+                        style: const TextStyle(
+                          fontFamily: 'Pretendard',
+                          fontSize: 12,
+                          fontWeight: FontWeight.w400,
+                          color: Color(0xFF9CA3AF),
+                          height: 16 / 12,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ),
 
-            // 3. Bottom Action Section (Answer Check / Next Banner)
-            _buildBottomActionSection(currentQ),
-          ],
-        ),
+              // 2. Main Content Area
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24.0,
+                    vertical: 32.0,
+                  ),
+                  child: Builder(
+                    builder: (context) {
+                      if (type == 'MULTIPLE_CHOICE') {
+                        return _buildMultipleChoiceContent(currentQ);
+                      } else if (type == 'MATCHING') {
+                        return _buildMatchingContent(currentQ);
+                      } else if (type == 'REORDER') {
+                        return _buildReorderContent(currentQ);
+                      } else if (type == 'GRAPH_INPUT') {
+                        return _buildGraphInputContent(currentQ);
+                      }
+                      return const SizedBox.shrink();
+                    },
+                  ),
+                ),
+              ),
+
+              // 3. Bottom Action Section (Answer Check / Next Banner)
+              _buildBottomActionSection(currentQ),
+            ],
+          ),
         ),
       ),
     );
@@ -468,7 +535,8 @@ class _LevelTestScreenState extends State<LevelTestScreen> {
   Widget _buildMultipleChoiceContent(Map<String, dynamic> currentQ) {
     return Column(
       children: [
-        if (currentQ['resourceTitle'] != null && currentQ['resourceText'] != null) ...[
+        if (currentQ['resourceTitle'] != null &&
+            currentQ['resourceText'] != null) ...[
           Text(
             currentQ['resourceTitle'] as String,
             style: const TextStyle(
@@ -532,8 +600,11 @@ class _LevelTestScreenState extends State<LevelTestScreen> {
           ),
         const SizedBox(height: 32),
         Column(
-          children: List.generate((currentQ['choices'] as List).length, (choiceIdx) {
-            final choice = (currentQ['choices'] as List)[choiceIdx] as Map<String, String>;
+          children: List.generate((currentQ['choices'] as List).length, (
+            choiceIdx,
+          ) {
+            final choice =
+                (currentQ['choices'] as List)[choiceIdx] as Map<String, String>;
             final choiceId = choice['id']!;
             final choiceText = choice['text']!;
             final choiceSubtitle = choice['subtitle'];
@@ -581,7 +652,10 @@ class _LevelTestScreenState extends State<LevelTestScreen> {
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 150),
                   width: double.infinity,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 16,
+                  ),
                   decoration: BoxDecoration(
                     color: btnBg,
                     border: Border.all(color: borderCol, width: borderW),
@@ -617,7 +691,7 @@ class _LevelTestScreenState extends State<LevelTestScreen> {
                                   height: 14 / 10,
                                 ),
                               ),
-                            ]
+                            ],
                           ],
                         ),
                       ),
@@ -626,7 +700,9 @@ class _LevelTestScreenState extends State<LevelTestScreen> {
                         width: 20,
                         height: 20,
                         decoration: BoxDecoration(
-                          color: isSelected ? const Color(0xFF00EE94) : const Color(0xFFD0D5E0),
+                          color: isSelected
+                              ? const Color(0xFF00EE94)
+                              : const Color(0xFFD0D5E0),
                           shape: BoxShape.circle,
                         ),
                         child: const Icon(
@@ -651,7 +727,9 @@ class _LevelTestScreenState extends State<LevelTestScreen> {
     final targets = currentQ['targetDescriptions'] as List<String>;
 
     // Filter out items that are already matched
-    final availableDraggables = draggables.where((item) => !_matchingAnswers.containsValue(item)).toList();
+    final availableDraggables = draggables
+        .where((item) => !_matchingAnswers.containsValue(item))
+        .toList();
 
     return Column(
       children: [
@@ -672,12 +750,22 @@ class _LevelTestScreenState extends State<LevelTestScreen> {
         // Draggable Cards Row
         Row(
           children: [
-            Expanded(child: _buildDraggableItem(draggables[0], availableDraggables.contains(draggables[0]))),
+            Expanded(
+              child: _buildDraggableItem(
+                draggables[0],
+                availableDraggables.contains(draggables[0]),
+              ),
+            ),
             const SizedBox(width: 7),
-            Expanded(child: _buildDraggableItem(draggables[1], availableDraggables.contains(draggables[1]))),
+            Expanded(
+              child: _buildDraggableItem(
+                draggables[1],
+                availableDraggables.contains(draggables[1]),
+              ),
+            ),
           ],
         ),
-        
+
         const SizedBox(height: 30),
 
         // Drag Targets (Dashed Slots)
@@ -741,10 +829,7 @@ class _LevelTestScreenState extends State<LevelTestScreen> {
           ),
         ),
       ),
-      childWhenDragging: Opacity(
-        opacity: 0.3,
-        child: card,
-      ),
+      childWhenDragging: Opacity(opacity: 0.3, child: card),
       child: card,
     );
   }
@@ -777,7 +862,12 @@ class _LevelTestScreenState extends State<LevelTestScreen> {
               height: 51,
               decoration: BoxDecoration(
                 color: _isAnswered ? const Color(0xFFF2FFFA) : Colors.white,
-                border: Border.all(color: _isAnswered ? const Color(0xFF00EE94) : const Color(0xFF00EE94), width: _isAnswered ? 2 : 1),
+                border: Border.all(
+                  color: _isAnswered
+                      ? const Color(0xFF00EE94)
+                      : const Color(0xFF00EE94),
+                  width: _isAnswered ? 2 : 1,
+                ),
                 borderRadius: BorderRadius.circular(10),
               ),
               alignment: Alignment.center,
@@ -787,7 +877,9 @@ class _LevelTestScreenState extends State<LevelTestScreen> {
                   fontFamily: 'Pretendard',
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
-                  color: _isAnswered ? const Color(0xFF0DE593) : const Color(0xFF111827),
+                  color: _isAnswered
+                      ? const Color(0xFF0DE593)
+                      : const Color(0xFF111827),
                   height: 16 / 14,
                 ),
               ),
@@ -802,10 +894,7 @@ class _LevelTestScreenState extends State<LevelTestScreen> {
             strokeWidth: 1.0,
             gap: 4.0,
           ),
-          child: Container(
-            height: 51,
-            alignment: Alignment.center,
-          ),
+          child: Container(height: 51, alignment: Alignment.center),
         );
       },
     );
@@ -814,7 +903,8 @@ class _LevelTestScreenState extends State<LevelTestScreen> {
   Widget _buildReorderContent(Map<String, dynamic> currentQ) {
     final choices = currentQ['choices'] as List;
     final Map<String, String> idToText = {
-      for (var choice in choices) (choice as Map<String, String>)['id']!: choice['text']!
+      for (var choice in choices)
+        (choice as Map<String, String>)['id']!: choice['text']!,
     };
 
     return Column(
@@ -844,75 +934,76 @@ class _LevelTestScreenState extends State<LevelTestScreen> {
         ),
         const SizedBox(height: 32),
         Theme(
-      data: Theme.of(context).copyWith(
-        canvasColor: Colors.transparent,
-      ),
-      child: ReorderableListView(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        buildDefaultDragHandles: false,
-        onReorder: (int oldIndex, int newIndex) {
-          if (_isAnswered) return;
-          setState(() {
-            if (oldIndex < newIndex) {
-              newIndex -= 1;
-            }
-            final String item = _reorderList.removeAt(oldIndex);
-            _reorderList.insert(newIndex, item);
-          });
-        },
-        children: [
-          for (int i = 0; i < _reorderList.length; i++)
-            Container(
-              key: ValueKey(_reorderList[i]),
-              margin: const EdgeInsets.only(bottom: 12.0),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                border: Border.all(color: const Color(0xFFD0D5E0), width: 2),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(8, 8, 16, 8),
-                child: Row(
-                  children: [
-                    ReorderableDragStartListener(
-                      index: i,
-                      child: Container(
-                        padding: const EdgeInsets.all(8.0),
-                        color: Colors.transparent,
-                        child: const Text(
-                          '⠿',
-                          style: TextStyle(
-                            fontFamily: 'Noto Sans KR',
-                            fontSize: 14,
-                            fontWeight: FontWeight.w400,
-                            color: Color(0xFF9CA3AF),
+          data: Theme.of(context).copyWith(canvasColor: Colors.transparent),
+          child: ReorderableListView(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            buildDefaultDragHandles: false,
+            onReorder: (int oldIndex, int newIndex) {
+              if (_isAnswered) return;
+              setState(() {
+                if (oldIndex < newIndex) {
+                  newIndex -= 1;
+                }
+                final String item = _reorderList.removeAt(oldIndex);
+                _reorderList.insert(newIndex, item);
+              });
+            },
+            children: [
+              for (int i = 0; i < _reorderList.length; i++)
+                Container(
+                  key: ValueKey(_reorderList[i]),
+                  margin: const EdgeInsets.only(bottom: 12.0),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    border: Border.all(
+                      color: const Color(0xFFD0D5E0),
+                      width: 2,
+                    ),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(8, 8, 16, 8),
+                    child: Row(
+                      children: [
+                        ReorderableDragStartListener(
+                          index: i,
+                          child: Container(
+                            padding: const EdgeInsets.all(8.0),
+                            color: Colors.transparent,
+                            child: const Text(
+                              '⠿',
+                              style: TextStyle(
+                                fontFamily: 'Noto Sans KR',
+                                fontSize: 14,
+                                fontWeight: FontWeight.w400,
+                                color: Color(0xFF9CA3AF),
+                              ),
+                            ),
                           ),
                         ),
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    Expanded(
-                      child: Text(
-                        idToText[_reorderList[i]] ?? '',
-                        style: const TextStyle(
-                          fontFamily: 'Pretendard',
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF111827),
-                          height: 16 / 14,
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            idToText[_reorderList[i]] ?? '',
+                            style: const TextStyle(
+                              fontFamily: 'Pretendard',
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF111827),
+                              height: 16 / 14,
+                            ),
+                          ),
                         ),
-                      ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
-              ),
-            ),
-        ],
-      ),
-    ),
-  ],
-);
+            ],
+          ),
+        ),
+      ],
+    );
   }
 
   Widget _buildGraphInputContent(Map<String, dynamic> currentQ) {
@@ -940,9 +1031,18 @@ class _LevelTestScreenState extends State<LevelTestScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: const [
-                    Text('5%', style: TextStyle(color: Color(0xFF9CA3AF), fontSize: 10)),
-                    Text('3%', style: TextStyle(color: Color(0xFF9CA3AF), fontSize: 10)),
-                    Text('1%', style: TextStyle(color: Color(0xFF9CA3AF), fontSize: 10)),
+                    Text(
+                      '5%',
+                      style: TextStyle(color: Color(0xFF9CA3AF), fontSize: 10),
+                    ),
+                    Text(
+                      '3%',
+                      style: TextStyle(color: Color(0xFF9CA3AF), fontSize: 10),
+                    ),
+                    Text(
+                      '1%',
+                      style: TextStyle(color: Color(0xFF9CA3AF), fontSize: 10),
+                    ),
                   ],
                 ),
                 const SizedBox(width: 8),
@@ -952,38 +1052,49 @@ class _LevelTestScreenState extends State<LevelTestScreen> {
                     children: [
                       // X & Y Axis Lines
                       Positioned.fill(
-                        child: CustomPaint(
-                          painter: AxisPainter(),
-                        ),
+                        child: CustomPaint(painter: AxisPainter()),
                       ),
                       // Line Graph
                       Positioned.fill(
                         child: GestureDetector(
-                          onTapDown: _isAnswered ? null : (details) {
-                            final box = context.findRenderObject() as RenderBox?;
-                            if (box == null) return;
-                            final width = box.size.width; // Actually need the layout builder for exact width, but we can just use details.localPosition
-                            final dx = details.localPosition.dx;
-                            // Width is roughly Expanded width
-                            // We have points.length points.
-                            // approximate
-                          },
+                          onTapDown: _isAnswered
+                              ? null
+                              : (details) {
+                                  final box =
+                                      context.findRenderObject() as RenderBox?;
+                                  if (box == null) return;
+                                  final width = box
+                                      .size
+                                      .width; // Actually need the layout builder for exact width, but we can just use details.localPosition
+                                  final dx = details.localPosition.dx;
+                                  // Width is roughly Expanded width
+                                  // We have points.length points.
+                                  // approximate
+                                },
                           child: LayoutBuilder(
                             builder: (context, constraints) {
                               return GestureDetector(
-                                onTapDown: _isAnswered ? null : (details) {
-                                  final double stepX = constraints.maxWidth / (points.length - 1);
-                                  final dx = details.localPosition.dx;
-                                  final int index = (dx / stepX).round();
-                                  if (index >= 0 && index < points.length) {
-                                    HapticFeedback.lightImpact();
-                                    setState(() {
-                                      _selectedGraphIndex = index;
-                                    });
-                                  }
-                                },
+                                onTapDown: _isAnswered
+                                    ? null
+                                    : (details) {
+                                        final double stepX =
+                                            constraints.maxWidth /
+                                            (points.length - 1);
+                                        final dx = details.localPosition.dx;
+                                        final int index = (dx / stepX).round();
+                                        if (index >= 0 &&
+                                            index < points.length) {
+                                          HapticFeedback.lightImpact();
+                                          setState(() {
+                                            _selectedGraphIndex = index;
+                                          });
+                                        }
+                                      },
                                 child: CustomPaint(
-                                  size: Size(constraints.maxWidth, constraints.maxHeight),
+                                  size: Size(
+                                    constraints.maxWidth,
+                                    constraints.maxHeight,
+                                  ),
                                   painter: GraphLinePainter(
                                     points: points,
                                     selectedIndex: _selectedGraphIndex,
@@ -992,7 +1103,7 @@ class _LevelTestScreenState extends State<LevelTestScreen> {
                                   ),
                                 ),
                               );
-                            }
+                            },
                           ),
                         ),
                       ),
@@ -1001,16 +1112,22 @@ class _LevelTestScreenState extends State<LevelTestScreen> {
                         Positioned.fill(
                           child: LayoutBuilder(
                             builder: (context, constraints) {
-                              final double stepX = constraints.maxWidth / (points.length - 1);
+                              final double stepX =
+                                  constraints.maxWidth / (points.length - 1);
                               final double x = _selectedGraphIndex! * stepX;
-                              final double y = (1 - points[_selectedGraphIndex!]) * constraints.maxHeight;
+                              final double y =
+                                  (1 - points[_selectedGraphIndex!]) *
+                                  constraints.maxHeight;
                               return Stack(
                                 children: [
                                   Positioned(
                                     left: x - 25, // center tooltip
                                     top: y - 28,
                                     child: Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                        vertical: 4,
+                                      ),
                                       decoration: BoxDecoration(
                                         color: const Color(0xFFF2FFFA),
                                         borderRadius: BorderRadius.circular(10),
@@ -1037,7 +1154,7 @@ class _LevelTestScreenState extends State<LevelTestScreen> {
             ),
           ),
         ),
-        
+
         // Input Title
         const Text(
           '현재 기준금리를 입력하세요',
@@ -1055,7 +1172,10 @@ class _LevelTestScreenState extends State<LevelTestScreen> {
           enabled: !_isAnswered,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
           decoration: InputDecoration(
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 16,
+            ),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
               borderSide: const BorderSide(color: Color(0xFFD0D5E0)),
@@ -1112,9 +1232,11 @@ class _LevelTestScreenState extends State<LevelTestScreen> {
       } else if (currentQ['type'] == 'REORDER') {
         canSubmit = _reorderList.isNotEmpty;
       } else if (currentQ['type'] == 'GRAPH_INPUT') {
-        canSubmit = _selectedGraphIndex != null && _baseRateController.text.trim().isNotEmpty;
+        canSubmit =
+            _selectedGraphIndex != null &&
+            _baseRateController.text.trim().isNotEmpty;
       }
-      
+
       return Container(
         width: double.infinity,
         padding: const EdgeInsets.fromLTRB(24, 24, 24, 20),
@@ -1160,12 +1282,16 @@ class AxisPainter extends CustomPainter {
     final paint = Paint()
       ..color = const Color(0xFFE4E8F0)
       ..strokeWidth = 1.0;
-    
+
     // Y-axis line
     canvas.drawLine(Offset(0, 0), Offset(0, size.height), paint);
-    
+
     // X-axis line
-    canvas.drawLine(Offset(0, size.height), Offset(size.width, size.height), paint);
+    canvas.drawLine(
+      Offset(0, size.height),
+      Offset(size.width, size.height),
+      paint,
+    );
   }
 
   @override
@@ -1206,14 +1332,14 @@ class GraphLinePainter extends CustomPainter {
         path.lineTo(x, y);
       }
     }
-    
+
     canvas.drawPath(path, linePaint);
 
     // Draw selected circle
     if (selectedIndex != null) {
       final double x = selectedIndex! * stepX;
       final double y = (1 - points[selectedIndex!]) * size.height;
-      
+
       Color circleColor = const Color(0xFF00EE94);
       if (isAnswered && selectedIndex != correctIndex) {
         circleColor = const Color(0xFFEF4444); // wrong selection
@@ -1222,10 +1348,10 @@ class GraphLinePainter extends CustomPainter {
       final circlePaint = Paint()
         ..color = circleColor
         ..style = PaintingStyle.fill;
-        
+
       canvas.drawCircle(Offset(x, y), 6.0, circlePaint);
     }
-    
+
     // If answered correctly, or if we want to show correct answer on wrong
     if (isAnswered && selectedIndex != correctIndex) {
       final double x = correctIndex * stepX;
@@ -1239,7 +1365,7 @@ class GraphLinePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant GraphLinePainter oldDelegate) {
-    return oldDelegate.selectedIndex != selectedIndex || oldDelegate.isAnswered != isAnswered;
+    return oldDelegate.selectedIndex != selectedIndex ||
+        oldDelegate.isAnswered != isAnswered;
   }
 }
-

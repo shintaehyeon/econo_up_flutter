@@ -68,7 +68,7 @@ final List<Map<String, dynamic>> levelTestMockData = [
     'id': 'q_demo_05',
     'subtitle': '그래프에서 금리 최고점을 터치하세요',
     'prompt': '현재 기준금리를 입력하세요',
-    'graphPoints': [0.3, 0.8, 0.6, 0.7, 0.1, 0.4, 0.5, 0.2, 0.35],
+    'graphPoints': [0.3, 0.625, 0.48, 0.56, 0.1, 0.4, 0.5, 0.2, 0.35],
     'highestIndex': 1,
     'answerText': '3.5',
     'explanation': '현재 우리나라의 한국은행 기준금리는 3.5% (2024년 기준)입니다.',

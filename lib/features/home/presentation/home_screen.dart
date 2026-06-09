@@ -6,10 +6,7 @@ import 'package:flutter/services.dart';
 class HomeScreen extends StatefulWidget {
   final String nickname;
 
-  const HomeScreen({
-    super.key,
-    this.nickname = '경제왕',
-  });
+  const HomeScreen({super.key, this.nickname = '경제왕'});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -32,49 +29,56 @@ class _HomeScreenState extends State<HomeScreen> {
         bottom: false,
         child: Column(
           children: [
-            // 1. Custom Top Welcome Area
-            _buildCustomTopHeader(),
-
-            // 2. Scrollable main body
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 14.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    // Card 1: Streak / Review Card
-                    _buildStreakReviewCard(),
-                    const SizedBox(height: 14),
-
-                    // Card 2: News Card
-                    _buildNewsCard(),
-                    const SizedBox(height: 14),
-
-                    // Card 3: Golden Ticket Card
-                    _buildGoldenTicketCard(),
-                    const SizedBox(height: 24),
-
-                    // Card 4: Continue Learning Section
-                    _buildContinueLearningSection(),
-                    const SizedBox(height: 14),
-
-                    // Card 5: Weekly League Card
-                    _buildLeagueCard(),
-                    const SizedBox(height: 14),
-
-                    // Card 6: Simulation Challenge Card
-                    _buildSimulationCard(),
-                    const SizedBox(height: 20),
-                  ],
-                ),
-              ),
-            ),
-
-            // 3. Pinned Bottom Navigation Tab Bar
+            Expanded(child: _buildCurrentTabBody()),
             _buildBottomNavigationBar(),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildCurrentTabBody() {
+    if (_currentTabIdx == 1) {
+      return _buildLearningTab();
+    }
+
+    if (_currentTabIdx != 0) {
+      return _buildPlaceholderTab();
+    }
+
+    return _buildHomeTab();
+  }
+
+  Widget _buildHomeTab() {
+    return Column(
+      children: [
+        _buildCustomTopHeader(),
+        Expanded(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(
+              horizontal: 20.0,
+              vertical: 14.0,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _buildStreakReviewCard(),
+                const SizedBox(height: 14),
+                _buildNewsCard(),
+                const SizedBox(height: 14),
+                _buildGoldenTicketCard(),
+                const SizedBox(height: 24),
+                _buildContinueLearningSection(),
+                const SizedBox(height: 14),
+                _buildLeagueCard(),
+                const SizedBox(height: 14),
+                _buildSimulationCard(),
+                const SizedBox(height: 20),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -106,7 +110,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   _buildAssetPill(
-                    iconPath: 'assets/heart_vector', 
+                    iconPath: 'assets/heart_vector',
                     iconColor: const Color(0xFFFF7C7C),
                     value: '3',
                   ),
@@ -153,7 +157,9 @@ class _HomeScreenState extends State<HomeScreen> {
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(
-            iconColor == const Color(0xFFFF7C7C) ? Icons.favorite_rounded : Icons.payments_rounded,
+            iconColor == const Color(0xFFFF7C7C)
+                ? Icons.favorite_rounded
+                : Icons.payments_rounded,
             size: 16,
             color: iconColor,
           ),
@@ -195,7 +201,11 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: const [
-                Icon(Icons.local_fire_department_rounded, size: 14, color: Color(0xFFFF6900)),
+                Icon(
+                  Icons.local_fire_department_rounded,
+                  size: 14,
+                  color: Color(0xFFFF6900),
+                ),
                 SizedBox(width: 4),
                 Text(
                   '14일 연속 학습 중!',
@@ -233,7 +243,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   HapticFeedback.mediumImpact();
                 },
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
                   decoration: BoxDecoration(
                     color: themeGreen,
                     borderRadius: BorderRadius.circular(20),
@@ -275,7 +288,11 @@ class _HomeScreenState extends State<HomeScreen> {
               borderRadius: BorderRadius.circular(20),
             ),
             alignment: Alignment.center,
-            child: const Icon(Icons.article_rounded, color: Color(0xFF4A5565), size: 20),
+            child: const Icon(
+              Icons.article_rounded,
+              color: Color(0xFF4A5565),
+              size: 20,
+            ),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -305,7 +322,11 @@ class _HomeScreenState extends State<HomeScreen> {
               ],
             ),
           ),
-          const Icon(Icons.arrow_forward_ios_rounded, color: Color(0xFFB2B2B2), size: 14),
+          const Icon(
+            Icons.arrow_forward_ios_rounded,
+            color: Color(0xFFB2B2B2),
+            size: 14,
+          ),
         ],
       ),
     );
@@ -330,7 +351,11 @@ class _HomeScreenState extends State<HomeScreen> {
               borderRadius: BorderRadius.circular(20),
             ),
             alignment: Alignment.center,
-            child: const Icon(Icons.confirmation_num_rounded, color: Color(0xFFFCD31F), size: 20),
+            child: const Icon(
+              Icons.confirmation_num_rounded,
+              color: Color(0xFFFCD31F),
+              size: 20,
+            ),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -360,7 +385,11 @@ class _HomeScreenState extends State<HomeScreen> {
               ],
             ),
           ),
-          const Icon(Icons.arrow_forward_ios_rounded, color: Color(0xFFB2B2B2), size: 14),
+          const Icon(
+            Icons.arrow_forward_ios_rounded,
+            color: Color(0xFFB2B2B2),
+            size: 14,
+          ),
         ],
       ),
     );
@@ -499,7 +528,11 @@ class _HomeScreenState extends State<HomeScreen> {
               borderRadius: BorderRadius.circular(20),
             ),
             alignment: Alignment.center,
-            child: const Icon(Icons.emoji_events_rounded, color: Color(0xFFFCB94D), size: 24),
+            child: const Icon(
+              Icons.emoji_events_rounded,
+              color: Color(0xFFFCB94D),
+              size: 24,
+            ),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -572,7 +605,11 @@ class _HomeScreenState extends State<HomeScreen> {
                       borderRadius: BorderRadius.circular(20),
                     ),
                     alignment: Alignment.center,
-                    child: const Icon(Icons.sports_esports_rounded, color: Color(0xFFA1E669), size: 24),
+                    child: const Icon(
+                      Icons.sports_esports_rounded,
+                      color: Color(0xFFA1E669),
+                      size: 24,
+                    ),
                   ),
                   const SizedBox(width: 12),
                   const Text(
@@ -591,7 +628,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   HapticFeedback.mediumImpact();
                 },
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
                   decoration: BoxDecoration(
                     color: const Color(0xFFF3F4F6),
                     borderRadius: BorderRadius.circular(20),
@@ -614,23 +654,419 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  Widget _buildLearningTab() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Container(
+          color: const Color(0xFFF7F7F7),
+          padding: const EdgeInsets.fromLTRB(24, 24, 24, 28),
+          child: const Text(
+            '학습',
+            style: TextStyle(
+              fontFamily: 'Pretendard',
+              fontSize: 24,
+              fontWeight: FontWeight.w700,
+              color: brandInk,
+              height: 32 / 24,
+            ),
+          ),
+        ),
+        Expanded(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 4),
+                  child: Text(
+                    '카테고리를 선택해 학습을 시작하세요',
+                    style: TextStyle(
+                      fontFamily: 'Pretendard',
+                      fontSize: 12,
+                      fontWeight: FontWeight.w400,
+                      color: Color(0xFF9CA3AF),
+                      height: 18 / 12,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    const designWidth = 408.0;
+                    const designHeight = 655.75;
+                    final scale = (constraints.maxWidth / designWidth).clamp(0.0, 1.0).toDouble();
+
+                    return SizedBox(
+                      height: designHeight * scale,
+                      width: double.infinity,
+                      child: Stack(
+                        children: [
+                          Positioned(
+                            left: 0,
+                            top: 0,
+                            width: 196 * scale,
+                            height: 221 * scale,
+                            child: _buildLearningCategoryCard(
+                              scale: scale,
+                              emoji: '📚',
+                              title: '경제 상식',
+                              subtitle: '금리·물가·환율',
+                              progress: 0.6,
+                              buttonLabel: '학습하기',
+                              buttonColor: const Color(0x2600EE94),
+                              buttonTextColor: const Color(0xFF00C97D),
+                            ),
+                          ),
+                          Positioned(
+                            left: 212 * scale,
+                            top: 0,
+                            width: 196 * scale,
+                            height: 221 * scale,
+                            child: _buildLearningCategoryCard(
+                              scale: scale,
+                              emoji: '💰',
+                              title: '저축',
+                              subtitle: '현금관리·은행·청년',
+                              progress: 0.3,
+                              buttonLabel: '학습하기',
+                              buttonColor: const Color(0x2600EE94),
+                              buttonTextColor: const Color(0xFF00C97D),
+                            ),
+                          ),
+                          Positioned(
+                            left: 0,
+                            top: 235 * scale,
+                            width: 196 * scale,
+                            height: 203 * scale,
+                            child: _buildLearningLockedCard(
+                              scale: scale,
+                              title: '주식',
+                              subtitle: '주식·ETF·투자심리',
+                            ),
+                          ),
+                          Positioned(
+                            left: 212 * scale,
+                            top: 235 * scale,
+                            width: 196 * scale,
+                            height: 203 * scale,
+                            child: _buildLearningLockedCard(
+                              scale: scale,
+                              title: '부동산',
+                              subtitle: '전월세·청약·매매',
+                            ),
+                          ),
+                          Positioned(
+                            left: 0,
+                            top: 452 * scale,
+                            width: 196 * scale,
+                            height: 204 * scale,
+                            child: _buildLearningLockedCard(
+                              scale: scale,
+                              title: '세금',
+                              subtitle: '소득세·연말정산',
+                            ),
+                          ),
+                          Positioned(
+                            left: 212 * scale,
+                            top: 452 * scale,
+                            width: 196 * scale,
+                            height: 205 * scale,
+                            child: _buildLearningCategoryCard(
+                              scale: scale,
+                              icon: Icons.sports_esports_rounded,
+                              iconColor: const Color(0xFFA1E669),
+                              title: '시뮬레이션 도전',
+                              subtitle: '오늘 배운 내용으로 실전 체험!',
+                              buttonLabel: '도전하기',
+                              buttonColor: const Color(0xFFEEFFD1),
+                              buttonTextColor: const Color(0xFF7BD134),
+                              showProgress: false,
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildLearningCategoryCard({
+    required double scale,
+    String? emoji,
+    IconData? icon,
+    Color iconColor = brandInk,
+    required String title,
+    required String subtitle,
+    double progress = 0,
+    required String buttonLabel,
+    required Color buttonColor,
+    required Color buttonTextColor,
+    bool showProgress = true,
+  }) {
+    return Container(
+      padding: EdgeInsets.fromLTRB(12 * scale, 24 * scale, 12 * scale, 16 * scale),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20 * scale),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0x12000000),
+            blurRadius: 12 * scale,
+            offset: Offset(0, 2 * scale),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          SizedBox(
+            width: 64 * scale,
+            height: 64 * scale,
+            child: Center(
+              child: emoji != null
+                  ? Text(
+                      emoji,
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 46 * scale,
+                        fontWeight: FontWeight.w500,
+                        height: 1,
+                      ),
+                    )
+                  : Icon(icon, color: iconColor, size: 46 * scale),
+            ),
+          ),
+          SizedBox(height: 12 * scale),
+          Text(
+            title,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontFamily: 'Pretendard',
+              fontSize: 15 * scale,
+              fontWeight: FontWeight.w700,
+              color: brandInk,
+              height: 19 / 15,
+              letterSpacing: -0.23 * scale,
+            ),
+          ),
+          SizedBox(height: 4 * scale),
+          Text(
+            subtitle,
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontFamily: 'Pretendard',
+              fontSize: 10 * scale,
+              fontWeight: FontWeight.w500,
+              color: const Color(0xFF9CA3AF),
+              height: 15 / 10,
+              letterSpacing: 0.12 * scale,
+            ),
+          ),
+          if (showProgress) ...[
+            SizedBox(height: 14 * scale),
+            _buildLearningProgressBar(progress, scale),
+            SizedBox(height: 11 * scale),
+          ] else
+            const Spacer(),
+          _buildLearningPillButton(
+            scale: scale,
+            label: buttonLabel,
+            backgroundColor: buttonColor,
+            textColor: buttonTextColor,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLearningLockedCard({
+    required double scale,
+    required String title,
+    required String subtitle,
+  }) {
+    return Opacity(
+      opacity: 0.65,
+      child: Container(
+        padding: EdgeInsets.fromLTRB(12 * scale, 24 * scale, 12 * scale, 16 * scale),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20 * scale),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0x12000000),
+              blurRadius: 12 * scale,
+              offset: Offset(0, 2 * scale),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Container(
+              width: 64 * scale,
+              height: 64 * scale,
+              decoration: const BoxDecoration(
+                color: Color(0xFFF0F0F0),
+                shape: BoxShape.circle,
+              ),
+              alignment: Alignment.center,
+              child: Icon(
+                Icons.lock_outline_rounded,
+                color: const Color(0xFFB0B0B0),
+                size: 26 * scale,
+              ),
+            ),
+            SizedBox(height: 12 * scale),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontFamily: 'Pretendard',
+                fontSize: 15 * scale,
+                fontWeight: FontWeight.w700,
+                color: const Color(0xFFC0C0C0),
+                height: 19 / 15,
+                letterSpacing: -0.23 * scale,
+              ),
+            ),
+            SizedBox(height: 4 * scale),
+            Text(
+              subtitle,
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontFamily: 'Pretendard',
+                fontSize: 10 * scale,
+                fontWeight: FontWeight.w500,
+                color: const Color(0xFFD0D0D0),
+                height: 15 / 10,
+                letterSpacing: 0.12 * scale,
+              ),
+            ),
+            const Spacer(),
+            _buildLearningPillButton(
+              scale: scale,
+              label: '잠금',
+              backgroundColor: const Color(0xFFF0F0F0),
+              textColor: const Color(0xFFC0C0C0),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLearningProgressBar(double progress, double scale) {
+    return SizedBox(
+      width: 148 * scale,
+      child: Padding(
+        padding: EdgeInsets.symmetric(horizontal: 4 * scale),
+        child: Container(
+          width: 140 * scale,
+          height: 6 * scale,
+          decoration: BoxDecoration(
+            color: const Color(0xFFF0F0F0),
+            borderRadius: BorderRadius.circular(16777216),
+          ),
+          alignment: Alignment.centerLeft,
+          child: FractionallySizedBox(
+            widthFactor: progress,
+            child: Container(
+              height: 6 * scale,
+              decoration: BoxDecoration(
+                color: themeGreen,
+                borderRadius: BorderRadius.circular(16777216),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLearningPillButton({
+    required double scale,
+    required String label,
+    required Color backgroundColor,
+    required Color textColor,
+  }) {
+    return Container(
+      width: 148 * scale,
+      height: 35 * scale,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(14 * scale),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontFamily: 'Pretendard',
+          fontSize: 13 * scale,
+          fontWeight: FontWeight.w700,
+          color: textColor,
+          height: 20 / 13,
+          letterSpacing: -0.08 * scale,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPlaceholderTab() {
+    final labels = ['홈', '학습', '커넥트', '배틀', '마이'];
+    return Container(
+      width: double.infinity,
+      color: const Color(0xFFF7F7F7),
+      padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+      child: Text(
+        labels[_currentTabIdx],
+        style: const TextStyle(
+          fontFamily: 'Pretendard',
+          fontSize: 24,
+          fontWeight: FontWeight.w700,
+          color: brandInk,
+          height: 32 / 24,
+        ),
+      ),
+    );
+  }
+
   // Pinned Bottom Navigation Tab Bar
   Widget _buildBottomNavigationBar() {
     return Container(
       width: double.infinity,
+      height: 77,
       decoration: const BoxDecoration(
         color: Colors.white,
         border: Border(top: BorderSide(color: borderLight, width: 1)),
       ),
-      padding: const EdgeInsets.only(top: 8, bottom: 20),
+      padding: const EdgeInsets.fromLTRB(8, 9, 8, 0),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          _buildTabItem(idx: 0, icon: Icons.home_rounded, label: '홈'),
-          _buildTabItem(idx: 1, icon: Icons.menu_book_rounded, label: '학습'),
-          _buildTabItem(idx: 2, icon: Icons.connect_without_contact_rounded, label: '커넥트'),
-          _buildTabItem(idx: 3, icon: Icons.insights_rounded, label: '배틀'),
-          _buildTabItem(idx: 4, icon: Icons.person_rounded, label: '마이'),
+          _buildTabItem(idx: 0, icon: Icons.home_rounded, label: '홈', iconSize: 29),
+          _buildTabItem(idx: 1, icon: Icons.menu_book_rounded, label: '학습', iconSize: 29),
+          _buildTabItem(
+            idx: 2,
+            icon: Icons.connect_without_contact_rounded,
+            label: '커넥트',
+            width: 63.14,
+            iconSize: 30,
+          ),
+          _buildTabItem(idx: 3, icon: Icons.insights_rounded, label: '배틀', iconSize: 31),
+          _buildTabItem(idx: 4, icon: Icons.person_rounded, label: '마이', iconSize: 29),
         ],
       ),
     );
@@ -640,9 +1076,11 @@ class _HomeScreenState extends State<HomeScreen> {
     required int idx,
     required IconData icon,
     required String label,
+    double width = 56,
+    double iconSize = 29,
   }) {
     final bool isActive = _currentTabIdx == idx;
-    final Color itemColor = isActive ? themeGreen : textMuted;
+    final Color itemColor = isActive ? const Color(0xFF626262) : const Color(0xFFBCBCBC);
 
     return GestureDetector(
       onTap: () {
@@ -652,21 +1090,22 @@ class _HomeScreenState extends State<HomeScreen> {
         });
       },
       behavior: HitTestBehavior.opaque,
-      child: Container(
-        width: 56,
-        padding: const EdgeInsets.only(top: 8),
+      child: SizedBox(
+        width: width,
+        height: 60,
         child: Column(
-          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 24, color: itemColor),
+            Icon(icon, size: iconSize, color: itemColor),
             const SizedBox(height: 4),
             Text(
               label,
               style: TextStyle(
                 fontFamily: 'Pretendard',
-                fontSize: 12,
+                fontSize: 13,
                 fontWeight: FontWeight.w600,
                 color: itemColor,
+                height: 16 / 13,
               ),
             ),
           ],
