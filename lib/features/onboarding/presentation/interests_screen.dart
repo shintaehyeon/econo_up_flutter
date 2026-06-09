@@ -81,7 +81,7 @@ class _InterestsScreenState extends State<InterestsScreen> {
 
   Future<void> _submitSurvey() async {
     HapticFeedback.mediumImpact();
-    // 💡 백엔드 명세서 PUT API 데이터 연동 매핑
+    // 💡 백엔드 명세서 PUT API 데이터 연동 매핑 (API 명세서 5.3절에 명시된 categoryCodes 규격 적용)
     final interestsPayload = {"categoryCodes": _selectedInterests};
     final goalPayload = {"goal": _selectedGoal.isEmpty ? "LOSS_PREVENTION" : _selectedGoal};
     
