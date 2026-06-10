@@ -957,74 +957,94 @@ class _HomeScreenState extends State<HomeScreen> {
     required String title,
     required String subtitle,
   }) {
-    return Opacity(
-      opacity: 0.65,
-      child: Container(
-        padding: EdgeInsets.fromLTRB(12 * scale, 24 * scale, 12 * scale, 16 * scale),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20 * scale),
-          boxShadow: [
-            BoxShadow(
-              color: const Color(0x12000000),
-              blurRadius: 12 * scale,
-              offset: Offset(0, 2 * scale),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Container(
-              width: 64 * scale,
-              height: 64 * scale,
-              decoration: const BoxDecoration(
-                color: Color(0xFFF0F0F0),
-                shape: BoxShape.circle,
-              ),
-              alignment: Alignment.center,
-              child: Icon(
-                Icons.lock_outline_rounded,
-                color: const Color(0xFFB0B0B0),
-                size: 26 * scale,
+    return GestureDetector(
+      onTap: () async {
+        HapticFeedback.lightImpact();
+        if (title == '주식' || title == '부동산' || title == '세금') {
+          final result = await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => CurriculumRoadmapScreen(
+                title: title,
               ),
             ),
-            SizedBox(height: 12 * scale),
-            Text(
-              title,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontFamily: 'Pretendard',
-                fontSize: 15 * scale,
-                fontWeight: FontWeight.w700,
-                color: const Color(0xFFC0C0C0),
-                height: 19 / 15,
-                letterSpacing: -0.23 * scale,
+          );
+          if (result is int) {
+            setState(() {
+              _currentTabIdx = result;
+            });
+          }
+        }
+      },
+      child: Opacity(
+        opacity: 0.65,
+        child: Container(
+          padding: EdgeInsets.fromLTRB(12 * scale, 24 * scale, 12 * scale, 16 * scale),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20 * scale),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0x12000000),
+                blurRadius: 12 * scale,
+                offset: Offset(0, 2 * scale),
               ),
-            ),
-            SizedBox(height: 4 * scale),
-            Text(
-              subtitle,
-              textAlign: TextAlign.center,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontFamily: 'Pretendard',
-                fontSize: 10 * scale,
-                fontWeight: FontWeight.w500,
-                color: const Color(0xFFD0D0D0),
-                height: 15 / 10,
-                letterSpacing: 0.12 * scale,
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Container(
+                width: 64 * scale,
+                height: 64 * scale,
+                decoration: const BoxDecoration(
+                  color: Color(0xFFF0F0F0),
+                  shape: BoxShape.circle,
+                ),
+                alignment: Alignment.center,
+                child: Icon(
+                  Icons.lock_outline_rounded,
+                  color: const Color(0xFFB0B0B0),
+                  size: 26 * scale,
+                ),
               ),
-            ),
-            const Spacer(),
-            _buildLearningPillButton(
-              scale: scale,
-              label: '잠금',
-              backgroundColor: const Color(0xFFF0F0F0),
-              textColor: const Color(0xFFC0C0C0),
-            ),
-          ],
+              SizedBox(height: 12 * scale),
+              Text(
+                title,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontFamily: 'Pretendard',
+                  fontSize: 15 * scale,
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFFC0C0C0),
+                  height: 19 / 15,
+                  letterSpacing: -0.23 * scale,
+                ),
+              ),
+              SizedBox(height: 4 * scale),
+              Text(
+                subtitle,
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontFamily: 'Pretendard',
+                  fontSize: 10 * scale,
+                  fontWeight: FontWeight.w500,
+                  color: const Color(0xFFD0D0D0),
+                  height: 15 / 10,
+                  letterSpacing: 0.12 * scale,
+                ),
+              ),
+              const Spacer(),
+              _buildLearningPillButton(
+                scale: scale,
+                label: '잠금',
+                backgroundColor: const Color(0xFFF0F0F0),
+                textColor: const Color(0xFFC0C0C0),
+              ),
+            ],
+          ),
         ),
       ),
     );
