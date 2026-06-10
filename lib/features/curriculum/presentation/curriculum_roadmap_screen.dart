@@ -1,7 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../../home/presentation/study_detail_screen.dart';
+import 'stage_map_screen.dart';
 
 class CurriculumRoadmapScreen extends StatefulWidget {
   final String title; // '경제 상식' 또는 '저축'
@@ -18,9 +18,72 @@ class CurriculumRoadmapScreen extends StatefulWidget {
 class _CurriculumRoadmapScreenState extends State<CurriculumRoadmapScreen> {
   // 테마 색상 정의
   static const Color brandInk = Color(0xFF122711);
-  static const Color themeGreen = Color(0xFF00EE94);
   static const Color textMuted = Color(0xFF6A7282);
   static const Color borderLight = Color(0xFFE5E7EB);
+
+  Color get themeColor {
+    if (widget.title == '저축') return const Color(0xFF00DAEE);
+    if (widget.title == '주식') return const Color(0xFFFFA866);
+    if (widget.title == '부동산') return const Color(0xFF7C3AED);
+    if (widget.title == '세금') return const Color(0xFFFF455D);
+    return const Color(0xFF00EE94);
+  }
+  Color get completedNodeShadowColor {
+    if (widget.title == '저축') return const Color(0x6600DAEE);
+    if (widget.title == '주식') return const Color(0x66FFA866);
+    if (widget.title == '부동산') return const Color(0x667C3AED);
+    if (widget.title == '세금') return const Color(0x66FF455D);
+    return const Color(0x6600EE94);
+  }
+  Color get activeNodeShadowColor {
+    if (widget.title == '저축') return const Color(0x4000DAEE);
+    if (widget.title == '주식') return const Color(0x40FFA866);
+    if (widget.title == '부동산') return const Color(0x407C3AED);
+    if (widget.title == '세금') return const Color(0x40FF455D);
+    return const Color(0x4000EE94);
+  }
+  Color get activeCardShadowColor {
+    if (widget.title == '저축') return const Color(0x2E00DAEE);
+    if (widget.title == '주식') return const Color(0x2EFFA866);
+    if (widget.title == '부동산') return const Color(0x2E7C3AED);
+    if (widget.title == '세금') return const Color(0x2EFF455D);
+    return const Color(0x2E00EE94);
+  }
+  Color get completedCardShadowColor {
+    if (widget.title == '저축') return const Color(0x1F00DAEE);
+    if (widget.title == '주식') return const Color(0x1FFFA866);
+    if (widget.title == '부동산') return const Color(0x1F7C3AED);
+    if (widget.title == '세금') return const Color(0x1FFF455D);
+    return const Color(0x1F00EE94);
+  }
+  Color get completedCardBorderColor {
+    if (widget.title == '저축') return const Color(0x4D00DAEE);
+    if (widget.title == '주식') return const Color(0x4DFFA866);
+    if (widget.title == '부동산') return const Color(0x4D7C3AED);
+    if (widget.title == '세금') return const Color(0x4DFF455D);
+    return const Color(0x4D01EE94);
+  }
+  Color get badgeBgColor {
+    if (widget.title == '저축') return const Color(0x3300DAEE);
+    if (widget.title == '주식') return const Color(0x33FFA866);
+    if (widget.title == '부동산') return const Color(0x337C3AED);
+    if (widget.title == '세금') return const Color(0x33FF455D);
+    return const Color(0x3301EE94);
+  }
+  Color get badgeTextColor {
+    if (widget.title == '저축') return const Color(0xFF00BECF);
+    if (widget.title == '주식') return const Color(0xFFFFA866);
+    if (widget.title == '부동산') return const Color(0xFF7C3AED);
+    if (widget.title == '세금') return const Color(0xFFFF455D);
+    return const Color(0xFF00C97D);
+  }
+  Color get curveColor {
+    if (widget.title == '저축') return const Color(0xB202B7C8);
+    if (widget.title == '주식') return const Color(0xB2FFA866);
+    if (widget.title == '부동산') return const Color(0xB27C3AED);
+    if (widget.title == '세금') return const Color(0xB2FF455D);
+    return const Color(0xB200EE94);
+  }
 
   // 커리큘럼 데이터 정의
   late final List<UnitData> _units;
@@ -28,7 +91,17 @@ class _CurriculumRoadmapScreenState extends State<CurriculumRoadmapScreen> {
   @override
   void initState() {
     super.initState();
-    _units = widget.title == '저축' ? _getSavingCurriculum() : _getEconomyCurriculum();
+    if (widget.title == '저축') {
+      _units = _getSavingCurriculum();
+    } else if (widget.title == '주식') {
+      _units = _getStockCurriculum();
+    } else if (widget.title == '부동산') {
+      _units = _getRealEstateCurriculum();
+    } else if (widget.title == '세금') {
+      _units = _getTaxCurriculum();
+    } else {
+      _units = _getEconomyCurriculum();
+    }
   }
 
   List<UnitData> _getEconomyCurriculum() {
@@ -108,6 +181,131 @@ class _CurriculumRoadmapScreenState extends State<CurriculumRoadmapScreen> {
           LessonData(name: '청년도약계좌', isCompleted: false),
           LessonData(name: '청년주택드림', isCompleted: false),
           LessonData(name: '정부 지원 적금', isCompleted: false),
+        ],
+      ),
+    ];
+  }
+
+  List<UnitData> _getStockCurriculum() {
+    return [
+      UnitData(
+        id: 1,
+        title: '주식 기초',
+        description: '이기는 투자자의 생각법',
+        emoji: '🔒',
+        state: UnitState.locked,
+        lessons: [
+          LessonData(name: '주식 시장의 구조', isCompleted: false),
+          LessonData(name: '주가와 시가총액', isCompleted: false),
+          LessonData(name: '매수·매도와 세금', isCompleted: false),
+        ],
+      ),
+      UnitData(
+        id: 2,
+        title: 'ETF와 펀드',
+        description: '분산의 마법',
+        emoji: '🔒',
+        state: UnitState.locked,
+        lessons: [
+          LessonData(name: 'ETF 기초', isCompleted: false),
+          LessonData(name: 'ETF 선택 기준', isCompleted: false),
+          LessonData(name: '펀드와 ETF 비교', isCompleted: false),
+        ],
+      ),
+      UnitData(
+        id: 3,
+        title: '투자 심리와 전략',
+        description: '이기는 투자자의 생각법',
+        emoji: '🔒',
+        state: UnitState.locked,
+        lessons: [
+          LessonData(name: '공포와 탐욕 지수', isCompleted: false),
+          LessonData(name: '투자 전략', isCompleted: false),
+          LessonData(name: '나만의 투자 원칙', isCompleted: false),
+        ],
+      ),
+    ];
+  }
+
+  List<UnitData> _getRealEstateCurriculum() {
+    return [
+      UnitData(
+        id: 1,
+        title: '전월세 기초',
+        description: '전월세 완전 정복',
+        emoji: '🔒',
+        state: UnitState.locked,
+        lessons: [
+          LessonData(name: '전세와 월세 차이', isCompleted: false),
+          LessonData(name: '전세 사기 예방', isCompleted: false),
+          LessonData(name: '임대차 계약서 읽기', isCompleted: false),
+        ],
+      ),
+      UnitData(
+        id: 2,
+        customUnitLabel: 'Unit 1',
+        title: '청약과 매매',
+        description: '내 집 사는 법',
+        emoji: '🔒',
+        state: UnitState.locked,
+        lessons: [
+          LessonData(name: '청약 자격·가점', isCompleted: false),
+          LessonData(name: '아파트 매매 절차', isCompleted: false),
+          LessonData(name: '취득세·양도세', isCompleted: false),
+        ],
+      ),
+      UnitData(
+        id: 3,
+        title: '부동산 금융',
+        description: '대출 제대로 알기',
+        emoji: '🔒',
+        state: UnitState.locked,
+        lessons: [
+          LessonData(name: '주택담보대출', isCompleted: false),
+          LessonData(name: '전세자금대출', isCompleted: false),
+          LessonData(name: 'PF와 부동산 시장', isCompleted: false),
+        ],
+      ),
+    ];
+  }
+
+  List<UnitData> _getTaxCurriculum() {
+    return [
+      UnitData(
+        id: 1,
+        title: '소득세·연말정산',
+        description: '월급에서 새는 세금 잡기',
+        emoji: '🔒',
+        state: UnitState.locked,
+        lessons: [
+          LessonData(name: '소득세 구조 이해', isCompleted: false),
+          LessonData(name: '연말정산 항목 총정리', isCompleted: false),
+          LessonData(name: '환급액 최대화 전략', isCompleted: false),
+        ],
+      ),
+      UnitData(
+        id: 2,
+        customUnitLabel: 'Unit 1',
+        title: '4대보험·근로소득',
+        description: '실수령액 계산법',
+        emoji: '🔒',
+        state: UnitState.locked,
+        lessons: [
+          LessonData(name: '4대보험 계산법', isCompleted: false),
+          LessonData(name: '실수령액 계산하기', isCompleted: false),
+          LessonData(name: '프리랜서 세금', isCompleted: false),
+        ],
+      ),
+      UnitData(
+        id: 3,
+        title: '절세 전략',
+        description: '합법적으로 세금 줄이기',
+        emoji: '🔒',
+        state: UnitState.locked,
+        lessons: [
+          LessonData(name: 'IRP·연금저축 세액공제', isCompleted: false),
+          LessonData(name: 'ISA 절세 활용법', isCompleted: false),
+          LessonData(name: '증여·상속 기초', isCompleted: false),
         ],
       ),
     ];
@@ -213,7 +411,13 @@ class _CurriculumRoadmapScreenState extends State<CurriculumRoadmapScreen> {
   Widget _buildTopQuoteCard(double width) {
     final String quote = widget.title == '저축'
         ? '현명한 돈 관리가 풍요로운 미래를 만든다'
-        : '세상 돌아가는 흐름을 읽는 자가 돈을 지킨다';
+        : widget.title == '주식'
+            ? '수익을 만드는 주식 투자의 기초'
+            : widget.title == '부동산'
+                ? '내 집 마련의 첫 걸음'
+                : widget.title == '세금'
+                    ? '세금 절약이 곧 수익이다'
+                    : '세상 돌아가는 흐름을 읽는 자가 돈을 지킨다';
     return Container(
       width: width,
       height: 64,
@@ -250,13 +454,13 @@ class _CurriculumRoadmapScreenState extends State<CurriculumRoadmapScreen> {
             ),
           ),
           const SizedBox(height: 2),
-          const Text(
+          Text(
             '총 10개 유닛',
             style: TextStyle(
               fontFamily: 'Pretendard',
               fontSize: 12,
               fontWeight: FontWeight.w700,
-              color: themeGreen,
+              color: themeColor,
               height: 1.5,
             ),
           ),
@@ -287,6 +491,7 @@ class _CurriculumRoadmapScreenState extends State<CurriculumRoadmapScreen> {
               painter: CurvePainter(
                 isLeftToRight: isLeftNode, // If left circle, next is right circle, so Left-to-Right
                 isCompleted: isCurveCompleted,
+                curveColor: curveColor,
               ),
             ),
           ),
@@ -305,11 +510,10 @@ class _CurriculumRoadmapScreenState extends State<CurriculumRoadmapScreen> {
       // Unit 1/3 (width 250)
       return Container(
         width: 354,
-        height: 136,
+        constraints: const BoxConstraints(minHeight: 136),
         alignment: Alignment.center,
         child: SizedBox(
           width: 250,
-          height: 136,
           child: Padding(
             padding: const EdgeInsets.only(left: 30),
             child: Row(
@@ -326,11 +530,10 @@ class _CurriculumRoadmapScreenState extends State<CurriculumRoadmapScreen> {
       // Unit 2 (width 294)
       return Container(
         width: 354,
-        height: 136,
+        constraints: const BoxConstraints(minHeight: 136),
         alignment: Alignment.center,
         child: SizedBox(
           width: 294,
-          height: 136,
           child: Padding(
             padding: const EdgeInsets.only(right: 72),
             child: Row(
@@ -360,28 +563,28 @@ class _CurriculumRoadmapScreenState extends State<CurriculumRoadmapScreen> {
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: unit.state == UnitState.completed
-                  ? themeGreen
+                  ? themeColor
                   : unit.state == UnitState.active
                       ? Colors.white
                       : const Color(0xFFE8E8E8),
               boxShadow: [
                 if (unit.state == UnitState.completed)
-                  const BoxShadow(
-                    color: Color(0x6600EE94),
+                  BoxShadow(
+                    color: completedNodeShadowColor,
                     blurRadius: 16,
-                    offset: Offset(0, 4),
+                    offset: const Offset(0, 4),
                   )
                 else if (unit.state == UnitState.active)
-                  const BoxShadow(
-                    color: Color(0x4000EE94),
+                  BoxShadow(
+                    color: activeNodeShadowColor,
                     blurRadius: 16,
-                    offset: Offset(0, 4),
+                    offset: const Offset(0, 4),
                   ),
               ],
             ),
             child: unit.state == UnitState.active
                 ? CustomPaint(
-                    painter: DashedCirclePainter(color: themeGreen, strokeWidth: 3),
+                    painter: DashedCirclePainter(color: themeColor, strokeWidth: 3),
                     child: Center(
                       child: Text(
                         unit.emoji,
@@ -420,7 +623,7 @@ class _CurriculumRoadmapScreenState extends State<CurriculumRoadmapScreen> {
                 decoration: BoxDecoration(
                   color: Colors.white,
                   shape: BoxShape.circle,
-                  border: Border.all(color: themeGreen, width: 2),
+                  border: Border.all(color: themeColor, width: 2),
                   boxShadow: const [
                     BoxShadow(
                       color: Color(0x1A000000),
@@ -450,7 +653,7 @@ class _CurriculumRoadmapScreenState extends State<CurriculumRoadmapScreen> {
                 width: 24,
                 height: 24,
                 decoration: BoxDecoration(
-                  color: themeGreen,
+                  color: themeColor,
                   shape: BoxShape.circle,
                   border: Border.all(color: Colors.white, width: 2),
                   boxShadow: const [
@@ -487,30 +690,30 @@ class _CurriculumRoadmapScreenState extends State<CurriculumRoadmapScreen> {
       onTap: () => _handleUnitTap(unit),
       child: Container(
         width: 140,
-        height: 136,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        constraints: const BoxConstraints(minHeight: 136),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
         decoration: BoxDecoration(
           color: isActive || isCompleted ? Colors.white : const Color(0xFFF3F3F3),
           border: Border.all(
             color: isActive
-                ? themeGreen
+                ? themeColor
                 : isCompleted
-                    ? const Color(0x4D01EE94) // rgba(1, 238, 148, 0.3)
+                    ? completedCardBorderColor
                     : const Color(0xFFE8E8E8),
             width: isActive ? 2 : 1,
           ),
           boxShadow: [
             if (isActive)
-              const BoxShadow(
-                color: Color(0x2E00EE94), // rgba(0, 238, 148, 0.18)
+              BoxShadow(
+                color: activeCardShadowColor,
                 blurRadius: 10,
-                offset: Offset(0, 2),
+                offset: const Offset(0, 2),
               )
             else if (isCompleted)
-              const BoxShadow(
-                color: Color(0x1F00EE94), // rgba(0, 238, 148, 0.12)
+              BoxShadow(
+                color: completedCardShadowColor,
                 blurRadius: 10,
-                offset: Offset(0, 2),
+                offset: const Offset(0, 2),
               ),
           ],
           borderRadius: BorderRadius.circular(16),
@@ -524,22 +727,22 @@ class _CurriculumRoadmapScreenState extends State<CurriculumRoadmapScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
               decoration: BoxDecoration(
                 color: isActive || isCompleted
-                    ? const Color(0x3301EE94) // rgba(1, 238, 148, 0.2)
+                    ? badgeBgColor
                     : const Color(0xFFE5E5E5),
                 borderRadius: BorderRadius.circular(100),
               ),
               child: Text(
-                'Unit ${unit.id}',
+                unit.customUnitLabel ?? 'Unit ${unit.id}',
                 style: TextStyle(
                   fontFamily: 'Pretendard',
                   fontSize: 10,
                   fontWeight: FontWeight.w700,
-                  color: isActive || isCompleted ? const Color(0xFF00C97D) : const Color(0xFFAAAAAA),
+                  color: isActive || isCompleted ? badgeTextColor : const Color(0xFFAAAAAA),
                   height: 1.0,
                 ),
               ),
             ),
-            const SizedBox(height: 3),
+            const SizedBox(height: 2),
             // Title
             Text(
               unit.title,
@@ -563,88 +766,241 @@ class _CurriculumRoadmapScreenState extends State<CurriculumRoadmapScreen> {
                 height: 1.5,
               ),
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 2),
             // Lesson Items
-            ...unit.lessons.map((lesson) => _buildLessonItem(lesson, unit.state)),
+            ...unit.lessons.map((lesson) => _buildLessonItem(lesson, unit)),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildLessonItem(LessonData lesson, UnitState unitState) {
-    final bool isFinished = lesson.isCompleted && unitState != UnitState.locked;
-    final bool isLocked = unitState == UnitState.locked;
+  Widget _buildLessonItem(LessonData lesson, UnitData unit) {
+    final bool isFinished = lesson.isCompleted && unit.state != UnitState.locked;
+    final bool isLocked = unit.state == UnitState.locked;
     final Color textColor = isFinished
-        ? themeGreen
+        ? themeColor
         : isLocked
             ? const Color(0xFFD0D0D0)
             : const Color(0xFFC0C0C0);
 
-    return Padding(
-      padding: const EdgeInsets.only(top: 2),
-      child: Row(
-        children: [
-          Text(
-            isFinished ? '✓' : '○',
-            style: TextStyle(
-              fontFamily: 'Pretendard',
-              fontSize: 10,
-              fontWeight: FontWeight.w400,
-              color: textColor,
-            ),
-          ),
-          const SizedBox(width: 4),
-          Expanded(
-            child: Text(
-              lesson.name,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+    return GestureDetector(
+      onTap: () => _handleLessonTap(lesson, unit),
+      behavior: HitTestBehavior.opaque,
+      child: Padding(
+        padding: const EdgeInsets.only(top: 2),
+        child: Row(
+          children: [
+            Text(
+              isFinished ? '✓' : '○',
               style: TextStyle(
                 fontFamily: 'Pretendard',
                 fontSize: 10,
                 fontWeight: FontWeight.w400,
                 color: textColor,
-                letterSpacing: 0.11,
               ),
             ),
-          ),
-        ],
+            const SizedBox(width: 4),
+            Expanded(
+              child: Text(
+                lesson.name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontFamily: 'Pretendard',
+                  fontSize: 10,
+                  fontWeight: FontWeight.w400,
+                  color: textColor,
+                  letterSpacing: 0.11,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  void _handleUnitTap(UnitData unit) {
+  int _getStageNumber(LessonData lesson, UnitData unit) {
+    return unit.lessons.indexOf(lesson) + 1;
+  }
+
+  void _handleLessonTap(LessonData lesson, UnitData unit) {
     if (unit.state == UnitState.locked) {
-      HapticFeedback.heavyImpact();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            '이전 유닛을 완료해야 열립니다! 🔒',
-            style: TextStyle(fontFamily: 'Pretendard', fontWeight: FontWeight.w600),
-          ),
-          backgroundColor: Colors.grey,
-          duration: Duration(seconds: 1),
-        ),
-      );
       return;
     }
 
     HapticFeedback.lightImpact();
+    final stageNum = _getStageNumber(lesson, unit);
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => StudyDetailScreen(
-          title: widget.title,
+        builder: (context) => StageMapScreen(
+          stageName: 'Stage $stageNum. ${lesson.name}',
+          unitName: 'Unit ${unit.id}. ${unit.title}',
+          category: widget.title,
         ),
       ),
+    ).then((val) {
+      if (val is int && val != 1) {
+        Navigator.pop(context, val);
+      }
+    });
+  }
+
+  void _handleUnitTap(UnitData unit) {
+    if (unit.state == UnitState.locked) {
+      return;
+    }
+
+    HapticFeedback.lightImpact();
+    // Find the first uncompleted lesson, or default to the first lesson
+    final activeLesson = unit.lessons.firstWhere(
+      (l) => !l.isCompleted,
+      orElse: () => unit.lessons.first,
     );
+    final stageNum = _getStageNumber(activeLesson, unit);
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => StageMapScreen(
+          stageName: 'Stage $stageNum. ${activeLesson.name}',
+          unitName: 'Unit ${unit.id}. ${unit.title}',
+          category: widget.title,
+        ),
+      ),
+    ).then((val) {
+      if (val is int && val != 1) {
+        Navigator.pop(context, val);
+      }
+    });
   }
 
   Widget _buildBottomProgressCard(double width) {
+    if (widget.title == '주식') {
+      return Container(
+        width: width,
+        height: 42,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFF1E7),
+          border: Border.all(color: const Color(0xFFFFA866), width: 2),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x1A000000),
+              blurRadius: 3,
+              offset: Offset(0, 1),
+            ),
+            BoxShadow(
+              color: Color(0x1A000000),
+              blurRadius: 2,
+              offset: Offset(0, -1),
+            ),
+          ],
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: const [
+            Text(
+              '🔒 주식 잠금 해제하기',
+              style: TextStyle(
+                fontFamily: 'Pretendard',
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFFFFA866),
+                height: 1.0,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (widget.title == '부동산') {
+      return Container(
+        width: width,
+        height: 42,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: const Color(0xFFF4EEFF),
+          border: Border.all(color: const Color(0xFF7C3AED), width: 2),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x1A000000),
+              blurRadius: 3,
+              offset: Offset(0, 1),
+            ),
+            BoxShadow(
+              color: Color(0x1A000000),
+              blurRadius: 2,
+              offset: Offset(0, -1),
+            ),
+          ],
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: const [
+            Text(
+              '🔒 부동산 잠금 해제하기',
+              style: TextStyle(
+                fontFamily: 'Pretendard',
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF7C3AED),
+                height: 1.0,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (widget.title == '세금') {
+      return Container(
+        width: width,
+        height: 42,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFF2F4),
+          border: Border.all(color: const Color(0xFFFF455D), width: 2),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x1A000000),
+              blurRadius: 3,
+              offset: Offset(0, 1),
+            ),
+            BoxShadow(
+              color: Color(0x1A000000),
+              blurRadius: 2,
+              offset: Offset(0, -1),
+            ),
+          ],
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: const [
+            Text(
+              '🔒 세금 잠금 해제하기',
+              style: TextStyle(
+                fontFamily: 'Pretendard',
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFFFF455D),
+                height: 1.0,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     return Container(
       width: width,
-      height: 56.5,
+      constraints: const BoxConstraints(minHeight: 56.5),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -668,18 +1024,18 @@ class _CurriculumRoadmapScreenState extends State<CurriculumRoadmapScreen> {
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: const [
+            children: [
               Text(
                 '1/10 유닛 완료',
                 style: TextStyle(
                   fontFamily: 'Pretendard',
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
-                  color: themeGreen,
+                  color: themeColor,
                   height: 1.5,
                 ),
               ),
-              Text(
+              const Text(
                 '10%',
                 style: TextStyle(
                   fontFamily: 'Inter',
@@ -705,7 +1061,7 @@ class _CurriculumRoadmapScreenState extends State<CurriculumRoadmapScreen> {
               child: Container(
                 height: 8,
                 decoration: BoxDecoration(
-                  color: themeGreen,
+                  color: themeColor,
                   borderRadius: BorderRadius.circular(100),
                   boxShadow: const [
                     BoxShadow(
@@ -801,10 +1157,12 @@ class _CurriculumRoadmapScreenState extends State<CurriculumRoadmapScreen> {
 class CurvePainter extends CustomPainter {
   final bool isLeftToRight;
   final bool isCompleted;
+  final Color curveColor;
 
   CurvePainter({
     required this.isLeftToRight,
     required this.isCompleted,
+    required this.curveColor,
   });
 
   @override
@@ -815,7 +1173,7 @@ class CurvePainter extends CustomPainter {
       ..strokeCap = StrokeCap.round;
 
     if (isCompleted) {
-      paint.color = const Color(0xB200EE94); // rgba(0, 238, 148, 0.7)
+      paint.color = curveColor;
     } else {
       paint.color = const Color(0xFFE0E0E0);
     }
@@ -866,7 +1224,9 @@ class CurvePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant CurvePainter oldDelegate) =>
-      oldDelegate.isLeftToRight != isLeftToRight || oldDelegate.isCompleted != isCompleted;
+      oldDelegate.isLeftToRight != isLeftToRight ||
+      oldDelegate.isCompleted != isCompleted ||
+      oldDelegate.curveColor != curveColor;
 }
 
 class DashedCirclePainter extends CustomPainter {
@@ -923,6 +1283,7 @@ class UnitData {
   final String emoji;
   final List<LessonData> lessons;
   final UnitState state;
+  final String? customUnitLabel;
 
   UnitData({
     required this.id,
@@ -931,6 +1292,7 @@ class UnitData {
     required this.emoji,
     required this.lessons,
     required this.state,
+    this.customUnitLabel,
   });
 }
 
