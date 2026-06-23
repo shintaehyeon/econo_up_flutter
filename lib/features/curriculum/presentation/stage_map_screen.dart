@@ -2,6 +2,8 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../home/presentation/study_detail_screen.dart';
+import '../../../shared/widgets/econo_bottom_navigation_bar.dart';
+import 'widgets/unlock_bottom_sheet.dart';
 
 class StageMapScreen extends StatefulWidget {
   final String stageName;
@@ -22,7 +24,6 @@ class StageMapScreen extends StatefulWidget {
 class _StageMapScreenState extends State<StageMapScreen> {
   static const Color brandInk = Color(0xFF122711);
   static const Color textMuted = Color(0xFF9CA3AF);
-  static const Color borderLight = Color(0xFFE5E7EB);
   static const Color bgGrey = Color(0xFFF7F7F7);
 
   Color get themeColor => widget.category == '저축' ? const Color(0xFF00DAEE) : const Color(0xFF00EE94);
@@ -253,7 +254,7 @@ class _StageMapScreenState extends State<StageMapScreen> {
               ),
             ),
             // 3. Bottom Tab Navigation
-            _buildBottomNavigationBar(contentWidth),
+            _buildBottomNavigationBar(),
           ],
         ),
       ),
@@ -663,6 +664,8 @@ class _StageMapScreenState extends State<StageMapScreen> {
 
   void _handleSessionTap(SessionData session) {
     if (session.state == SessionState.locked) {
+      HapticFeedback.lightImpact();
+      UnlockBottomSheet.show(context, category: widget.category);
       return;
     }
 
@@ -718,75 +721,30 @@ class _StageMapScreenState extends State<StageMapScreen> {
     );
   }
 
-  Widget _buildBottomNavigationBar(double width) {
-    return Container(
-      width: double.infinity,
-      height: 77,
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        border: Border(top: BorderSide(color: borderLight, width: 1)),
-      ),
-      padding: const EdgeInsets.fromLTRB(8, 9, 8, 0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          _buildTabItem(idx: 0, icon: Icons.home_rounded, label: '홈', iconSize: 29),
-          _buildTabItem(idx: 1, icon: Icons.menu_book_rounded, label: '학습', iconSize: 29),
-          _buildTabItem(
-            idx: 2,
-            icon: Icons.assignment_rounded,
-            label: '커넥트',
-            width: 63.14,
-            iconSize: 30,
-          ),
-          _buildTabItem(idx: 3, icon: Icons.show_chart_rounded, label: '배틀', iconSize: 31),
-          _buildTabItem(idx: 4, icon: Icons.person_rounded, label: '마이', iconSize: 29),
-        ],
-      ),
+  Widget _buildBottomNavigationBar() {
+    return EconoBottomNavigationBar(
+      activeTab: EconoBottomTab.learning,
+      onTabSelected: (tab) {
+        if (tab != EconoBottomTab.learning) {
+          Navigator.pop(context, _indexForBottomTab(tab));
+        }
+      },
     );
   }
 
-  Widget _buildTabItem({
-    required int idx,
-    required IconData icon,
-    required String label,
-    double width = 56,
-    double iconSize = 29,
-  }) {
-    final bool isActive = idx == 1; // Stage Map is part of "학습" tab
-    final Color itemColor = isActive ? const Color(0xFF626262) : const Color(0xFFBCBCBC);
-
-    return GestureDetector(
-      onTap: () {
-        HapticFeedback.lightImpact();
-        if (idx != 1) {
-          // Pass idx back to CurriculmRoadmapScreen which will pop back to HomeScreen with the selected tab index
-          Navigator.pop(context, idx);
-        }
-      },
-      behavior: HitTestBehavior.opaque,
-      child: SizedBox(
-        width: width,
-        height: 60,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: iconSize, color: itemColor),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: TextStyle(
-                fontFamily: 'Pretendard',
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: itemColor,
-                height: 16 / 13,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+  int _indexForBottomTab(EconoBottomTab tab) {
+    switch (tab) {
+      case EconoBottomTab.home:
+        return 0;
+      case EconoBottomTab.learning:
+        return 1;
+      case EconoBottomTab.connect:
+        return 2;
+      case EconoBottomTab.battle:
+        return 3;
+      case EconoBottomTab.my:
+        return 4;
+    }
   }
 }
 

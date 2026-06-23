@@ -2,6 +2,9 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'stage_map_screen.dart';
+import 'widgets/unlock_bottom_sheet.dart';
+import 'stage_map_screen.dart';
+import '../../../shared/widgets/econo_bottom_navigation_bar.dart';
 
 class CurriculumRoadmapScreen extends StatefulWidget {
   final String title; // '경제 상식' 또는 '저축'
@@ -19,7 +22,6 @@ class _CurriculumRoadmapScreenState extends State<CurriculumRoadmapScreen> {
   // 테마 색상 정의
   static const Color brandInk = Color(0xFF122711);
   static const Color textMuted = Color(0xFF6A7282);
-  static const Color borderLight = Color(0xFFE5E7EB);
 
   Color get themeColor {
     if (widget.title == '저축') return const Color(0xFF00DAEE);
@@ -361,7 +363,7 @@ class _CurriculumRoadmapScreenState extends State<CurriculumRoadmapScreen> {
               ),
             ),
             // 4. Bottom Tab Navigation
-            _buildBottomNavigationBar(contentWidth),
+            _buildBottomNavigationBar(),
           ],
         ),
       ),
@@ -827,6 +829,8 @@ class _CurriculumRoadmapScreenState extends State<CurriculumRoadmapScreen> {
 
   void _handleLessonTap(LessonData lesson, UnitData unit) {
     if (unit.state == UnitState.locked) {
+      HapticFeedback.lightImpact();
+      UnlockBottomSheet.show(context, category: widget.title);
       return;
     }
 
@@ -850,6 +854,8 @@ class _CurriculumRoadmapScreenState extends State<CurriculumRoadmapScreen> {
 
   void _handleUnitTap(UnitData unit) {
     if (unit.state == UnitState.locked) {
+      HapticFeedback.lightImpact();
+      UnlockBottomSheet.show(context, category: widget.title);
       return;
     }
 
@@ -1079,74 +1085,30 @@ class _CurriculumRoadmapScreenState extends State<CurriculumRoadmapScreen> {
     );
   }
 
-  Widget _buildBottomNavigationBar(double width) {
-    return Container(
-      width: double.infinity,
-      height: 77,
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        border: Border(top: BorderSide(color: borderLight, width: 1)),
-      ),
-      padding: const EdgeInsets.fromLTRB(8, 9, 8, 0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          _buildTabItem(idx: 0, icon: Icons.home_rounded, label: '홈', iconSize: 29),
-          _buildTabItem(idx: 1, icon: Icons.menu_book_rounded, label: '학습', iconSize: 29),
-          _buildTabItem(
-            idx: 2,
-            icon: Icons.assignment_rounded,
-            label: '커넥트',
-            width: 63.14,
-            iconSize: 30,
-          ),
-          _buildTabItem(idx: 3, icon: Icons.show_chart_rounded, label: '배틀', iconSize: 31),
-          _buildTabItem(idx: 4, icon: Icons.person_rounded, label: '마이', iconSize: 29),
-        ],
-      ),
+  Widget _buildBottomNavigationBar() {
+    return EconoBottomNavigationBar(
+      activeTab: EconoBottomTab.learning,
+      onTabSelected: (tab) {
+        if (tab != EconoBottomTab.learning) {
+          Navigator.pop(context, _indexForBottomTab(tab));
+        }
+      },
     );
   }
 
-  Widget _buildTabItem({
-    required int idx,
-    required IconData icon,
-    required String label,
-    double width = 56,
-    double iconSize = 29,
-  }) {
-    final bool isActive = idx == 1; // Curriculum is part of "학습" tab
-    final Color itemColor = isActive ? const Color(0xFF626262) : const Color(0xFFBCBCBC);
-
-    return GestureDetector(
-      onTap: () {
-        HapticFeedback.lightImpact();
-        if (idx != 1) {
-          Navigator.pop(context, idx);
-        }
-      },
-      behavior: HitTestBehavior.opaque,
-      child: SizedBox(
-        width: width,
-        height: 60,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: iconSize, color: itemColor),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: TextStyle(
-                fontFamily: 'Pretendard',
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: itemColor,
-                height: 16 / 13,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+  int _indexForBottomTab(EconoBottomTab tab) {
+    switch (tab) {
+      case EconoBottomTab.home:
+        return 0;
+      case EconoBottomTab.learning:
+        return 1;
+      case EconoBottomTab.connect:
+        return 2;
+      case EconoBottomTab.battle:
+        return 3;
+      case EconoBottomTab.my:
+        return 4;
+    }
   }
 }
 
