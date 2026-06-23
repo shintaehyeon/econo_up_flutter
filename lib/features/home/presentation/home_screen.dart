@@ -10,6 +10,7 @@ import 'news_feed_screen.dart';
 import 'settings_screen.dart';
 import 'my_page_screen.dart';
 import 'interest_area_settings_screen.dart';
+import 'simulation_quest_list_screen.dart';
 import '../../curriculum/presentation/curriculum_roadmap_screen.dart';
 import '../../social/presentation/battle_main_screen.dart';
 import '../../../shared/widgets/econo_bottom_navigation_bar.dart';
@@ -787,6 +788,19 @@ class _HomeScreenState extends State<HomeScreen> {
                               buttonColor: const Color(0xFFEEFFD1),
                               buttonTextColor: const Color(0xFF7BD134),
                               showProgress: false,
+                              onTap: () async {
+                                final result = await Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => const SimulationQuestListScreen(),
+                                  ),
+                                );
+                                if (result is int && mounted) {
+                                  setState(() {
+                                    _currentTabIdx = result;
+                                  });
+                                }
+                              },
                             ),
                           ),
                         ],
@@ -815,10 +829,15 @@ class _HomeScreenState extends State<HomeScreen> {
     required Color buttonColor,
     required Color buttonTextColor,
     bool showProgress = true,
+    VoidCallback? onTap,
   }) {
     return GestureDetector(
       onTap: () async {
         HapticFeedback.lightImpact();
+        if (onTap != null) {
+          onTap();
+          return;
+        }
         if (title == '경제 상식' || title == '저축') {
           final result = await Navigator.push(
             context,
