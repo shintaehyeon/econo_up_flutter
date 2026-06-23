@@ -47,30 +47,20 @@ class SimulationSettlementScreen extends StatefulWidget {
 }
 
 class _SimulationSettlementScreenState extends State<SimulationSettlementScreen> {
-  late final TextEditingController _salePriceController;
-  late final TextEditingController _taxRateController;
-  late final FocusNode _salePriceFocusNode;
-  late final FocusNode _taxRateFocusNode;
+  late final TextEditingController _expectedTaxController;
+  late final FocusNode _expectedTaxFocusNode;
 
   @override
   void initState() {
     super.initState();
-    _salePriceController = TextEditingController(
-      text: _formatManwon(widget.initialSalePriceManwon.toDouble()),
-    );
-    _taxRateController = TextEditingController(
-      text: '${_formatRate(widget.initialAcquisitionTaxRate)}%',
-    );
-    _salePriceFocusNode = FocusNode();
-    _taxRateFocusNode = FocusNode();
+    _expectedTaxController = TextEditingController();
+    _expectedTaxFocusNode = FocusNode();
   }
 
   @override
   void dispose() {
-    _salePriceController.dispose();
-    _taxRateController.dispose();
-    _salePriceFocusNode.dispose();
-    _taxRateFocusNode.dispose();
+    _expectedTaxController.dispose();
+    _expectedTaxFocusNode.dispose();
     super.dispose();
   }
 
@@ -111,12 +101,11 @@ class _SimulationSettlementScreenState extends State<SimulationSettlementScreen>
                         SizedBox(height: 20 * scale),
                         _TaxCalculationSection(
                           scale: scale,
-                          salePriceController: _salePriceController,
-                          taxRateController: _taxRateController,
-                          salePriceFocusNode: _salePriceFocusNode,
-                          taxRateFocusNode: _taxRateFocusNode,
-                          estimatedTaxText: _estimatedTaxText,
-                          onInputChanged: () => setState(() {}),
+                          salePriceText: _formatManwon(widget.initialSalePriceManwon.toDouble()),
+                          taxRateText: '1주택 기준 1~3%',
+                          expectedTaxController: _expectedTaxController,
+                          expectedTaxFocusNode: _expectedTaxFocusNode,
+                          expectedTaxHintText: '예: 약 $_calculatedExpectedTaxText',
                         ),
                         SizedBox(height: 20 * scale),
                         _RegistrationProcessSection(scale: scale),
@@ -180,42 +169,9 @@ class _SimulationSettlementScreenState extends State<SimulationSettlementScreen>
     }
   }
 
-  String get _estimatedTaxText {
-    final salePriceManwon = _parseManwon(_salePriceController.text);
-    final taxRate = _parsePercent(_taxRateController.text);
-    if (salePriceManwon == null || taxRate == null) {
-      return '계산 불가';
-    }
-
-    final estimatedTaxManwon = salePriceManwon * taxRate / 100;
-    return '약 ${_formatManwon(estimatedTaxManwon)}';
-  }
-
-  double? _parseManwon(String rawValue) {
-    final normalized = rawValue.replaceAll(',', '').replaceAll(' ', '');
-    if (normalized.isEmpty) {
-      return null;
-    }
-
-    final eokParts = normalized.split('억');
-    if (eokParts.length > 1) {
-      final eok = double.tryParse(eokParts.first.replaceAll(RegExp(r'[^0-9.]'), '')) ?? 0;
-      final manwon = double.tryParse(eokParts.last.replaceAll(RegExp(r'[^0-9.]'), '')) ?? 0;
-      return (eok * 10000) + manwon;
-    }
-
-    return double.tryParse(normalized.replaceAll(RegExp(r'[^0-9.]'), ''));
-  }
-
-  double? _parsePercent(String rawValue) {
-    return double.tryParse(rawValue.replaceAll(',', '').replaceAll(RegExp(r'[^0-9.]'), ''));
-  }
-
-  static String _formatRate(double value) {
-    if (value == value.roundToDouble()) {
-      return value.toInt().toString();
-    }
-    return value.toStringAsFixed(1);
+  String get _calculatedExpectedTaxText {
+    final estimatedTaxManwon = widget.initialSalePriceManwon * widget.initialAcquisitionTaxRate / 100;
+    return _formatManwon(estimatedTaxManwon);
   }
 
   static String _formatManwon(double value) {
@@ -490,21 +446,19 @@ class _PaymentStatusRow extends StatelessWidget {
 class _TaxCalculationSection extends StatelessWidget {
   const _TaxCalculationSection({
     required this.scale,
-    required this.salePriceController,
-    required this.taxRateController,
-    required this.salePriceFocusNode,
-    required this.taxRateFocusNode,
-    required this.estimatedTaxText,
-    required this.onInputChanged,
+    required this.salePriceText,
+    required this.taxRateText,
+    required this.expectedTaxController,
+    required this.expectedTaxFocusNode,
+    required this.expectedTaxHintText,
   });
 
   final double scale;
-  final TextEditingController salePriceController;
-  final TextEditingController taxRateController;
-  final FocusNode salePriceFocusNode;
-  final FocusNode taxRateFocusNode;
-  final String estimatedTaxText;
-  final VoidCallback onInputChanged;
+  final String salePriceText;
+  final String taxRateText;
+  final TextEditingController expectedTaxController;
+  final FocusNode expectedTaxFocusNode;
+  final String expectedTaxHintText;
 
   @override
   Widget build(BuildContext context) {
@@ -546,35 +500,23 @@ class _TaxCalculationSection extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _TaxInputRow(
+              _TaxInfoRow(
                 label: '분양가',
-                controller: salePriceController,
-                focusNode: salePriceFocusNode,
-                hintText: '예: 4억 2,000만원',
-                keyboardType: TextInputType.text,
-                inputFormatters: [
-                  FilteringTextInputFormatter.allow(RegExp(r'[0-9,억만원\s]')),
-                ],
+                value: salePriceText,
                 scale: scale,
-                onChanged: onInputChanged,
+              ),
+              SizedBox(height: 11 * scale),
+              _TaxInfoRow(
+                label: '취득세율',
+                value: taxRateText,
+                scale: scale,
               ),
               SizedBox(height: 11 * scale),
               _TaxInputRow(
-                label: '취득세율',
-                controller: taxRateController,
-                focusNode: taxRateFocusNode,
-                hintText: '예: 1.5%',
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                inputFormatters: [
-                  FilteringTextInputFormatter.allow(RegExp(r'[0-9.%]')),
-                ],
-                scale: scale,
-                onChanged: onInputChanged,
-              ),
-              SizedBox(height: 11 * scale),
-              _TaxResultRow(
                 label: '예상 취득세',
-                value: estimatedTaxText,
+                controller: expectedTaxController,
+                focusNode: expectedTaxFocusNode,
+                hintText: expectedTaxHintText,
                 scale: scale,
               ),
             ],
@@ -585,86 +527,8 @@ class _TaxCalculationSection extends StatelessWidget {
   }
 }
 
-class _TaxInputRow extends StatelessWidget {
-  const _TaxInputRow({
-    required this.label,
-    required this.controller,
-    required this.focusNode,
-    required this.hintText,
-    required this.keyboardType,
-    required this.inputFormatters,
-    required this.scale,
-    required this.onChanged,
-  });
-
-  final String label;
-  final TextEditingController controller;
-  final FocusNode focusNode;
-  final String hintText;
-  final TextInputType keyboardType;
-  final List<TextInputFormatter> inputFormatters;
-  final double scale;
-  final VoidCallback onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 214 * scale,
-      height: 16 * scale,
-      child: Row(
-        children: [
-          SizedBox(
-            width: 84 * scale,
-            child: Text(
-              label,
-              style: TextStyle(
-                fontFamily: 'Pretendard',
-                fontSize: 12 * scale,
-                fontWeight: FontWeight.w500,
-                color: SimulationSettlementScreen.textMuted,
-                height: 14 / 12,
-              ),
-            ),
-          ),
-          Expanded(
-            child: TextField(
-              controller: controller,
-              focusNode: focusNode,
-              keyboardType: keyboardType,
-              textInputAction: TextInputAction.done,
-              inputFormatters: inputFormatters,
-              onChanged: (_) => onChanged(),
-              cursorColor: SimulationSettlementScreen.themeGreen,
-              style: TextStyle(
-                fontFamily: 'Pretendard',
-                fontSize: 12 * scale,
-                fontWeight: FontWeight.w500,
-                color: SimulationSettlementScreen.textDark,
-                height: 14 / 12,
-              ),
-              decoration: InputDecoration(
-                isDense: true,
-                border: InputBorder.none,
-                contentPadding: EdgeInsets.zero,
-                hintText: hintText,
-                hintStyle: TextStyle(
-                  fontFamily: 'Pretendard',
-                  fontSize: 12 * scale,
-                  fontWeight: FontWeight.w500,
-                  color: SimulationSettlementScreen.textLight,
-                  height: 14 / 12,
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _TaxResultRow extends StatelessWidget {
-  const _TaxResultRow({
+class _TaxInfoRow extends StatelessWidget {
+  const _TaxInfoRow({
     required this.label,
     required this.value,
     required this.scale,
@@ -678,7 +542,7 @@ class _TaxResultRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return SizedBox(
       width: 214 * scale,
-      height: 14 * scale,
+      height: 16 * scale,
       child: Row(
         children: [
           SizedBox(
@@ -705,6 +569,79 @@ class _TaxResultRow extends StatelessWidget {
                 fontWeight: FontWeight.w500,
                 color: SimulationSettlementScreen.textDark,
                 height: 14 / 12,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TaxInputRow extends StatelessWidget {
+  const _TaxInputRow({
+    required this.label,
+    required this.controller,
+    required this.focusNode,
+    required this.hintText,
+    required this.scale,
+  });
+
+  final String label;
+  final TextEditingController controller;
+  final FocusNode focusNode;
+  final String hintText;
+  final double scale;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 214 * scale,
+      height: 14 * scale,
+      child: Row(
+        children: [
+          SizedBox(
+            width: 84 * scale,
+            child: Text(
+              label,
+              style: TextStyle(
+                fontFamily: 'Pretendard',
+                fontSize: 12 * scale,
+                fontWeight: FontWeight.w500,
+                color: SimulationSettlementScreen.textMuted,
+                height: 14 / 12,
+              ),
+            ),
+          ),
+          Expanded(
+            child: TextField(
+              controller: controller,
+              focusNode: focusNode,
+              keyboardType: TextInputType.text,
+              textInputAction: TextInputAction.done,
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp(r'[0-9,억만원약\s]')),
+              ],
+              cursorColor: SimulationSettlementScreen.themeGreen,
+              style: TextStyle(
+                fontFamily: 'Pretendard',
+                fontSize: 12 * scale,
+                fontWeight: FontWeight.w500,
+                color: SimulationSettlementScreen.textDark,
+                height: 14 / 12,
+              ),
+              decoration: InputDecoration(
+                isDense: true,
+                border: InputBorder.none,
+                contentPadding: EdgeInsets.zero,
+                hintText: hintText,
+                hintStyle: TextStyle(
+                  fontFamily: 'Pretendard',
+                  fontSize: 12 * scale,
+                  fontWeight: FontWeight.w500,
+                  color: SimulationSettlementScreen.textLight,
+                  height: 14 / 12,
+                ),
               ),
             ),
           ),

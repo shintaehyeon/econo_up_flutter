@@ -41,9 +41,9 @@ The following values are currently visual mock data and should be replaced by ba
 These values are intentionally editable in the frontend now.
 
 - Contract deposit amount in `SimulationPaymentScreen`.
-- Sale price and acquisition tax rate in `SimulationSettlementScreen`.
+- Expected acquisition tax amount in `SimulationSettlementScreen`.
 
-The frontend currently calculates the estimated acquisition tax only for the interactive mock screen. Backend scoring/validation should still follow the agreed simulation answer APIs.
+Sale price and acquisition tax rate are displayed as scenario/reference values, not user-editable values. Backend scoring/validation should still follow the agreed simulation answer APIs.
 
 ## Placeholder Actions
 
