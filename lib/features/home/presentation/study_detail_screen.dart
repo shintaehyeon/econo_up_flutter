@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../../curriculum/presentation/stage_complete_screen.dart';
 
 class StudyDetailScreen extends StatefulWidget {
   final String title;
@@ -75,19 +76,27 @@ class _StudyDetailScreenState extends State<StudyDetailScreen> {
         _currentPage++;
       });
     } else {
-      // Completed last page: show a nice toast and go back
-      final String unitName = widget.title == '저축' ? '현금 관리' : '금리';
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Unit 1. $unitName 학습을 완료했습니다! 🎉',
-            style: const TextStyle(fontFamily: 'Pretendard', fontWeight: FontWeight.w600),
+      // Completed last page: route to StageCompleteScreen
+      final bool isSaving = widget.title == '저축';
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => StageCompleteScreen(
+            categoryTitle: widget.title,
+            completionMessage: isSaving
+                ? '현금 관리의 기초를 이해했어요'
+                : '금리와 소비의 관계를 이해했어요',
+            xpAdded: 50,
+            levelName: '새싹 저축러',
+            currentXp: 62,
+            levelProgressRatio: 0.62,
+            xpIncreaseText: '▲ +8%',
+            unitProgressText: 'Unit 1 완료까지 1 스테이지 남음',
+            unitCompletionRatio: '2/3',
+            unitProgressRatio: 0.66,
           ),
-          backgroundColor: const Color(0xFF00EE94),
-          duration: const Duration(seconds: 2),
         ),
       );
-      Navigator.pop(context);
     }
   }
 
