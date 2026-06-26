@@ -225,7 +225,7 @@ class _QuizBattleWaitingScreenState extends State<QuizBattleWaitingScreen> {
                             scale: 0.8 * scale,
                             child: Switch.adaptive(
                               value: _receiveNotifications,
-                              activeThumbColor: const Color(0xFF00EE94),
+                              activeColor: const Color(0xFF00EE94),
                               activeTrackColor: const Color(0x6600EE94),
                               onChanged: (val) {
                                 HapticFeedback.selectionClick();

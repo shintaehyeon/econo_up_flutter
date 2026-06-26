@@ -1,27 +1,89 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'news_detail_screen.dart';
 
-class NewsFeedScreen extends StatelessWidget {
-  const NewsFeedScreen({
-    super.key,
-    this.onBottomTabSelected,
-  });
+import '../../../core/auth/auth_session.dart';
+import '../../../core/network/api_client.dart';
+import '../../auth/presentation/login_screen.dart';
+import '../data/daily_connect_api.dart';
+
+class NewsFeedScreen extends StatefulWidget {
+  const NewsFeedScreen({super.key, this.onBottomTabSelected});
 
   final ValueChanged<int>? onBottomTabSelected;
 
   static const Color brandInk = Color(0xFF122711);
   static const Color themeGreen = Color(0xFF00EE94);
   static const Color textMuted = Color(0xFF6A7282);
-  static const Color textLight = Color(0xFF9CA3AF);
   static const Color borderGrey = Color(0xFFD0D5E0);
-  static const String _newsImagePath = 'assets/images/news_fed_powell.png';
 
-  static const List<_NewsItem> _items = [
-    _NewsItem(category: '환율', title: '환율 급등, 원/달러 1,400원 돌파', date: '2026.04.06'),
-    _NewsItem(category: '물가', title: '소비자물가 3개월 연속 하락', date: '2026.03.18'),
-    _NewsItem(category: '부동산', title: '부동산 거래량 반등 조짐', date: '2026.03.02'),
-  ];
+  @override
+  State<NewsFeedScreen> createState() => _NewsFeedScreenState();
+}
+
+class _NewsFeedScreenState extends State<NewsFeedScreen> {
+  late final ApiClient _client;
+  late final DailyConnectApi _api;
+
+  List<DailyArticle> _articles = const [];
+  bool _bookmarkedOnly = false;
+  bool _isLoading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _client = ApiClient(accessTokenProvider: AuthSession.accessToken, onUnauthorized: AuthSession.clear);
+    _api = DailyConnectApi(_client);
+    _loadArticles();
+  }
+
+  @override
+  void dispose() {
+    _client.close();
+    super.dispose();
+  }
+
+  Future<void> _loadArticles() async {
+    if (!AuthSession.hasAccessToken) {
+      _goToLogin();
+      return;
+    }
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+    try {
+      final articles = await _api.articles(bookmarkedOnly: _bookmarkedOnly);
+      if (!mounted) return;
+      setState(() {
+        _articles = articles;
+        _isLoading = false;
+      });
+    } on ApiClientException catch (error) {
+      if (!mounted) return;
+      if (error.statusCode == 401 || error.statusCode == 403) {
+        _goToLogin();
+        return;
+      }
+      setState(() {
+        _error = error.message;
+        _isLoading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _error = 'Could not load news feed.';
+        _isLoading = false;
+      });
+    }
+  }
+
+  void _goToLogin() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (_) => const LoginScreen()), (_) => false);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -36,20 +98,25 @@ class NewsFeedScreen extends StatelessWidget {
         child: SizedBox(
           width: contentWidth,
           height: double.infinity,
-          child: SingleChildScrollView(
-            padding: EdgeInsets.fromLTRB(24 * scale, 0, 24 * scale, 34 * scale),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          child: RefreshIndicator(
+            onRefresh: _loadArticles,
+            child: ListView(
+              padding: EdgeInsets.fromLTRB(24 * scale, 0, 24 * scale, 34 * scale),
               children: [
                 _buildHeader(scale),
                 SizedBox(height: 14 * scale),
                 _buildFilterTabs(scale),
-                SizedBox(height: 26 * scale),
-                _buildSectionTitle(scale),
+                SizedBox(height: 24 * scale),
+                Text('Today headline', style: TextStyle(fontSize: 15 * scale, fontWeight: FontWeight.w800, color: NewsFeedScreen.brandInk)),
                 SizedBox(height: 14 * scale),
-                _buildHeadlineCard(context, scale),
-                SizedBox(height: 15 * scale),
-                ..._items.map((item) => _buildNewsListItem(context, item, scale)),
+                if (_isLoading) Padding(padding: EdgeInsets.only(top: 100 * scale), child: const Center(child: CircularProgressIndicator(color: NewsFeedScreen.themeGreen))),
+                if (_error != null) _errorBox(scale),
+                if (!_isLoading && _error == null && _articles.isEmpty) _emptyBox(scale),
+                if (!_isLoading && _error == null && _articles.isNotEmpty) ...[
+                  _headlineCard(_articles.first, scale),
+                  SizedBox(height: 16 * scale),
+                  ..._articles.skip(1).map((article) => _newsListItem(article, scale)),
+                ],
               ],
             ),
           ),
@@ -59,402 +126,136 @@ class NewsFeedScreen extends StatelessWidget {
   }
 
   Widget _buildHeader(double scale) {
-    return Text(
-      '데일리 커넥트',
-      style: TextStyle(
-        fontFamily: 'Pretendard',
-        fontSize: 16 * scale,
-        fontWeight: FontWeight.w700,
-        color: brandInk,
-        height: 22.5 / 16,
-      ),
-    );
+    return Text('Daily Connect', style: TextStyle(fontSize: 18 * scale, fontWeight: FontWeight.w800, color: NewsFeedScreen.brandInk));
   }
 
   Widget _buildFilterTabs(double scale) {
-    return Row(
-      children: [
-        GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: HapticFeedback.lightImpact,
-          child: Container(
-            width: 52.75 * scale,
-            height: 37.13 * scale,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: themeGreen,
-              borderRadius: BorderRadius.circular(16777216),
-            ),
-            child: Text(
-              '전체',
-              style: TextStyle(
-                fontFamily: 'Pretendard',
-                fontSize: 12 * scale,
-                fontWeight: FontWeight.w700,
-                color: Colors.white,
-                height: 18 / 12,
-              ),
-            ),
-          ),
-        ),
-        SizedBox(width: 6 * scale),
-        GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: HapticFeedback.lightImpact,
-          child: Container(
-            width: 52.75 * scale,
-            height: 37.13 * scale,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: const Color(0x26FFFFFF),
-              border: Border.all(color: borderGrey),
-              borderRadius: BorderRadius.circular(16777216),
-            ),
-            child: _BookmarkIcon(
-              width: 20 * scale,
-              height: 20 * scale,
-              color: borderGrey,
-              filled: true,
-            ),
-          ),
-        ),
-      ],
-    );
+    return Row(children: [
+      _filterPill('All', !_bookmarkedOnly, () {
+        HapticFeedback.lightImpact();
+        setState(() => _bookmarkedOnly = false);
+        _loadArticles();
+      }, scale),
+      SizedBox(width: 8 * scale),
+      _filterPill('Saved', _bookmarkedOnly, () {
+        HapticFeedback.lightImpact();
+        setState(() => _bookmarkedOnly = true);
+        _loadArticles();
+      }, scale),
+    ]);
   }
 
-  Widget _buildSectionTitle(double scale) {
-    return Text(
-      '오늘의 헤드라인',
-      style: TextStyle(
-        fontFamily: 'Pretendard',
-        fontSize: 14 * scale,
-        fontWeight: FontWeight.w700,
-        color: brandInk,
-        height: 17 / 14,
-        letterSpacing: -0.439453 * scale,
+  Widget _filterPill(String label, bool active, VoidCallback onTap, double scale) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: 36 * scale,
+        padding: EdgeInsets.symmetric(horizontal: 18 * scale),
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: active ? NewsFeedScreen.themeGreen : Colors.white,
+          border: Border.all(color: active ? NewsFeedScreen.themeGreen : NewsFeedScreen.borderGrey),
+          borderRadius: BorderRadius.circular(999),
+        ),
+        child: Text(label, style: TextStyle(color: active ? Colors.white : NewsFeedScreen.textMuted, fontWeight: FontWeight.w800)),
       ),
     );
   }
 
-  Widget _buildHeadlineCard(BuildContext context, double scale) {
+  Widget _headlineCard(DailyArticle article, double scale) {
     return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: () => _openDetail(context),
+      onTap: () => _openArticle(article),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(16 * scale),
         child: SizedBox(
-          width: double.infinity,
           height: 193 * scale,
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              Image.asset(
-                _newsImagePath,
-                fit: BoxFit.cover,
-              ),
-              const DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      Color(0x1A000000),
-                      Color(0xE6000000),
-                    ],
-                  ),
-                ),
-              ),
-              Positioned(
-                left: 17 * scale,
-                right: 17 * scale,
-                bottom: 65 * scale,
-                child: Text(
-                  '미 연준, 기준금리 동결 결정',
-                  style: TextStyle(
-                    fontFamily: 'Pretendard',
-                    fontSize: 18 * scale,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white,
-                    height: 20 / 18,
-                  ),
-                ),
-              ),
-              Positioned(
-                left: 17 * scale,
-                right: 17 * scale,
-                bottom: 43 * scale,
-                child: Text(
-                  '시장 예상에 부합, 연내 인하 기대 유지',
-                  style: TextStyle(
-                    fontFamily: 'Pretendard',
-                    fontSize: 12 * scale,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.white,
-                    height: 16.5 / 12,
-                  ),
-                ),
-              ),
-              Positioned(
-                left: 17 * scale,
-                bottom: 18 * scale,
-                child: Row(
-                  children: [
-                    _buildHeroPill('금리', scale),
-                    SizedBox(width: 8 * scale),
-                    _buildQuizCompletePill(scale),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildHeroPill(String label, double scale) {
-    return Container(
-      height: 22 * scale,
-      padding: EdgeInsets.symmetric(horizontal: 14 * scale),
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: const Color(0x2600EE94),
-        borderRadius: BorderRadius.circular(16777216),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontFamily: 'Pretendard',
-          fontSize: 12 * scale,
-          fontWeight: FontWeight.w600,
-          color: themeGreen,
-          height: 18 / 12,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildQuizCompletePill(double scale) {
-    return Container(
-      height: 22 * scale,
-      padding: EdgeInsets.fromLTRB(12 * scale, 0, 14 * scale, 0),
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: const Color(0x2600EE94),
-        borderRadius: BorderRadius.circular(16777216),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            Icons.check_rounded,
-            size: 15 * scale,
-            color: themeGreen,
-          ),
-          SizedBox(width: 5 * scale),
-          Text(
-            '오늘 퀴즈 완료',
-            style: TextStyle(
-              fontFamily: 'Pretendard',
-              fontSize: 12 * scale,
-              fontWeight: FontWeight.w600,
-              color: themeGreen,
-              height: 18 / 12,
+          child: Stack(fit: StackFit.expand, children: [
+            _thumbnail(article.thumbnailUrl),
+            const DecoratedBox(decoration: BoxDecoration(gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0x22000000), Color(0xDD000000)]))),
+            Positioned(
+              left: 17 * scale,
+              right: 17 * scale,
+              bottom: 46 * scale,
+              child: Text(article.title, maxLines: 2, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 18 * scale, fontWeight: FontWeight.w800, color: Colors.white)),
             ),
-          ),
-        ],
+            Positioned(
+              left: 17 * scale,
+              bottom: 18 * scale,
+              child: _termPill(article.term, scale),
+            ),
+          ]),
+        ),
       ),
     );
   }
 
-  Widget _buildNewsListItem(BuildContext context, _NewsItem item, double scale) {
+  Widget _newsListItem(DailyArticle article, double scale) {
     return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: () => _openDetail(context),
-      child: SizedBox(
-        width: double.infinity,
-        height: 101 * scale,
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: EdgeInsets.only(top: 13 * scale),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(6 * scale),
-                child: SizedBox(
-                  width: 102 * scale,
-                  height: 68 * scale,
-                  child: Image.asset(
-                    _newsImagePath,
-                    fit: BoxFit.cover,
-                  ),
-                ),
-              ),
-            ),
-            SizedBox(width: 13 * scale),
-            Expanded(
-              child: Padding(
-                padding: EdgeInsets.only(top: 13 * scale),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildCategoryPill(item.category, scale),
-                    SizedBox(height: 7 * scale),
-                    Text(
-                      item.title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontFamily: 'Pretendard',
-                        fontSize: 14 * scale,
-                        fontWeight: FontWeight.w700,
-                        color: brandInk,
-                        height: 18.25 / 14,
-                      ),
-                    ),
-                    SizedBox(height: 14 * scale),
-                    Text(
-                      item.date,
-                      style: TextStyle(
-                        fontFamily: 'Pretendard',
-                        fontSize: 10 * scale,
-                        fontWeight: FontWeight.w500,
-                        color: textLight,
-                        height: 15 / 10,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            Padding(
-              padding: EdgeInsets.only(top: 13 * scale),
-              child: _BookmarkIcon(
-                width: 16 * scale,
-                height: 16 * scale,
-                color: const Color(0xFFB2B2B2),
-              ),
-            ),
-          ],
-        ),
+      onTap: () => _openArticle(article),
+      child: Container(
+        margin: EdgeInsets.only(bottom: 13 * scale),
+        child: Row(children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(12 * scale),
+            child: SizedBox(width: 94 * scale, height: 74 * scale, child: _thumbnail(article.thumbnailUrl)),
+          ),
+          SizedBox(width: 13 * scale),
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(article.term, style: TextStyle(fontSize: 12 * scale, fontWeight: FontWeight.w800, color: NewsFeedScreen.themeGreen)),
+            SizedBox(height: 5 * scale),
+            Text(article.title, maxLines: 2, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 15 * scale, fontWeight: FontWeight.w800, color: NewsFeedScreen.brandInk)),
+            SizedBox(height: 5 * scale),
+            Text(article.publishedAt.isEmpty ? article.subtitle : article.publishedAt, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 12 * scale, color: NewsFeedScreen.textMuted)),
+          ])),
+        ]),
       ),
     );
   }
 
-  Widget _buildCategoryPill(String label, double scale) {
-    final width = label.length > 2 ? 39.0 : 32.0;
-    return Container(
-      width: width * scale,
-      height: 16 * scale,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: const Color(0xFFF3F4F6),
-        borderRadius: BorderRadius.circular(30 * scale),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontFamily: 'Pretendard',
-          fontSize: 10 * scale,
-          fontWeight: FontWeight.w500,
-          color: textMuted,
-          height: 13.5 / 10,
-        ),
-      ),
-    );
-  }
-
-  void _openDetail(BuildContext context) {
-    HapticFeedback.lightImpact();
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => NewsDetailScreen(
-          onBottomTabSelected: onBottomTabSelected,
-        ),
-      ),
-    );
-  }
-}
-
-class _BookmarkIcon extends StatelessWidget {
-  const _BookmarkIcon({
-    required this.width,
-    required this.height,
-    required this.color,
-    this.filled = false,
-  });
-
-  final double width;
-  final double height;
-  final Color color;
-  final bool filled;
-
-  @override
-  Widget build(BuildContext context) {
-    return CustomPaint(
-      size: Size(width, height),
-      painter: _BookmarkIconPainter(color: color, filled: filled),
-    );
-  }
-}
-
-class _BookmarkIconPainter extends CustomPainter {
-  const _BookmarkIconPainter({
-    required this.color,
-    required this.filled,
-  });
-
-  final Color color;
-  final bool filled;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final path = Path()
-      ..moveTo(size.width * 0.26, size.height * 0.12)
-      ..quadraticBezierTo(size.width * 0.26, size.height * 0.08, size.width * 0.30, size.height * 0.08)
-      ..lineTo(size.width * 0.70, size.height * 0.08)
-      ..quadraticBezierTo(size.width * 0.74, size.height * 0.08, size.width * 0.74, size.height * 0.12)
-      ..lineTo(size.width * 0.74, size.height * 0.88)
-      ..lineTo(size.width * 0.50, size.height * 0.72)
-      ..lineTo(size.width * 0.26, size.height * 0.88)
-      ..close();
-
-    if (filled) {
-      canvas.drawPath(
-        path,
-        Paint()
-          ..color = color
-          ..style = PaintingStyle.fill,
-      );
-      return;
+  Widget _thumbnail(String url) {
+    if (url.isEmpty) {
+      return Container(color: const Color(0xFFE5E7EB), child: const Icon(Icons.play_circle_fill_rounded, color: NewsFeedScreen.themeGreen, size: 44));
     }
-
-    canvas.drawPath(
-      path,
-      Paint()
-        ..color = color
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = size.width * 0.12
-        ..strokeJoin = StrokeJoin.round
-        ..strokeCap = StrokeCap.round,
+    return Image.network(
+      url,
+      fit: BoxFit.cover,
+      errorBuilder: (_, __, ___) => Container(color: const Color(0xFFE5E7EB), child: const Icon(Icons.play_circle_fill_rounded, color: NewsFeedScreen.themeGreen, size: 44)),
     );
   }
 
-  @override
-  bool shouldRepaint(covariant _BookmarkIconPainter oldDelegate) {
-    return oldDelegate.color != color || oldDelegate.filled != filled;
+  Widget _termPill(String term, double scale) {
+    return Container(
+      height: 24 * scale,
+      padding: EdgeInsets.symmetric(horizontal: 12 * scale),
+      alignment: Alignment.center,
+      decoration: BoxDecoration(color: NewsFeedScreen.themeGreen, borderRadius: BorderRadius.circular(999)),
+      child: Text(term, style: TextStyle(fontSize: 12 * scale, fontWeight: FontWeight.w800, color: Colors.white)),
+    );
   }
-}
 
-class _NewsItem {
-  const _NewsItem({
-    required this.category,
-    required this.title,
-    required this.date,
-  });
+  void _openArticle(DailyArticle article) {
+    HapticFeedback.lightImpact();
+    showModalBottomSheet<void>(
+      context: context,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (context) => Padding(
+        padding: const EdgeInsets.fromLTRB(20, 18, 20, 28),
+        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+          ClipRRect(borderRadius: BorderRadius.circular(14), child: SizedBox(height: 180, width: double.infinity, child: _thumbnail(article.thumbnailUrl))),
+          const SizedBox(height: 16),
+          Text(article.term, style: const TextStyle(color: NewsFeedScreen.themeGreen, fontWeight: FontWeight.w800)),
+          const SizedBox(height: 6),
+          Text(article.title, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: NewsFeedScreen.brandInk)),
+          const SizedBox(height: 8),
+          Text(article.subtitle, style: const TextStyle(color: NewsFeedScreen.textMuted)),
+          const SizedBox(height: 12),
+          SelectableText(article.youtubeUrl, style: const TextStyle(color: Color(0xFF2563EB))),
+        ]),
+      ),
+    );
+  }
 
-  final String category;
-  final String title;
-  final String date;
+  Widget _errorBox(double scale) => Column(children: [Text(_error!, textAlign: TextAlign.center), SizedBox(height: 12 * scale), ElevatedButton(onPressed: _loadArticles, child: const Text('Retry'))]);
+
+  Widget _emptyBox(double scale) => Padding(padding: EdgeInsets.only(top: 80 * scale), child: const Center(child: Text('No articles from server yet.')));
 }
