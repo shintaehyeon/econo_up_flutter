@@ -7,8 +7,6 @@ class LevelTestFeedbackScreen extends StatelessWidget {
   final String highlightText;
   final bool isLastQuestion;
   final VoidCallback onNext;
-  final String? rewardText;
-  final String? progressText;
 
   const LevelTestFeedbackScreen({
     super.key,
@@ -17,8 +15,6 @@ class LevelTestFeedbackScreen extends StatelessWidget {
     required this.highlightText,
     required this.isLastQuestion,
     required this.onNext,
-    this.rewardText,
-    this.progressText,
   });
 
   @override
@@ -27,7 +23,6 @@ class LevelTestFeedbackScreen extends StatelessWidget {
     final Color bgColor = isCorrect ? const Color(0xFFF2FFFA) : const Color(0xFFFFF6F2);
     final String title = isCorrect ? '정답!' : '오답!';
     final IconData icon = isCorrect ? Icons.check_rounded : Icons.close_rounded;
-    final String reward = rewardText ?? (isCorrect ? '+10 XP' : '하트 -1');
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -37,6 +32,8 @@ class LevelTestFeedbackScreen extends StatelessWidget {
           child: Column(
             children: [
               const SizedBox(height: 40),
+              
+              // Top Alert Box
               Container(
                 width: double.infinity,
                 height: 55,
@@ -50,7 +47,10 @@ class LevelTestFeedbackScreen extends StatelessWidget {
                     Container(
                       width: 20,
                       height: 20,
-                      decoration: BoxDecoration(color: mainColor, shape: BoxShape.circle),
+                      decoration: BoxDecoration(
+                        color: mainColor,
+                        shape: BoxShape.circle,
+                      ),
                       child: Icon(icon, color: Colors.white, size: 14),
                     ),
                     const SizedBox(width: 8),
@@ -67,6 +67,8 @@ class LevelTestFeedbackScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 11),
+              
+              // Explanation Box
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
@@ -77,7 +79,7 @@ class LevelTestFeedbackScreen extends StatelessWidget {
                 child: Column(
                   children: [
                     const Text(
-                      '해설',
+                      '💡 해설',
                       style: TextStyle(
                         fontFamily: 'Pretendard',
                         fontSize: 13,
@@ -87,7 +89,7 @@ class LevelTestFeedbackScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 16),
                     Text(
-                      explanation.isEmpty ? '답안을 확인했습니다.' : explanation,
+                      explanation,
                       textAlign: TextAlign.center,
                       style: const TextStyle(
                         fontFamily: 'Pretendard',
@@ -114,46 +116,91 @@ class LevelTestFeedbackScreen extends StatelessWidget {
                   ],
                 ),
               ),
-              Container(
-                width: double.infinity,
-                height: 86,
-                padding: const EdgeInsets.only(top: 10),
-                alignment: Alignment.topCenter,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
-                      decoration: BoxDecoration(color: bgColor, borderRadius: BorderRadius.circular(10)),
-                      child: Text(
-                        reward,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontFamily: 'Pretendard',
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: mainColor,
-                          height: 15 / 14,
-                        ),
+              if (isCorrect) ...[
+                Container(
+                  width: double.infinity,
+                  height: 77,
+                  padding: const EdgeInsets.only(top: 10),
+                  alignment: Alignment.topCenter,
+                  child: Container(
+                    width: 79,
+                    height: 25,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF2FFFA),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Text(
+                      '+10 XP',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontFamily: 'Pretendard',
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF0DE593),
+                        height: 15 / 14,
                       ),
                     ),
-                    if (progressText != null && progressText!.isNotEmpty) ...[
+                  ),
+                ),
+              ] else ...[
+                Container(
+                  width: double.infinity,
+                  height: 77,
+                  padding: const EdgeInsets.only(top: 10),
+                  alignment: Alignment.topCenter,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 79,
+                        height: 25,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFFF6F2),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.favorite_rounded,
+                              color: Color(0xFFFF7C1F),
+                              size: 12,
+                            ),
+                            SizedBox(width: 3),
+                            Text(
+                              '-1',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontFamily: 'Pretendard',
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFFFF7C1F),
+                                height: 15 / 14,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                       const SizedBox(height: 6),
-                      Text(
-                        progressText!,
-                        style: const TextStyle(
-                          fontFamily: 'Pretendard',
+                      const Text(
+                        '하트는 유닛당 카운트 됩니다.',
+                        style: TextStyle(
+                          fontFamily: 'Noto Sans KR',
                           fontSize: 10,
-                          fontWeight: FontWeight.w500,
-                          color: Color(0xFF9CA3AF),
+                          fontWeight: FontWeight.w400,
+                          color: Color(0xFFFF7C1F),
                           height: 12 / 10,
                         ),
                       ),
                     ],
-                  ],
+                  ),
                 ),
-              ),
+              ],
               const Spacer(),
+              
+              // Bottom Button
               SizedBox(
                 width: double.infinity,
                 height: 48,
@@ -161,15 +208,17 @@ class LevelTestFeedbackScreen extends StatelessWidget {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF00EE94),
                     elevation: 0,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
                   ),
                   onPressed: () {
                     HapticFeedback.lightImpact();
-                    Navigator.pop(context);
-                    onNext();
+                    Navigator.pop(context); // Pop feedback screen
+                    onNext(); // Trigger next question
                   },
                   child: Text(
-                    isLastQuestion ? '결과 확인하기' : (isCorrect ? '다음 문제' : '계속 하기'),
+                    isLastQuestion ? '결과 확인하기 🎉' : (isCorrect ? '다음 문제' : '계속 하기'),
                     style: const TextStyle(
                       fontFamily: 'Pretendard',
                       fontSize: 14,

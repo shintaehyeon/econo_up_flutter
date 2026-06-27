@@ -189,12 +189,6 @@ class _LearningSessionScreenState extends State<LearningSessionScreen> {
 
   void _showFeedback(LearningAnswerResult result) {
     final feedback = result.feedback;
-    final progressText = '${result.progress.progressPercent}% complete';
-    final rewardText = feedback.isCorrect
-        ? '+${feedback.xpGained} XP'
-        : feedback.heartConsumed > 0
-            ? 'Heart -${feedback.heartConsumed}'
-            : 'Check again';
 
     Navigator.push(
       context,
@@ -204,8 +198,6 @@ class _LearningSessionScreenState extends State<LearningSessionScreen> {
           explanation: feedback.explanation,
           highlightText: feedback.highlightText,
           isLastQuestion: result.nextQuestion == null,
-          rewardText: rewardText,
-          progressText: progressText,
           onNext: () => _moveNext(result),
         ),
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
@@ -243,12 +235,12 @@ class _LearningSessionScreenState extends State<LearningSessionScreen> {
         MaterialPageRoute(
           builder: (context) => StageCompleteScreen(
             categoryTitle: widget.categoryTitle,
-            completionMessage: result.stageCompleted ? 'Stage complete!' : 'Session complete!',
+            completionMessage: result.stageCompleted ? '${widget.categoryTitle} 스테이지를 완료했어요' : '학습 세션을 완료했어요',
             xpAdded: result.xpGained,
             currentXp: result.xpGained,
             levelProgressRatio: ((result.growth['afterPercent'] as num?)?.toDouble() ?? 0) / 100,
             xpIncreaseText: '+${result.growth['deltaPercent'] ?? 0}%',
-            unitProgressText: result.stageCompleted ? 'All sessions in this stage are complete.' : 'Keep going to finish this stage.',
+            unitProgressText: result.stageCompleted ? '이번 스테이지의 모든 학습을 완료했어요.' : '스테이지 완료까지 계속 학습해보세요.',
             unitCompletionRatio: '${result.growth['afterPercent'] ?? 0}%',
             unitProgressRatio: ((result.growth['afterPercent'] as num?)?.toDouble() ?? 0) / 100,
           ),

@@ -1,30 +1,20 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-
-import '../../../core/auth/auth_session.dart';
-import '../../../core/network/api_client.dart';
+import '../../home/presentation/study_detail_screen.dart';
 import '../../../shared/widgets/econo_bottom_navigation_bar.dart';
-import '../../auth/presentation/login_screen.dart';
-import '../../learning/presentation/learning_session_screen.dart';
-import '../data/curriculum_api.dart';
 import 'widgets/unlock_bottom_sheet.dart';
 
 class StageMapScreen extends StatefulWidget {
-  final int unitId;
-  final int stageId;
   final String stageName;
   final String unitName;
-  final String category;
-  final String? categoryCode;
+  final String category; // '경제 상식' 또는 '저축'
 
   const StageMapScreen({
     super.key,
-    required this.unitId,
-    required this.stageId,
     required this.stageName,
     required this.unitName,
     required this.category,
-    this.categoryCode,
   });
 
   @override
@@ -36,115 +26,185 @@ class _StageMapScreenState extends State<StageMapScreen> {
   static const Color textMuted = Color(0xFF9CA3AF);
   static const Color bgGrey = Color(0xFFF7F7F7);
 
-  late final ApiClient _client;
-  late final CurriculumApi _api;
+  Color get themeColor => widget.category == '저축' ? const Color(0xFF00DAEE) : const Color(0xFF00EE94);
+  Color get playColor => widget.category == '저축' ? const Color(0xFF00BECF) : const Color(0xFF1DDC83);
+  Color get completedNodeShadowColor => widget.category == '저축' ? const Color(0x6600DAEE) : const Color(0x6600EE94);
+  Color get activeCardShadowColor => widget.category == '저축' ? const Color(0x2E00DAEE) : const Color(0x2E00EE94);
+  Color get topSummaryBorderColor => widget.category == '저축' ? const Color(0x4D00DAEE) : const Color(0x4D01EE94);
+  Color get topSummaryShadowColor => widget.category == '저축' ? const Color(0x1400DAEE) : const Color(0x1400EE94);
+  Color get questCardBgColor => widget.category == '저축' ? const Color(0x0D00DAEE) : const Color(0x0D00EE94);
+  Color get questCardBorderColor => widget.category == '저축' ? const Color(0x6600DAEE) : const Color(0x6600EE94);
 
-  StageMapResult? _stageMap;
-  bool _isLoading = true;
-  String? _errorMessage;
-
-  Color get themeColor => widget.categoryCode == 'SAVING' ? const Color(0xFF00DAEE) : const Color(0xFF00EE94);
-  Color get playColor => widget.categoryCode == 'SAVING' ? const Color(0xFF00BECF) : const Color(0xFF1DDC83);
-  Color get completedNodeShadowColor => widget.categoryCode == 'SAVING' ? const Color(0x6600DAEE) : const Color(0x6600EE94);
-  Color get topSummaryBorderColor => widget.categoryCode == 'SAVING' ? const Color(0x4D00DAEE) : const Color(0x4D01EE94);
-  Color get topSummaryShadowColor => widget.categoryCode == 'SAVING' ? const Color(0x1400DAEE) : const Color(0x1400EE94);
-  Color get questCardBgColor => widget.categoryCode == 'SAVING' ? const Color(0x0D00DAEE) : const Color(0x0D00EE94);
-  Color get questCardBorderColor => widget.categoryCode == 'SAVING' ? const Color(0x6600DAEE) : const Color(0x6600EE94);
+  late final List<SessionData> _sessions;
 
   @override
   void initState() {
     super.initState();
-    _client = ApiClient(
-      accessTokenProvider: AuthSession.accessToken,
-      onUnauthorized: AuthSession.clear,
-    );
-    _api = CurriculumApi(_client);
-    _loadStageMap();
+    _sessions = _getSessionDataForStage(widget.stageName);
   }
 
-  @override
-  void dispose() {
-    _client.close();
-    super.dispose();
-  }
-
-  Future<void> _loadStageMap() async {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
-
-    if (!AuthSession.hasAccessToken) {
-      setState(() {
-        _isLoading = false;
-        _errorMessage = '로그인이 필요합니다. 개발 테스트는 ECONOUP_ACCESS_TOKEN 값을 넣어 실행해주세요.';
-      });
-      return;
+  List<SessionData> _getSessionDataForStage(String stageName) {
+    // 1. Completed stages (all completed)
+    if (stageName.contains('예적금의 기초')) {
+      return [
+        SessionData(id: 1, type: '이론', title: '예금과 적금의 차이', state: SessionState.completed),
+        SessionData(id: 2, type: '드릴', title: '단리 vs 복리 계산', state: SessionState.completed),
+        SessionData(id: 3, type: '연결', title: '적금 만기 시뮬레이션', state: SessionState.completed),
+        SessionData(id: 4, type: '드릴', title: '과세 vs 비과세 혜택', state: SessionState.completed),
+        SessionData(id: 5, type: '데이터', title: '우대 금리 조건 비교', state: SessionState.completed),
+      ];
+    } else if (stageName.contains('비상금 마련')) {
+      return [
+        SessionData(id: 1, type: '이론', title: '비상금의 규모 설정', state: SessionState.completed),
+        SessionData(id: 2, type: '드릴', title: '비상금 통장 선택 기준', state: SessionState.completed),
+        SessionData(id: 3, type: '연결', title: 'CMA vs 파킹통장 비교', state: SessionState.completed),
+        SessionData(id: 4, type: '드릴', title: '월 생활비 기준 설정', state: SessionState.completed),
+        SessionData(id: 5, type: '데이터', title: '금리 변동과 이자 분석', state: SessionState.completed),
+      ];
+    } else if (stageName.contains('통장 쪼개기')) {
+      return [
+        SessionData(id: 1, type: '이론', title: '4개의 통장 관리법', state: SessionState.completed),
+        SessionData(id: 2, type: '드릴', title: '고정지출 vs 변동지출', state: SessionState.completed),
+        SessionData(id: 3, type: '연결', title: '지출 예산 수립하기', state: SessionState.completed),
+        SessionData(id: 4, type: '드릴', title: '비정기 지출 대비책', state: SessionState.completed),
+        SessionData(id: 5, type: '데이터', title: '가계부 지출 비중 분석', state: SessionState.completed),
+      ];
+    } else if (stageName.contains('금리 비교하기')) {
+      return [
+        SessionData(id: 1, type: '이론', title: '공시 이자율의 이해', state: SessionState.completed),
+        SessionData(id: 2, type: '드릴', title: '최고 금리 vs 기본 금리', state: SessionState.completed),
+        SessionData(id: 3, type: '연결', title: '금융상품 한눈에 활용', state: SessionState.completed),
+        SessionData(id: 4, type: '드릴', title: '실제 수령 이자 계산', state: SessionState.completed),
+        SessionData(id: 5, type: '데이터', title: '은행별 예적금 금리 비교', state: SessionState.completed),
+      ];
+    } else if (stageName.contains('기준금리 기초')) {
+      return [
+        SessionData(id: 1, type: '이론', title: '기준금리란 무엇인가', state: SessionState.completed),
+        SessionData(id: 2, type: '드릴', title: '한국은행의 역할', state: SessionState.completed),
+        SessionData(id: 3, type: '연결', title: '금융통화위원회와 금리', state: SessionState.completed),
+        SessionData(id: 4, type: '드릴', title: '기준금리 결정 요인', state: SessionState.completed),
+        SessionData(id: 5, type: '데이터', title: '역대 기준금리 추이', state: SessionState.completed),
+      ];
+    } else if (stageName.contains('인플레이션')) {
+      return [
+        SessionData(id: 1, type: '이론', title: '인플레이션의 정의', state: SessionState.completed),
+        SessionData(id: 2, type: '드릴', title: '화폐 가치 하락 체감', state: SessionState.completed),
+        SessionData(id: 3, type: '연결', title: '물가 상승과 구매력', state: SessionState.completed),
+        SessionData(id: 4, type: '드릴', title: '인플레이션 유형 구분', state: SessionState.completed),
+        SessionData(id: 5, type: '데이터', title: '소비자물가지수 분석', state: SessionState.completed),
+      ];
     }
 
-    try {
-      final result = await _api.stageMap(unitId: widget.unitId, stageId: widget.stageId);
-      if (!mounted) return;
-      setState(() {
-        _stageMap = result;
-        _isLoading = false;
-      });
-    } on ApiClientException catch (error) {
-      if (!mounted) return;
-      if (error.statusCode == 401 || error.statusCode == 403) {
-        _goToLogin();
-        return;
-      }
-      setState(() {
-        _isLoading = false;
-        _errorMessage = error.message;
-      });
-    } catch (_) {
-      if (!mounted) return;
-      setState(() {
-        _isLoading = false;
-        _errorMessage = '스테이지 세션을 불러오지 못했습니다.';
-      });
+    // 2. Active stages (Session 1 completed, Session 2 active, others locked)
+    else if (stageName.contains('금리와 시장')) {
+      return [
+        SessionData(id: 1, type: '이론', title: '금리와 시장 개요', state: SessionState.completed),
+        SessionData(id: 2, type: '드릴', title: '유리 vs 불리', state: SessionState.active),
+        SessionData(id: 3, type: '연결', title: '금리 인상→소비 감소', state: SessionState.locked),
+        SessionData(id: 4, type: '드릴', title: '금리↓ 시 오르는 자산', state: SessionState.locked),
+        SessionData(id: 5, type: '데이터', title: '이자 계산하기', state: SessionState.locked),
+      ];
+    } else if (stageName.contains('주거래은행 혜택')) {
+      return [
+        SessionData(id: 1, type: '이론', title: '주거래은행 선정 기준', state: SessionState.completed),
+        SessionData(id: 2, type: '드릴', title: '우대 혜택 요건 분석', state: SessionState.active),
+        SessionData(id: 3, type: '연결', title: '급여 이체와 수수료 면제', state: SessionState.locked),
+        SessionData(id: 4, type: '드릴', title: '환전 및 송금 우대율', state: SessionState.locked),
+        SessionData(id: 5, type: '데이터', title: '신용 등급과 주거래 실적', state: SessionState.locked),
+      ];
+    } else if (stageName.contains('물가 관련 개념')) {
+      return [
+        SessionData(id: 1, type: '이론', title: '디플레이션 개요', state: SessionState.completed),
+        SessionData(id: 2, type: '드릴', title: '물가 상승률 계산', state: SessionState.active),
+        SessionData(id: 3, type: '연결', title: '원자재 가격과 물가', state: SessionState.locked),
+        SessionData(id: 4, type: '드릴', title: '물가 안정 정책 효과', state: SessionState.locked),
+        SessionData(id: 5, type: '데이터', title: '생산자물가지수 추이', state: SessionState.locked),
+      ];
     }
-  }
 
-  void _goToLogin() {
-    AuthSession.clear();
-    if (!mounted) return;
-    Navigator.pushAndRemoveUntil(
-      context,
-      MaterialPageRoute(builder: (context) => const LoginScreen()),
-      (route) => false,
-    );
-  }
+    // 3. Locked stages (All locked)
+    else if (stageName.contains('매파와 비둘기파')) {
+      return [
+        SessionData(id: 1, type: '이론', title: '매파와 비둘기파 유래', state: SessionState.locked),
+        SessionData(id: 2, type: '드릴', title: '인물별 금리 성향 분류', state: SessionState.locked),
+        SessionData(id: 3, type: '연결', title: 'FOMC 성명서 실전 분석', state: SessionState.locked),
+        SessionData(id: 4, type: '드릴', title: '경제 지표로 성향 예측', state: SessionState.locked),
+        SessionData(id: 5, type: '데이터', title: '성명서 키워드 빈도', state: SessionState.locked),
+      ];
+    } else if (stageName.contains('예금자보호제도')) {
+      return [
+        SessionData(id: 1, type: '이론', title: '예금자보호법 개요', state: SessionState.locked),
+        SessionData(id: 2, type: '드릴', title: '보호 대상 금융회사', state: SessionState.locked),
+        SessionData(id: 3, type: '연결', title: '5천만원 한도 계산', state: SessionState.locked),
+        SessionData(id: 4, type: '드릴', title: '이자 포함 보호 여부', state: SessionState.locked),
+        SessionData(id: 5, type: '데이터', title: '금융기관 건전성 지표', state: SessionState.locked),
+      ];
+    } else if (stageName.contains('청년도약계좌')) {
+      return [
+        SessionData(id: 1, type: '이론', title: '청년도약계좌 가입 조건', state: SessionState.locked),
+        SessionData(id: 2, type: '드릴', title: '정부 기여금 매칭 비율', state: SessionState.locked),
+        SessionData(id: 3, type: '연결', title: '5년 만기 예상 수령액', state: SessionState.locked),
+        SessionData(id: 4, type: '드릴', title: '중도 해지 요건 분석', state: SessionState.locked),
+        SessionData(id: 5, type: '데이터', title: '적금 상품 대비 이자비율', state: SessionState.locked),
+      ];
+    } else if (stageName.contains('청년주택드림')) {
+      return [
+        SessionData(id: 1, type: '이론', title: '청년주택드림 청약 개요', state: SessionState.locked),
+        SessionData(id: 2, type: '드릴', title: '소득 및 무주택 요건', state: SessionState.locked),
+        SessionData(id: 3, type: '연결', title: '청약 당첨 시 대출 연계', state: SessionState.locked),
+        SessionData(id: 4, type: '드릴', title: '납입 횟수와 가점 계산', state: SessionState.locked),
+        SessionData(id: 5, type: '데이터', title: '지역별 분양가 대비 한도', state: SessionState.locked),
+      ];
+    } else if (stageName.contains('정부 지원 적금')) {
+      return [
+        SessionData(id: 1, type: '이론', title: '지자체 청년 적금 비교', state: SessionState.locked),
+        SessionData(id: 2, type: '드릴', title: '희망두배 청년통장 요건', state: SessionState.locked),
+        SessionData(id: 3, type: '연결', title: '저축액 매칭 비율 분석', state: SessionState.locked),
+        SessionData(id: 4, type: '드릴', title: '중도 탈락 방지 요건', state: SessionState.locked),
+        SessionData(id: 5, type: '데이터', title: '정부 적금 누적 혜택 분석', state: SessionState.locked),
+      ];
+    } else if (stageName.contains('환율의 기초')) {
+      return [
+        SessionData(id: 1, type: '이론', title: '환율과 화폐 가치', state: SessionState.locked),
+        SessionData(id: 2, type: '드릴', title: '원화 강세 vs 약세', state: SessionState.locked),
+        SessionData(id: 3, type: '연결', title: '여행 환전 타이밍', state: SessionState.locked),
+        SessionData(id: 4, type: '드릴', title: '환전 수수료 우대 계산', state: SessionState.locked),
+        SessionData(id: 5, type: '데이터', title: '일자별 환율 변동 추이', state: SessionState.locked),
+      ];
+    } else if (stageName.contains('환율과 무역')) {
+      return [
+        SessionData(id: 1, type: '이론', title: '수출입 기업과 환율', state: SessionState.locked),
+        SessionData(id: 2, type: '드릴', title: '환율 상승 시 수혜 업종', state: SessionState.locked),
+        SessionData(id: 3, type: '연결', title: '해외 직구와 환율 관계', state: SessionState.locked),
+        SessionData(id: 4, type: '드릴', title: '원자재 수입 비용 계산', state: SessionState.locked),
+        SessionData(id: 5, type: '데이터', title: '무역 수지와 환율 통계', state: SessionState.locked),
+      ];
+    } else if (stageName.contains('기축통화와 안전자산')) {
+      return [
+        SessionData(id: 1, type: '이론', title: '달러의 패권과 기축통화', state: SessionState.locked),
+        SessionData(id: 2, type: '드릴', title: '금과 달러의 상관관계', state: SessionState.locked),
+        SessionData(id: 3, type: '연결', title: '글로벌 위기 시 자산 배분', state: SessionState.locked),
+        SessionData(id: 4, type: '드릴', title: '달러 인덱스 계산', state: SessionState.locked),
+        SessionData(id: 5, type: '데이터', title: '주요 통화별 안전도 비교', state: SessionState.locked),
+      ];
+    } else if (stageName.contains('실생활 속 물가')) {
+      return [
+        SessionData(id: 1, type: '이론', title: '장바구니 물가와 체감 물가', state: SessionState.locked),
+        SessionData(id: 2, type: '드릴', title: '생활물가지수 품목 구성', state: SessionState.locked),
+        SessionData(id: 3, type: '연결', title: '외식비 변동과 소비 심리', state: SessionState.locked),
+        SessionData(id: 4, type: '드릴', title: '슈링크플레이션 구별법', state: SessionState.locked),
+        SessionData(id: 5, type: '데이터', title: '최근 1년 품목별 가격 변동', state: SessionState.locked),
+      ];
+    }
 
-  List<SessionData> get _sessions {
-    final sessions = _stageMap?.sessions ?? const <CurriculumSession>[];
-    return List.generate(sessions.length, (index) {
-      final session = sessions[index];
-      return SessionData(
-        id: session.id,
-        sequence: index + 1,
-        type: _displayType(session.type),
-        title: session.title,
-        state: _sessionState(session.status),
-      );
-    });
-  }
-
-  String _displayType(String type) {
-    return switch (type) {
-      'THEORY' || 'THEORY_CARD' => '이론',
-      'QUIZ' || 'SINGLE_CHOICE' || 'MULTIPLE_CHOICE' => '퀴즈',
-      'DRILL' || 'ORDERING' || 'NUMBER_INPUT' => '훈련',
-      _ => type.isEmpty ? '학습' : type,
-    };
-  }
-
-  SessionState _sessionState(String status) {
-    if (status == 'COMPLETED') return SessionState.completed;
-    if (status == 'LOCKED') return SessionState.locked;
-    return SessionState.active;
+    // Default fallback
+    return [
+      SessionData(id: 1, type: '이론', title: '$stageName 개요', state: SessionState.completed),
+      SessionData(id: 2, type: '드릴', title: '핵심 개념 훈련', state: SessionState.active),
+      SessionData(id: 3, type: '연결', title: '실생활 연결 연습', state: SessionState.locked),
+      SessionData(id: 4, type: '드릴', title: '적용 문제 풀이', state: SessionState.locked),
+      SessionData(id: 5, type: '데이터', title: '데이터 종합 분석', state: SessionState.locked),
+    ];
   }
 
   @override
@@ -159,8 +219,41 @@ class _StageMapScreenState extends State<StageMapScreen> {
         bottom: false,
         child: Column(
           children: [
+            // 1. Header
             _buildHeader(),
-            Expanded(child: _buildContent(contentWidth, cardWidth)),
+            // 2. Main Scrollable Content
+            Expanded(
+              child: SingleChildScrollView(
+                physics: const ClampingScrollPhysics(),
+                child: Center(
+                  child: Container(
+                    width: contentWidth,
+                    color: bgGrey,
+                    child: Column(
+                      children: [
+                        const SizedBox(height: 16),
+                        // Top Summary Card
+                        _buildTopSummaryCard(cardWidth),
+                        const SizedBox(height: 16),
+                        // Session Path Container (Exactly 390px wide in Figma)
+                        Container(
+                          width: 390,
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          child: Column(
+                            children: _buildTimelineNodes(),
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        // Bottom Simulation Quest Card
+                        _buildSimulationQuestCard(cardWidth),
+                        const SizedBox(height: 40),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            // 3. Bottom Tab Navigation
             _buildBottomNavigationBar(),
           ],
         ),
@@ -168,44 +261,7 @@ class _StageMapScreenState extends State<StageMapScreen> {
     );
   }
 
-  Widget _buildContent(double contentWidth, double cardWidth) {
-    if (_isLoading) {
-      return Center(child: CircularProgressIndicator(color: themeColor));
-    }
-    if (_errorMessage != null) {
-      return _buildError();
-    }
-    if (_sessions.isEmpty) {
-      return const Center(child: Text('세션 데이터가 없습니다.'));
-    }
-    return SingleChildScrollView(
-      physics: const ClampingScrollPhysics(),
-      child: Center(
-        child: Container(
-          width: contentWidth,
-          color: bgGrey,
-          child: Column(
-            children: [
-              const SizedBox(height: 16),
-              _buildTopSummaryCard(cardWidth),
-              const SizedBox(height: 16),
-              Container(
-                width: 390,
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Column(children: _buildTimelineNodes()),
-              ),
-              const SizedBox(height: 24),
-              _buildSimulationQuestCard(cardWidth),
-              const SizedBox(height: 40),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _buildHeader() {
-    final stageTitle = '${_stageMap?.stage['title'] ?? widget.stageName}';
     return Container(
       width: double.infinity,
       height: 41,
@@ -221,14 +277,22 @@ class _StageMapScreenState extends State<StageMapScreen> {
                 HapticFeedback.lightImpact();
                 Navigator.pop(context);
               },
-              child: const Icon(Icons.arrow_back_ios_new_rounded, color: Color(0xFF6A7282), size: 20),
+              child: const Icon(
+                Icons.arrow_back_ios_new_rounded,
+                color: Color(0xFF6A7282),
+                size: 20,
+              ),
             ),
           ),
           Text(
-            stageTitle,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontFamily: 'Pretendard', fontSize: 16, fontWeight: FontWeight.w600, color: brandInk, height: 1.0),
+            widget.stageName,
+            style: const TextStyle(
+              fontFamily: 'Pretendard',
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: brandInk,
+              height: 1.0,
+            ),
           ),
         ],
       ),
@@ -236,8 +300,6 @@ class _StageMapScreenState extends State<StageMapScreen> {
   }
 
   Widget _buildTopSummaryCard(double width) {
-    final unitTitle = '${_stageMap?.unit['title'] ?? widget.unitName}';
-    final stageTitle = '${_stageMap?.stage['title'] ?? widget.stageName}';
     return Container(
       width: width,
       height: 70,
@@ -245,31 +307,62 @@ class _StageMapScreenState extends State<StageMapScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         border: Border.all(color: topSummaryBorderColor, width: 1),
-        boxShadow: [BoxShadow(color: topSummaryShadowColor, blurRadius: 10, offset: const Offset(0, 2))],
+        boxShadow: [
+          BoxShadow(
+            color: topSummaryShadowColor,
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text(unitTitle, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontFamily: 'Pretendard', fontSize: 11, fontWeight: FontWeight.w400, color: textMuted, height: 1.45, letterSpacing: 0.06)),
+          Text(
+            widget.unitName,
+            style: const TextStyle(
+              fontFamily: 'Pretendard',
+              fontSize: 11,
+              fontWeight: FontWeight.w400,
+              color: textMuted,
+              height: 1.45,
+              letterSpacing: 0.06,
+            ),
+          ),
           const SizedBox(height: 2),
-          Text(stageTitle, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontFamily: 'Pretendard', fontSize: 15, fontWeight: FontWeight.w700, color: brandInk, height: 1.45, letterSpacing: -0.23)),
+          Text(
+            widget.stageName,
+            style: const TextStyle(
+              fontFamily: 'Pretendard',
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+              color: brandInk,
+              height: 1.45,
+              letterSpacing: -0.23,
+            ),
+          ),
         ],
       ),
     );
   }
 
   List<Widget> _buildTimelineNodes() {
-    final children = <Widget>[];
-    final sessions = _sessions;
-    for (int i = 0; i < sessions.length; i++) {
-      final session = sessions[i];
-      final isLeftNode = i % 2 == 0;
+    final List<Widget> children = [];
+
+    for (int i = 0; i < _sessions.length; i++) {
+      final session = _sessions[i];
+      final bool isLeftNode = i % 2 == 0; // Alternates: Left Node, Right Node
+
       children.add(_buildSessionRow(session, isLeftNode));
-      if (i < sessions.length - 1) {
-        final nextSession = sessions[i + 1];
-        final isGreenLine = session.state == SessionState.completed && nextSession.state != SessionState.locked;
+
+      // Draw dotted connector if not the last session
+      if (i < _sessions.length - 1) {
+        final nextSession = _sessions[i + 1];
+        final bool isGreenLine = session.state == SessionState.completed &&
+            (nextSession.state == SessionState.completed || nextSession.state == SessionState.active);
+
         children.add(
           Container(
             width: 350,
@@ -278,8 +371,15 @@ class _StageMapScreenState extends State<StageMapScreen> {
             child: Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: List.generate(3, (_) {
-                  return Container(width: 2, height: 6, decoration: BoxDecoration(color: isGreenLine ? themeColor : const Color(0xFFD1D5DB), borderRadius: BorderRadius.circular(16777216)));
+                children: List.generate(3, (idx) {
+                  return Container(
+                    width: 2,
+                    height: 6,
+                    decoration: BoxDecoration(
+                      color: isGreenLine ? themeColor : const Color(0xFFD1D5DB),
+                      borderRadius: BorderRadius.circular(16777216),
+                    ),
+                  );
                 }),
               ),
             ),
@@ -287,105 +387,275 @@ class _StageMapScreenState extends State<StageMapScreen> {
         );
       }
     }
+
     return children;
   }
 
   Widget _buildSessionRow(SessionData session, bool isLeftNode) {
-    final nodeSize = session.sequence == 1 ? 60.0 : 56.0;
+    final double nodeSize = session.id == 1 ? 60 : 56;
+    final double cardWidth = session.id == 1 ? 278 : 282;
+
     final nodeWidget = _buildNodeWidget(session, nodeSize);
-    final cardWidget = _buildCardWidget(session);
-    return SizedBox(
-      width: 350,
-      height: session.sequence == 1 ? 69 : 67,
-      child: Row(
-        children: isLeftNode
-            ? [nodeWidget, const SizedBox(width: 12), Expanded(child: cardWidget)]
-            : [Expanded(child: cardWidget), const SizedBox(width: 12), nodeWidget],
-      ),
-    );
+    final cardWidget = _buildCardWidget(session, cardWidth);
+
+    if (isLeftNode) {
+      // Node on the Left, Card on the Right
+      return SizedBox(
+        width: 350,
+        height: session.id == 1 ? 69 : 67,
+        child: Row(
+          children: [
+            nodeWidget,
+            const SizedBox(width: 12),
+            Expanded(child: cardWidget),
+          ],
+        ),
+      );
+    } else {
+      // Card on the Left, Node on the Right
+      return SizedBox(
+        width: 350,
+        height: session.id == 1 ? 69 : 67,
+        child: Row(
+          children: [
+            Expanded(child: cardWidget),
+            const SizedBox(width: 12),
+            nodeWidget,
+          ],
+        ),
+      );
+    }
   }
 
   Widget _buildNodeWidget(SessionData session, double size) {
     if (session.state == SessionState.completed) {
+      // Completed node (theme color circle with star icon, checkmark badge)
       return Stack(
         clipBehavior: Clip.none,
         children: [
           Container(
             width: size,
             height: size,
-            decoration: BoxDecoration(shape: BoxShape.circle, color: themeColor, boxShadow: [BoxShadow(color: completedNodeShadowColor, blurRadius: 14, offset: const Offset(0, 4))]),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: themeColor,
+              boxShadow: [
+                BoxShadow(
+                  color: completedNodeShadowColor,
+                  blurRadius: 14,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
             alignment: Alignment.center,
-            child: const Icon(Icons.star_rounded, color: Colors.white, size: 22),
+            child: const Icon(
+              Icons.star_rounded,
+              color: Colors.white,
+              size: 22,
+            ),
           ),
+          // Checkmark badge on top right
           Positioned(
             right: size == 60 ? -4 : -2,
             top: size == 60 ? -4 : -2,
             child: Container(
               width: 20,
               height: 20,
-              decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle, border: Border.all(color: themeColor, width: 2), boxShadow: const [BoxShadow(color: Color(0x1A000000), blurRadius: 3, offset: Offset(0, 1))]),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
+                border: Border.all(color: themeColor, width: 2),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x1A000000),
+                    blurRadius: 3,
+                    offset: Offset(0, 1),
+                  ),
+                ],
+              ),
               alignment: Alignment.center,
-              child: Icon(Icons.check_rounded, color: themeColor, size: 12),
+              child: Text(
+                '✓',
+                style: TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 9,
+                  fontWeight: FontWeight.w700,
+                  color: themeColor,
+                  height: 1.4,
+                ),
+              ),
             ),
           ),
         ],
       );
-    }
-    if (session.state == SessionState.active) {
+    } else if (session.state == SessionState.active) {
+      // Active node (White circle with dashed theme border, play icon)
       return Container(
         width: size,
         height: size,
-        decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.white, boxShadow: [BoxShadow(color: Color(0x1A000000), blurRadius: 3, offset: Offset(0, 1))]),
+        decoration: const BoxDecoration(
+          shape: BoxShape.circle,
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Color(0x1A000000),
+              blurRadius: 3,
+              offset: Offset(0, 1),
+            ),
+          ],
+        ),
         child: CustomPaint(
           painter: _DashedCirclePainter(color: themeColor, strokeWidth: 2),
-          child: Center(child: Icon(Icons.play_arrow_rounded, color: playColor, size: 24)),
+          child: Center(
+            child: Icon(
+              Icons.play_arrow_rounded,
+              color: playColor,
+              size: 24,
+            ),
+          ),
+        ),
+      );
+    } else {
+      // Locked node (Grey circle with lock icon)
+      return Container(
+        width: size,
+        height: size,
+        decoration: const BoxDecoration(
+          shape: BoxShape.circle,
+          color: Color(0xFFE5E7EB),
+          boxShadow: [
+            BoxShadow(
+              color: Color(0x1A000000),
+              blurRadius: 3,
+              offset: Offset(0, 1),
+            ),
+          ],
+        ),
+        alignment: Alignment.center,
+        child: const Icon(
+          Icons.lock_rounded,
+          color: Color(0xFFCACACA),
+          size: 18,
         ),
       );
     }
-    return Container(
-      width: size,
-      height: size,
-      decoration: const BoxDecoration(shape: BoxShape.circle, color: Color(0xFFE5E7EB), boxShadow: [BoxShadow(color: Color(0x1A000000), blurRadius: 3, offset: Offset(0, 1))]),
-      alignment: Alignment.center,
-      child: const Icon(Icons.lock_rounded, color: Color(0xFFCACACA), size: 18),
-    );
   }
 
-  Widget _buildCardWidget(SessionData session) {
-    final isCompleted = session.state == SessionState.completed;
-    final isActive = session.state == SessionState.active;
-    final badgeBg = isCompleted || isActive ? themeColor.withValues(alpha: 0.15) : const Color(0xFFF0F0F0);
-    final badgeText = isCompleted || isActive ? themeColor : const Color(0xFF9CA3AF);
-    final titleColor = isCompleted || isActive ? textMuted : const Color(0xFFC4C4C4);
-    final descColor = isCompleted || isActive ? brandInk : const Color(0xFF9CA3AF);
-    final cardBg = isCompleted || isActive ? Colors.white : const Color(0xFFF3F4F6);
-    final cardBorder = isCompleted || isActive ? Border.all(color: const Color(0xFFF0F0F0), width: 1) : null;
-    final cardShadow = isCompleted || isActive ? const [BoxShadow(color: Color(0x1A000000), blurRadius: 3, offset: Offset(0, 1))] : null;
+  Widget _buildCardWidget(SessionData session, double width) {
+    final bool isCompleted = session.state == SessionState.completed;
+    final bool isActive = session.state == SessionState.active;
+
+    Color badgeBg;
+    Color badgeText;
+    Color titleColor;
+    Color descColor;
+    Color cardBg;
+    Border? cardBorder;
+    List<BoxShadow>? cardShadow;
+
+    if (isCompleted) {
+      badgeBg = themeColor.withOpacity(0.15);
+      badgeText = themeColor;
+      titleColor = textMuted;
+      descColor = brandInk;
+      cardBg = Colors.white;
+      cardBorder = Border.all(color: const Color(0xFFF0F0F0), width: 1);
+      cardShadow = const [
+        BoxShadow(
+          color: Color(0x1A000000),
+          blurRadius: 3,
+          offset: Offset(0, 1),
+        ),
+      ];
+    } else if (isActive) {
+      badgeBg = themeColor.withOpacity(0.15);
+      badgeText = themeColor;
+      titleColor = textMuted;
+      descColor = brandInk;
+      cardBg = Colors.white;
+      cardBorder = Border.all(color: const Color(0xFFF0F0F0), width: 1);
+      cardShadow = const [
+        BoxShadow(
+          color: Color(0x1A000000),
+          blurRadius: 3,
+          offset: Offset(0, 1),
+        ),
+      ];
+    } else {
+      // Locked card
+      badgeBg = const Color(0xFFF0F0F0);
+      badgeText = const Color(0xFF9CA3AF);
+      titleColor = const Color(0xFFC4C4C4);
+      descColor = const Color(0xFF9CA3AF);
+      cardBg = const Color(0xFFF3F4F6);
+      cardBorder = null;
+      cardShadow = null;
+    }
 
     return GestureDetector(
       onTap: () => _handleSessionTap(session),
       child: Container(
-        constraints: BoxConstraints(minHeight: session.sequence == 1 ? 69 : 67),
+        constraints: BoxConstraints(minHeight: session.id == 1 ? 69 : 67),
         padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(color: cardBg, border: cardBorder, boxShadow: cardShadow, borderRadius: BorderRadius.circular(16)),
+        decoration: BoxDecoration(
+          color: cardBg,
+          border: cardBorder,
+          boxShadow: cardShadow,
+          borderRadius: BorderRadius.circular(16),
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Row(
               children: [
+                // Session Tag
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                  decoration: BoxDecoration(color: badgeBg, borderRadius: BorderRadius.circular(16777216)),
+                  decoration: BoxDecoration(
+                    color: badgeBg,
+                    borderRadius: BorderRadius.circular(16777216),
+                  ),
                   alignment: Alignment.center,
-                  child: Text(session.type, style: TextStyle(fontFamily: 'Pretendard', fontSize: 10, fontWeight: FontWeight.w700, color: badgeText, height: 1.1)),
+                  child: Text(
+                    session.type,
+                    style: TextStyle(
+                      fontFamily: 'Pretendard',
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      color: badgeText,
+                      height: 1.1,
+                    ),
+                  ),
                 ),
                 const SizedBox(width: 6),
-                Text('Session ${session.sequence}', style: TextStyle(fontFamily: 'Pretendard', fontSize: 10, fontWeight: FontWeight.w400, color: titleColor, height: 1.5, letterSpacing: 0.11)),
+                // Session Number
+                Text(
+                  'Session ${session.id}',
+                  style: TextStyle(
+                    fontFamily: 'Pretendard',
+                    fontSize: 10,
+                    fontWeight: FontWeight.w400,
+                    color: titleColor,
+                    height: 1.5,
+                    letterSpacing: 0.11,
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 4),
-            Text(session.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontFamily: 'Pretendard', fontSize: 13, fontWeight: FontWeight.w700, color: descColor, height: 1.5)),
+            Text(
+              session.title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontFamily: 'Pretendard',
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: descColor,
+                height: 1.5,
+              ),
+            ),
           ],
         ),
       ),
@@ -398,46 +668,53 @@ class _StageMapScreenState extends State<StageMapScreen> {
       UnlockBottomSheet.show(context, category: widget.category);
       return;
     }
+
     HapticFeedback.lightImpact();
+    // Navigate to StudyDetailScreen
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => LearningSessionScreen(sessionId: session.id, categoryTitle: widget.category, resume: true),
-      ),
-    ).then((_) => _loadStageMap());
-  }
-
-  Widget _buildSimulationQuestCard(double width) {
-    final unlocked = _stageMap?.simulationCta['unlocked'] == true;
-    return Container(
-      width: width,
-      constraints: const BoxConstraints(minHeight: 65),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(color: questCardBgColor, border: Border.all(color: questCardBorderColor, width: 1), borderRadius: BorderRadius.circular(16)),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Text('시뮬레이션 퀘스트', style: TextStyle(fontFamily: 'Pretendard', fontSize: 13, fontWeight: FontWeight.w700, color: brandInk, height: 1.5)),
-          const SizedBox(height: 2),
-          Text(unlocked ? '지금 도전할 수 있어요' : '스테이지 완료 후 잠금 해제', style: const TextStyle(fontFamily: 'Pretendard', fontSize: 11, fontWeight: FontWeight.w400, color: textMuted, height: 1.45, letterSpacing: 0.06)),
-        ],
+        builder: (context) => StudyDetailScreen(
+          title: widget.category,
+        ),
       ),
     );
   }
 
-  Widget _buildError() {
-    return Padding(
-      padding: const EdgeInsets.all(24),
+  Widget _buildSimulationQuestCard(double width) {
+    return Container(
+      width: width,
+      constraints: const BoxConstraints(minHeight: 65),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: questCardBgColor,
+        border: Border.all(color: questCardBorderColor, width: 1),
+        borderRadius: BorderRadius.circular(16),
+      ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(_errorMessage ?? '오류가 발생했습니다.', textAlign: TextAlign.center, style: const TextStyle(fontFamily: 'Pretendard', fontSize: 15, color: brandInk, height: 1.45)),
-          const SizedBox(height: 20),
-          ElevatedButton(
-            onPressed: AuthSession.hasAccessToken ? _loadStageMap : _goToLogin,
-            style: ElevatedButton.styleFrom(backgroundColor: themeColor, foregroundColor: Colors.white),
-            child: Text(AuthSession.hasAccessToken ? '다시 시도' : '로그인하러 가기'),
+        children: const [
+          Text(
+            '🕹️ 시뮬레이션 퀘스트',
+            style: TextStyle(
+              fontFamily: 'Pretendard',
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              color: brandInk,
+              height: 1.5,
+            ),
+          ),
+          SizedBox(height: 2),
+          Text(
+            '스테이지 완료 후 해금',
+            style: TextStyle(
+              fontFamily: 'Pretendard',
+              fontSize: 11,
+              fontWeight: FontWeight.w400,
+              color: textMuted,
+              height: 1.45,
+              letterSpacing: 0.06,
+            ),
           ),
         ],
       ),
@@ -448,7 +725,9 @@ class _StageMapScreenState extends State<StageMapScreen> {
     return EconoBottomNavigationBar(
       activeTab: EconoBottomTab.learning,
       onTabSelected: (tab) {
-        if (tab != EconoBottomTab.learning) Navigator.pop(context, _indexForBottomTab(tab));
+        if (tab != EconoBottomTab.learning) {
+          Navigator.pop(context, _indexForBottomTab(tab));
+        }
       },
     );
   }
@@ -473,7 +752,10 @@ class _DashedCirclePainter extends CustomPainter {
   final Color color;
   final double strokeWidth;
 
-  _DashedCirclePainter({required this.color, required this.strokeWidth});
+  _DashedCirclePainter({
+    required this.color,
+    required this.strokeWidth,
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -482,32 +764,48 @@ class _DashedCirclePainter extends CustomPainter {
       ..strokeWidth = strokeWidth
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round;
-    final radius = (size.width - strokeWidth) / 2;
-    final center = Offset(size.width / 2, size.height / 2);
+
+    final double radius = (size.width - strokeWidth) / 2;
+    final Offset center = Offset(size.width / 2, size.height / 2);
+
     final path = Path()..addOval(Rect.fromCircle(center: center, radius: radius));
-    const dashWidth = 6.0;
-    const dashSpace = 4.0;
-    for (final metric in path.computeMetrics()) {
-      var distance = 0.0;
+
+    const double dashWidth = 6.0;
+    const double dashSpace = 4.0;
+
+    for (final PathMetric metric in path.computeMetrics()) {
+      double distance = 0.0;
       while (distance < metric.length) {
-        canvas.drawPath(metric.extractPath(distance, distance + dashWidth), paint);
+        canvas.drawPath(
+          metric.extractPath(distance, distance + dashWidth),
+          paint,
+        );
         distance += dashWidth + dashSpace;
       }
     }
   }
 
   @override
-  bool shouldRepaint(covariant _DashedCirclePainter oldDelegate) => oldDelegate.color != color || oldDelegate.strokeWidth != strokeWidth;
+  bool shouldRepaint(covariant _DashedCirclePainter oldDelegate) =>
+      oldDelegate.color != color || oldDelegate.strokeWidth != strokeWidth;
 }
 
 class SessionData {
   final int id;
-  final int sequence;
-  final String type;
+  final String type; // '이론', '드릴', '연결', '데이터'
   final String title;
   final SessionState state;
 
-  SessionData({required this.id, required this.sequence, required this.type, required this.title, required this.state});
+  SessionData({
+    required this.id,
+    required this.type,
+    required this.title,
+    required this.state,
+  });
 }
 
-enum SessionState { completed, active, locked }
+enum SessionState {
+  completed,
+  active,
+  locked,
+}

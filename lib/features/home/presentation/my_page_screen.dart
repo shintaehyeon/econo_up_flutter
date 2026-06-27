@@ -1,13 +1,11 @@
+// lib/features/home/presentation/my_page_screen.dart
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../../../core/auth/auth_session.dart';
-import '../../../core/network/api_client.dart';
 import '../../../shared/widgets/econo_bottom_navigation_bar.dart';
-import '../../auth/presentation/login_screen.dart';
-import '../data/my_page_api.dart';
 
-class MyPageScreen extends StatefulWidget {
+class MyPageScreen extends StatelessWidget {
   const MyPageScreen({
     super.key,
     this.onBottomTabSelected,
@@ -20,77 +18,17 @@ class MyPageScreen extends StatefulWidget {
   final bool showBottomNavigation;
 
   static const Color brandInk = Color(0xFF122711);
-  static const Color textMuted = Color(0xFF6A7282);
-  static const Color themeGreen = Color(0xFF00EE94);
+  static const Color textDark = Color(0xFF111827);
+  static const Color textMuted = Color(0xFF9CA3AF);
+  static const Color textButton = Color(0xFF4B5563);
+  static const Color iconGrey = Color(0xFF6A7282);
   static const Color borderGrey = Color(0xFFD0D5E0);
-
-  @override
-  State<MyPageScreen> createState() => _MyPageScreenState();
-}
-
-class _MyPageScreenState extends State<MyPageScreen> {
-  late final ApiClient _client;
-  late final MyPageApi _api;
-
-  MyPageData? _data;
-  bool _isLoading = true;
-  String? _error;
-
-  @override
-  void initState() {
-    super.initState();
-    _client = ApiClient(accessTokenProvider: AuthSession.accessToken, onUnauthorized: AuthSession.clear);
-    _api = MyPageApi(_client);
-    _load();
-  }
-
-  @override
-  void dispose() {
-    _client.close();
-    super.dispose();
-  }
-
-  Future<void> _load() async {
-    if (!AuthSession.hasAccessToken) {
-      _goToLogin();
-      return;
-    }
-    setState(() {
-      _isLoading = true;
-      _error = null;
-    });
-    try {
-      final data = await _api.summary();
-      if (!mounted) return;
-      setState(() {
-        _data = data;
-        _isLoading = false;
-      });
-    } on ApiClientException catch (error) {
-      if (!mounted) return;
-      if (error.statusCode == 401 || error.statusCode == 403) {
-        _goToLogin();
-        return;
-      }
-      setState(() {
-        _error = error.message;
-        _isLoading = false;
-      });
-    } catch (_) {
-      if (!mounted) return;
-      setState(() {
-        _error = 'Could not load my page.';
-        _isLoading = false;
-      });
-    }
-  }
-
-  void _goToLogin() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (_) => const LoginScreen()), (_) => false);
-    });
-  }
+  static const Color themeGreen = Color(0xFF00EE94);
+  static const Color selectedBg = Color(0xFFF2FFFA);
+  static const Color disabledBg = Color(0xFFF3F3F3);
+  static const Color disabledText = Color(0xFFC0C0C0);
+  static const Color heatmapEmpty = Color(0xFFE4E8F0);
+  static const Color fireOrange = Color(0xFFFF6900);
 
   @override
   Widget build(BuildContext context) {
@@ -102,139 +40,679 @@ class _MyPageScreenState extends State<MyPageScreen> {
       child: SizedBox(
         width: contentWidth,
         height: double.infinity,
-        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          Expanded(child: RefreshIndicator(onRefresh: _load, child: _buildScroll(scale))),
-          if (widget.showBottomNavigation)
-            EconoBottomNavigationBar(activeTab: EconoBottomTab.my, onTabSelected: (tab) => widget.onBottomTabSelected?.call(_indexFor(tab)), scale: scale),
-        ]),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(
+              child: SingleChildScrollView(
+                padding: EdgeInsets.fromLTRB(
+                  20 * scale,
+                  9 * scale,
+                  20 * scale,
+                  24 * scale,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _buildProfileSection(scale),
+                    SizedBox(height: 20 * scale),
+                    _buildStatusCard(scale),
+                    SizedBox(height: 20 * scale),
+                    _buildCollectionSection(scale),
+                    SizedBox(height: 20 * scale),
+                    _buildLearningRecordSection(scale),
+                  ],
+                ),
+              ),
+            ),
+            if (showBottomNavigation)
+              EconoBottomNavigationBar(
+                activeTab: EconoBottomTab.my,
+                onTabSelected: (tab) => onBottomTabSelected?.call(_indexForBottomTab(tab)),
+                scale: scale,
+              ),
+          ],
+        ),
       ),
     );
 
-    if (!widget.showBottomNavigation) {
+    if (!showBottomNavigation) {
       return ColoredBox(color: Colors.white, child: content);
     }
-    return Scaffold(backgroundColor: Colors.white, body: SafeArea(bottom: false, child: content));
+
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: SafeArea(bottom: false, child: content),
+    );
   }
 
-  Widget _buildScroll(double scale) {
-    return ListView(padding: EdgeInsets.fromLTRB(20 * scale, 12 * scale, 20 * scale, 24 * scale), children: [
-      _header(scale),
-      SizedBox(height: 18 * scale),
-      if (_isLoading) Padding(padding: EdgeInsets.only(top: 120 * scale), child: const Center(child: CircularProgressIndicator(color: MyPageScreen.themeGreen))),
-      if (_error != null) _errorBox(scale),
-      if (!_isLoading && _error == null && _data != null) ...[
-        _profileCard(_data!, scale),
-        SizedBox(height: 14 * scale),
-        _statsCard(_data!, scale),
-        SizedBox(height: 18 * scale),
-        _characters(_data!, scale),
-        SizedBox(height: 18 * scale),
-        _calendar(_data!, scale),
-      ],
-    ]);
-  }
-
-  Widget _header(double scale) {
-    return Row(children: [
-      Text('My page', style: TextStyle(fontSize: 18 * scale, fontWeight: FontWeight.w900, color: MyPageScreen.brandInk)),
-      const Spacer(),
-      IconButton(
-        onPressed: () {
-          HapticFeedback.lightImpact();
-          widget.onOpenSettings?.call();
-        },
-        icon: const Icon(Icons.settings_rounded, color: MyPageScreen.textMuted),
-      ),
-    ]);
-  }
-
-  Widget _profileCard(MyPageData data, double scale) {
-    return Container(
-      padding: EdgeInsets.all(16 * scale),
-      decoration: _cardDecoration(scale),
-      child: Row(children: [
-        CircleAvatar(radius: 34 * scale, backgroundColor: const Color(0xFFF2FFFA), child: Icon(Icons.person_rounded, color: MyPageScreen.themeGreen, size: 36 * scale)),
-        SizedBox(width: 14 * scale),
-        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(data.nickname.isEmpty ? 'Econo learner' : data.nickname, style: TextStyle(fontSize: 19 * scale, fontWeight: FontWeight.w900, color: MyPageScreen.brandInk)),
+  Widget _buildProfileSection(double scale) {
+    return SizedBox(
+      height: 143 * scale,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            height: 28 * scale,
+            child: Align(
+              alignment: Alignment.bottomLeft,
+              child: Text(
+                '마이페이지',
+                style: TextStyle(
+                  fontFamily: 'Pretendard',
+                  fontSize: 16 * scale,
+                  fontWeight: FontWeight.w700,
+                  color: brandInk,
+                  height: 19 / 16,
+                ),
+              ),
+            ),
+          ),
           SizedBox(height: 4 * scale),
-          Text('Equipped: ${data.equippedCharacterId.isEmpty ? 'none' : data.equippedCharacterId}', maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: MyPageScreen.textMuted, fontSize: 12 * scale)),
-        ])),
-      ]),
-    );
-  }
-
-  Widget _statsCard(MyPageData data, double scale) {
-    return Row(children: [
-      Expanded(child: _stat('Streak', '${data.streakDays}', Icons.local_fire_department_rounded, const Color(0xFFFF6900), scale)),
-      SizedBox(width: 10 * scale),
-      Expanded(child: _stat('League', data.leagueTier.isEmpty ? '-' : data.leagueTier, Icons.emoji_events_rounded, const Color(0xFFF59E0B), scale)),
-      SizedBox(width: 10 * scale),
-      Expanded(child: _stat('Crowns', '${data.crowns}', Icons.workspace_premium_rounded, MyPageScreen.themeGreen, scale)),
-    ]);
-  }
-
-  Widget _stat(String label, String value, IconData icon, Color color, double scale) {
-    return Container(
-      padding: EdgeInsets.all(13 * scale),
-      decoration: _cardDecoration(scale),
-      child: Column(children: [
-        Icon(icon, color: color, size: 24 * scale),
-        SizedBox(height: 8 * scale),
-        Text(value, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 18 * scale, fontWeight: FontWeight.w900, color: MyPageScreen.brandInk)),
-        SizedBox(height: 2 * scale),
-        Text(label, style: TextStyle(fontSize: 11 * scale, color: MyPageScreen.textMuted)),
-      ]),
-    );
-  }
-
-  Widget _characters(MyPageData data, double scale) {
-    return _section('Characters', data.characters.isEmpty ? [const Text('No character data from server yet.')] : data.characters.map((character) {
-      final name = '${character['name'] ?? character['characterId'] ?? character['id'] ?? 'Character'}';
-      final level = '${character['level'] ?? character['growthLevel'] ?? '-'}';
-      return ListTile(contentPadding: EdgeInsets.zero, leading: const Icon(Icons.auto_awesome_rounded, color: MyPageScreen.themeGreen), title: Text(name), trailing: Text('Lv $level'));
-    }).toList(), scale);
-  }
-
-  Widget _calendar(MyPageData data, double scale) {
-    final days = data.calendar.take(14).toList();
-    return _section('Learning records', [
-      Wrap(
-        spacing: 6 * scale,
-        runSpacing: 6 * scale,
-        children: days.isEmpty
-            ? [const Text('No learning record data from server yet.')]
-            : days.map((day) {
-                final completed = day['completed'] == true || day['learned'] == true;
-                return Container(width: 18 * scale, height: 18 * scale, decoration: BoxDecoration(color: completed ? MyPageScreen.themeGreen : const Color(0xFFE4E8F0), borderRadius: BorderRadius.circular(4 * scale)));
-              }).toList(),
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () {
+              HapticFeedback.lightImpact();
+              onOpenSettings?.call();
+            },
+            child: Container(
+              height: 110 * scale,
+              padding: EdgeInsets.fromLTRB(6 * scale, 16 * scale, 18 * scale, 6 * scale),
+              color: Colors.white,
+              child: Row(
+                children: [
+                  _AvatarBubble(
+                    emoji: '🐷',
+                    size: 86,
+                    emojiSize: 35.4,
+                    borderColor: themeGreen,
+                    backgroundColor: Colors.white,
+                    scale: scale,
+                  ),
+                  SizedBox(width: 16 * scale),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        SizedBox(height: 2 * scale),
+                        Row(
+                          children: [
+                            Text(
+                              '경제왕',
+                              style: TextStyle(
+                                fontFamily: 'Pretendard',
+                                fontSize: 16 * scale,
+                                fontWeight: FontWeight.w700,
+                                color: textDark,
+                                height: 19 / 16,
+                              ),
+                            ),
+                            SizedBox(width: 13 * scale),
+                            Text(
+                              '저축 캐릭터',
+                              style: TextStyle(
+                                fontFamily: 'Pretendard',
+                                fontSize: 10 * scale,
+                                fontWeight: FontWeight.w500,
+                                color: textMuted,
+                                height: 14 / 10,
+                              ),
+                            ),
+                            SizedBox(width: 4 * scale),
+                            Text(
+                              '저금통 텅텅',
+                              style: TextStyle(
+                                fontFamily: 'Pretendard',
+                                fontSize: 10 * scale,
+                                fontWeight: FontWeight.w600,
+                                color: themeGreen,
+                                height: 14 / 10,
+                              ),
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: 14 * scale),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            _ProfileCategoryIcon(
+                              emoji: '◉',
+                              label: '경제',
+                              scale: scale,
+                            ),
+                            SizedBox(width: 25 * scale),
+                            _ProfileCategoryIcon(
+                              emoji: '🐷',
+                              label: '저축',
+                              scale: scale,
+                            ),
+                            SizedBox(width: 25 * scale),
+                            _ProfileCategoryIcon.locked(label: '주식', scale: scale),
+                            SizedBox(width: 25 * scale),
+                            _ProfileCategoryIcon.locked(label: '부동산', scale: scale),
+                            SizedBox(width: 25 * scale),
+                            _ProfileCategoryIcon.locked(label: '세금', scale: scale),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
-    ], scale);
-  }
-
-  Widget _section(String title, List<Widget> children, double scale) {
-    return Container(
-      padding: EdgeInsets.all(16 * scale),
-      decoration: _cardDecoration(scale),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(title, style: TextStyle(fontSize: 16 * scale, fontWeight: FontWeight.w900, color: MyPageScreen.brandInk)),
-        SizedBox(height: 10 * scale),
-        ...children,
-      ]),
     );
   }
 
-  Widget _errorBox(double scale) => Column(children: [Text(_error!, textAlign: TextAlign.center), SizedBox(height: 12 * scale), ElevatedButton(onPressed: _load, child: const Text('Retry'))]);
+  Widget _buildStatusCard(double scale) {
+    return Container(
+      height: 49 * scale,
+      padding: EdgeInsets.symmetric(horizontal: 16 * scale),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(color: borderGrey, width: 1 * scale),
+        borderRadius: BorderRadius.circular(10 * scale),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.local_fire_department_rounded,
+                size: 17 * scale,
+                color: fireOrange,
+              ),
+              SizedBox(width: 2 * scale),
+              Text(
+                '14일 연속',
+                style: TextStyle(
+                  fontFamily: 'Pretendard',
+                  fontSize: 14 * scale,
+                  fontWeight: FontWeight.w500,
+                  color: textButton,
+                  height: 14 / 14,
+                ),
+              ),
+            ],
+          ),
+          Container(
+            width: 1 * scale,
+            height: 17 * scale,
+            margin: EdgeInsets.symmetric(horizontal: 62 * scale),
+            color: borderGrey,
+          ),
+          Text(
+            '🥈 실버 리그 3위',
+            style: TextStyle(
+              fontFamily: 'Pretendard',
+              fontSize: 14 * scale,
+              fontWeight: FontWeight.w500,
+              color: textButton,
+              height: 14 / 14,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
-  BoxDecoration _cardDecoration(double scale) => BoxDecoration(color: Colors.white, border: Border.all(color: MyPageScreen.borderGrey), borderRadius: BorderRadius.circular(14 * scale));
+  Widget _buildCollectionSection(double scale) {
+    return SizedBox(
+      height: 139 * scale,
+      child: Column(
+        children: [
+          SizedBox(
+            height: 20 * scale,
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    '내 캐릭터 컬렉션',
+                    style: TextStyle(
+                      fontFamily: 'Pretendard',
+                      fontSize: 16 * scale,
+                      fontWeight: FontWeight.w700,
+                      color: brandInk,
+                      height: 19 / 16,
+                    ),
+                  ),
+                ),
+                Icon(
+                  Icons.chevron_right_rounded,
+                  size: 24 * scale,
+                  color: iconGrey,
+                ),
+              ],
+            ),
+          ),
+          SizedBox(height: 14 * scale),
+          Row(
+            children: [
+              Expanded(
+                child: _CharacterCard(
+                  badge: '장착',
+                  emoji: '🐷',
+                  title: '저금통 텅텅',
+                  subtitle: '저축 Lv.1 · 0xp',
+                  backgroundColor: selectedBg,
+                  badgeColor: textButton,
+                  badgeTextColor: const Color(0xFFE8E8E8),
+                  scale: scale,
+                ),
+              ),
+              SizedBox(width: 12 * scale),
+              Expanded(
+                child: _CharacterCard(
+                  badge: '장착 중',
+                  emoji: '🪙',
+                  title: '동전 모으기',
+                  subtitle: '저축 Lv.2',
+                  backgroundColor: selectedBg,
+                  borderColor: themeGreen,
+                  badgeColor: themeGreen,
+                  badgeTextColor: textButton,
+                  scale: scale,
+                ),
+              ),
+              SizedBox(width: 12 * scale),
+              Expanded(
+                child: _CharacterCard(
+                  badge: '예정',
+                  emoji: '🔒',
+                  title: '통장 쪼개기',
+                  subtitle: '저축 Lv.3',
+                  backgroundColor: disabledBg,
+                  badgeColor: disabledText,
+                  badgeTextColor: const Color(0xFFE8E8E8),
+                  isDisabled: true,
+                  scale: scale,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
 
-  int _indexFor(EconoBottomTab tab) {
-    return switch (tab) {
-      EconoBottomTab.home => 0,
-      EconoBottomTab.learning => 1,
-      EconoBottomTab.connect => 2,
-      EconoBottomTab.battle => 3,
-      EconoBottomTab.my => 4,
-    };
+  Widget _buildLearningRecordSection(double scale) {
+    return SizedBox(
+      height: 122 * scale,
+      child: Column(
+        children: [
+          SizedBox(
+            height: 18 * scale,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Expanded(
+                  child: Text(
+                    '학습 기록',
+                    style: TextStyle(
+                      fontFamily: 'Pretendard',
+                      fontSize: 16 * scale,
+                      fontWeight: FontWeight.w700,
+                      color: brandInk,
+                      height: 19 / 16,
+                    ),
+                  ),
+                ),
+                _MonthSelector(scale: scale),
+              ],
+            ),
+          ),
+          SizedBox(height: 14 * scale),
+          Container(
+            height: 90 * scale,
+            padding: EdgeInsets.symmetric(
+              horizontal: 20 * scale,
+              vertical: 16 * scale,
+            ),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              border: Border.all(color: borderGrey, width: 1 * scale),
+              borderRadius: BorderRadius.circular(10 * scale),
+            ),
+            child: _LearningHeatmap(scale: scale),
+          ),
+        ],
+      ),
+    );
+  }
+
+  int _indexForBottomTab(EconoBottomTab tab) {
+    switch (tab) {
+      case EconoBottomTab.home:
+        return 0;
+      case EconoBottomTab.learning:
+        return 1;
+      case EconoBottomTab.connect:
+        return 2;
+      case EconoBottomTab.battle:
+        return 3;
+      case EconoBottomTab.my:
+        return 4;
+    }
+  }
+}
+
+class _AvatarBubble extends StatelessWidget {
+  const _AvatarBubble({
+    required this.emoji,
+    required this.size,
+    required this.emojiSize,
+    required this.backgroundColor,
+    required this.scale,
+    this.borderColor,
+  });
+
+  final String emoji;
+  final double size;
+  final double emojiSize;
+  final Color backgroundColor;
+  final double scale;
+  final Color? borderColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: size * scale,
+      height: size * scale,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        shape: BoxShape.circle,
+        border: borderColor == null ? null : Border.all(color: borderColor!, width: 1 * scale),
+      ),
+      child: Text(
+        emoji,
+        textAlign: TextAlign.center,
+        style: TextStyle(
+          fontFamily: 'Inter',
+          fontSize: emojiSize * scale,
+          fontWeight: FontWeight.w700,
+          height: 1.5,
+        ),
+      ),
+    );
+  }
+}
+
+class _ProfileCategoryIcon extends StatelessWidget {
+  const _ProfileCategoryIcon({
+    required this.emoji,
+    required this.label,
+    required this.scale,
+  }) : locked = false;
+
+  const _ProfileCategoryIcon.locked({
+    required this.label,
+    required this.scale,
+  })  : emoji = '🔒',
+        locked = true;
+
+  final String emoji;
+  final String label;
+  final double scale;
+  final bool locked;
+
+  @override
+  Widget build(BuildContext context) {
+    final labelWidth = label == '부동산' ? 26.0 : 21.46;
+
+    return SizedBox(
+      width: labelWidth * scale,
+      height: 38.46 * scale,
+      child: Column(
+        children: [
+          SizedBox(
+            height: 21.46 * scale,
+            child: Center(
+              child: locked
+                  ? Container(
+                      width: 21.46 * scale,
+                      height: 21.46 * scale,
+                      alignment: Alignment.center,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFE8E8E8),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Opacity(
+                        opacity: 0.5,
+                        child: Text(
+                          emoji,
+                          style: TextStyle(
+                            fontSize: 8.84 * scale,
+                            height: 1.5,
+                          ),
+                        ),
+                      ),
+                    )
+                  : Text(
+                      emoji,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 12 * scale,
+                        fontWeight: FontWeight.w700,
+                        height: 13 / 12,
+                      ),
+                    ),
+            ),
+          ),
+          SizedBox(height: 5 * scale),
+          Text(
+            label,
+            maxLines: 1,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontFamily: 'Pretendard',
+              fontSize: 10 * scale,
+              fontWeight: FontWeight.w500,
+              color: MyPageScreen.textMuted,
+              height: 12 / 10,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CharacterCard extends StatelessWidget {
+  const _CharacterCard({
+    required this.badge,
+    required this.emoji,
+    required this.title,
+    required this.subtitle,
+    required this.backgroundColor,
+    required this.badgeColor,
+    required this.badgeTextColor,
+    required this.scale,
+    this.borderColor,
+    this.isDisabled = false,
+  });
+
+  final String badge;
+  final String emoji;
+  final String title;
+  final String subtitle;
+  final Color backgroundColor;
+  final Color badgeColor;
+  final Color badgeTextColor;
+  final Color? borderColor;
+  final bool isDisabled;
+  final double scale;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 105 * scale,
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        border: borderColor == null ? null : Border.all(color: borderColor!, width: 1 * scale),
+        borderRadius: BorderRadius.circular(10 * scale),
+      ),
+      child: Stack(
+        alignment: Alignment.topCenter,
+        children: [
+          Positioned(
+            top: 11.5 * scale,
+            child: Column(
+              children: [
+                _AvatarBubble(
+                  emoji: emoji,
+                  size: 52,
+                  emojiSize: 21.4,
+                  backgroundColor: isDisabled ? const Color(0xFFE8E8E8) : Colors.white,
+                  scale: scale,
+                ),
+                SizedBox(height: 6 * scale),
+                Text(
+                  title,
+                  maxLines: 1,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontFamily: 'Pretendard',
+                    fontSize: 12 * scale,
+                    fontWeight: FontWeight.w600,
+                    color: isDisabled ? MyPageScreen.disabledText : MyPageScreen.textDark,
+                    height: 14 / 12,
+                  ),
+                ),
+                SizedBox(height: 2 * scale),
+                Text(
+                  subtitle,
+                  maxLines: 1,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontFamily: 'Pretendard',
+                    fontSize: 10 * scale,
+                    fontWeight: FontWeight.w500,
+                    color: isDisabled ? const Color(0xFFD0D0D0) : MyPageScreen.textMuted,
+                    height: 12 / 10,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Positioned(
+            top: 9 * scale,
+            child: Container(
+              width: 40.23 * scale,
+              height: 15 * scale,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: badgeColor,
+                borderRadius: BorderRadius.circular(45 * scale),
+              ),
+              child: Text(
+                badge,
+                maxLines: 1,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontFamily: 'Pretendard',
+                  fontSize: 10 * scale,
+                  fontWeight: FontWeight.w500,
+                  color: badgeTextColor,
+                  height: 12 / 10,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MonthSelector extends StatelessWidget {
+  const _MonthSelector({required this.scale});
+
+  final double scale;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 71 * scale,
+      height: 25 * scale,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          Icon(
+            Icons.chevron_left_rounded,
+            size: 18 * scale,
+            color: MyPageScreen.iconGrey,
+          ),
+          SizedBox(width: 4 * scale),
+          Text(
+            '6월',
+            style: TextStyle(
+              fontFamily: 'Pretendard',
+              fontSize: 12 * scale,
+              fontWeight: FontWeight.w500,
+              color: MyPageScreen.textMuted,
+              height: 14 / 12,
+            ),
+          ),
+          SizedBox(width: 4 * scale),
+          Icon(
+            Icons.chevron_right_rounded,
+            size: 18 * scale,
+            color: MyPageScreen.iconGrey,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _LearningHeatmap extends StatelessWidget {
+  const _LearningHeatmap({required this.scale});
+
+  final double scale;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final columnGap = 9 * scale;
+        final rowGap = 6 * scale;
+        final cellWidth = (constraints.maxWidth - columnGap * 9) / 10;
+        final rowHeights = [15 * scale, 14 * scale, 15 * scale];
+
+        return Column(
+          children: [
+            for (var row = 0; row < 3; row++) ...[
+              SizedBox(
+                height: rowHeights[row],
+                child: Row(
+                  children: [
+                    for (var column = 0; column < 10; column++) ...[
+                      Container(
+                        width: cellWidth,
+                        height: rowHeights[row],
+                        decoration: BoxDecoration(
+                          color: row == 0 && column == 0
+                              ? MyPageScreen.themeGreen
+                              : MyPageScreen.heatmapEmpty,
+                          borderRadius: BorderRadius.circular(3 * scale),
+                        ),
+                      ),
+                      if (column != 9) SizedBox(width: columnGap),
+                    ],
+                  ],
+                ),
+              ),
+              if (row != 2) SizedBox(height: rowGap),
+            ],
+          ],
+        );
+      },
+    );
   }
 }
