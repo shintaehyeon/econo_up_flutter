@@ -20,8 +20,10 @@ class LeagueScreen extends StatefulWidget {
 
 class _LeagueScreenState extends State<LeagueScreen> {
   late final ApiClient _client;
-  _LeagueSummary _summary = _LeagueSummary.fallback();
-  List<_LeagueMember> _ranking = _fallbackRanking;
+  _LeagueSummary? _summary;
+  List<_LeagueMember> _ranking = const [];
+  bool _isLoading = true;
+  String? _errorMessage;
 
   @override
   void initState() {
@@ -37,36 +39,51 @@ class _LeagueScreenState extends State<LeagueScreen> {
   }
 
   Future<void> _loadLeague() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
     try {
       final data = await _client.get<Map<String, dynamic>>(ApiEndpoints.leagueMe);
       final summary = _LeagueSummary.fromJson(data);
-      var ranking = _fallbackRanking;
+      var ranking = const <_LeagueMember>[];
       if (summary.leagueId.isNotEmpty) {
         final rankingData = await _client.get<Map<String, dynamic>>(ApiEndpoints.leagueRanking(summary.leagueId));
-        final rows = _asList(rankingData['ranking']).map(_LeagueMember.fromJson).toList();
-        if (rows.isNotEmpty) {
-          ranking = rows;
-        }
+        ranking = _asList(rankingData['ranking']).map(_LeagueMember.fromJson).toList();
       }
       if (!mounted) return;
       setState(() {
         _summary = summary;
         _ranking = ranking;
+        _isLoading = false;
       });
-    } catch (_) {
-      // QA 직전에는 리그 API가 비어 있어도 화면이 깨지지 않도록 기존 골드 카드로 유지한다.
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+        _errorMessage = '리그 정보를 불러오지 못했어요.';
+      });
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final style = _summary.style;
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator(color: Color(0xFF00EE94)));
+    }
+
+    if (_errorMessage != null || _summary == null) {
+      return _buildMessage(_errorMessage ?? '리그 정보가 없습니다.');
+    }
+
+    final summary = _summary!;
+    final style = summary.style;
     final mainContent = SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _buildMyLeagueCard(_summary),
+          _buildMyLeagueCard(summary),
           const SizedBox(height: 32),
           Text(
             '${style.name} 랭킹',
@@ -83,11 +100,26 @@ class _LeagueScreenState extends State<LeagueScreen> {
               _ranking[i].rank,
               _ranking[i].nickname,
               _ranking[i].pointsText,
-              _ranking[i].rank == _summary.rank,
+              _ranking[i].rank == summary.rank,
               style,
             ),
             if (i != _ranking.length - 1) const SizedBox(height: 12),
           ],
+          if (_ranking.isEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 24),
+              child: Center(
+                child: Text(
+                  '랭킹 데이터가 없습니다.',
+                  style: TextStyle(
+                    fontFamily: 'Pretendard',
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    color: Color(0xFF99A1AF),
+                  ),
+                ),
+              ),
+            ),
           const SizedBox(height: 24),
         ],
       ),
@@ -146,6 +178,30 @@ class _LeagueScreenState extends State<LeagueScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildMessage(String message) {
+    final content = Center(
+      child: Text(
+        message,
+        textAlign: TextAlign.center,
+        style: const TextStyle(
+          fontFamily: 'Pretendard',
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
+          color: Color(0xFF6A7282),
+        ),
+      ),
+    );
+
+    if (widget.isEmbedded) {
+      return Container(color: Colors.white, child: content);
+    }
+
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: SafeArea(child: content),
     );
   }
 
@@ -367,26 +423,23 @@ class _LeagueSummary {
 
   String get dDayLabel {
     final resetDate = DateTime.tryParse(resetsAt);
-    if (resetDate == null) return 'D-3';
+    if (resetDate == null) return 'D-0';
     final diff = resetDate.difference(DateTime.now());
     final days = diff.inSeconds <= 0 ? 0 : (diff.inHours / 24).ceil();
     return 'D-$days';
   }
 
   String get promotionText {
-    if (weeklyXp <= 0) return '승급까지 24점';
-    final remaining = (100 - weeklyXp).clamp(0, 100);
-    return '승급까지 $remaining점';
+    return '이번 주 $weeklyXp XP';
   }
 
   double get progress {
-    if (weeklyXp <= 0) return 0.72;
     return (weeklyXp / 100).clamp(0.0, 1.0);
   }
 
   factory _LeagueSummary.fromJson(Map<String, dynamic> json) {
     return _LeagueSummary(
-      tier: '${json['tier'] ?? 'GOLD'}',
+      tier: '${json['tier'] ?? ''}',
       rank: _asInt(json['rank']),
       weeklyXp: _asInt(json['weeklyXp']),
       leagueId: '${json['leagueId'] ?? ''}',
@@ -394,15 +447,6 @@ class _LeagueSummary {
     );
   }
 
-  factory _LeagueSummary.fallback() {
-    return const _LeagueSummary(
-      tier: 'GOLD',
-      rank: 3,
-      weeklyXp: 72,
-      leagueId: '',
-      resetsAt: '',
-    );
-  }
 }
 
 class _LeagueStyle {
@@ -476,13 +520,6 @@ class _LeagueMember {
     );
   }
 }
-
-const _fallbackRanking = [
-  _LeagueMember(rank: 1, nickname: '왕초보탈출', weeklyXp: 320),
-  _LeagueMember(rank: 2, nickname: '경제박사', weeklyXp: 298),
-  _LeagueMember(rank: 3, nickname: '경제왕', weeklyXp: 254),
-  _LeagueMember(rank: 4, nickname: '머니킹', weeklyXp: 210),
-];
 
 Map<String, dynamic> _asMap(Object? value) {
   if (value is Map<String, dynamic>) return value;

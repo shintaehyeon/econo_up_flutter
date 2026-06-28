@@ -153,10 +153,15 @@ class SimulationLoanScreen extends StatelessWidget {
     );
     final api = SimulationApi(client);
     try {
+      final step = await api.step(attemptId: attemptId, stepNo: 4);
+      final selectedIds = step.choiceIdsWhere((choice) => choice.text.contains('집단'));
+      if (selectedIds.isEmpty) {
+        throw StateError('Simulation step choices are empty.');
+      }
       await api.submitAnswer(
         attemptId: attemptId,
         stepNo: 4,
-        answer: const {'choiceIds': ['A']},
+        answer: {'choiceIds': selectedIds},
       );
       if (!context.mounted) return;
       Navigator.of(context).push(

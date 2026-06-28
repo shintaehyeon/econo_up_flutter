@@ -67,7 +67,6 @@ class LevelTestResultScreen extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Simulated status bar time is usually handled by OS, skipping mock text to keep it native
                       const SizedBox(height: 12),
                       Stack(
                         children: [

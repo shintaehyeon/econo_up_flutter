@@ -218,12 +218,17 @@ class SimulationContractReviewScreen extends StatelessWidget {
     );
     final api = SimulationApi(client);
     try {
+      final step = await api.step(attemptId: attemptId, stepNo: 2);
+      final selectedIds = step.choiceIdsWhere(
+        (choice) => choice.text.contains('입주일') || choice.text.contains('계약 해제'),
+      );
+      if (selectedIds.isEmpty) {
+        throw StateError('Simulation step choices are empty.');
+      }
       await api.submitAnswer(
         attemptId: attemptId,
         stepNo: 2,
-        answer: const {
-          'choiceIds': ['B', 'C'],
-        },
+        answer: {'choiceIds': selectedIds},
       );
       if (!context.mounted) return;
       final result = await Navigator.push(

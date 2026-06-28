@@ -219,12 +219,15 @@ class SimulationDocumentSelectionScreen extends StatelessWidget {
     );
     final api = SimulationApi(client);
     try {
+      final step = await api.step(attemptId: attemptId, stepNo: 1);
+      final selectedIds = step.choiceIdsWhere((choice) => !choice.text.contains('여권'));
+      if (selectedIds.isEmpty) {
+        throw StateError('Simulation step choices are empty.');
+      }
       await api.submitAnswer(
         attemptId: attemptId,
         stepNo: 1,
-        answer: const {
-          'choiceIds': ['A', 'B', 'C', 'E', 'F'],
-        },
+        answer: {'choiceIds': selectedIds},
       );
       if (!context.mounted) return;
       final result = await Navigator.push(

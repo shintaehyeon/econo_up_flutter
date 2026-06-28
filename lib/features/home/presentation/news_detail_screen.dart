@@ -23,7 +23,6 @@ class NewsDetailScreen extends StatefulWidget {
   static const Color textDark = Color(0xFF111827);
   static const Color textMuted = Color(0xFF6A7282);
   static const Color textLight = Color(0xFF9CA3AF);
-  static const String _fallbackImagePath = 'assets/images/news_fed_powell.png';
 
   @override
   State<NewsDetailScreen> createState() => _NewsDetailScreenState();
@@ -568,20 +567,22 @@ class _NewsDetailScreenState extends State<NewsDetailScreen> {
 
   Widget _buildThumbnail(String url) {
     if (url.trim().isEmpty) {
-      return Image.asset(
-        NewsDetailScreen._fallbackImagePath,
-        fit: BoxFit.cover,
-      );
+      return _buildImagePlaceholder();
     }
     return Image.network(
       url,
       fit: BoxFit.cover,
       errorBuilder: (_, __, ___) {
-        return Image.asset(
-          NewsDetailScreen._fallbackImagePath,
-          fit: BoxFit.cover,
-        );
+        return _buildImagePlaceholder();
       },
+    );
+  }
+
+  Widget _buildImagePlaceholder() {
+    return Container(
+      color: const Color(0xFFF3F4F6),
+      alignment: Alignment.center,
+      child: const Icon(Icons.article_rounded, color: Color(0xFF9CA3AF), size: 32),
     );
   }
 

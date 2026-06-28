@@ -33,6 +33,14 @@ class SimulationApi {
   Future<Map<String, dynamic>> complete(int attemptId) {
     return _client.post<Map<String, dynamic>>(ApiEndpoints.completeSimulation(attemptId));
   }
+
+  Future<SimulationStepData> step({
+    required int attemptId,
+    required int stepNo,
+  }) async {
+    final data = await _client.get<Map<String, dynamic>>(ApiEndpoints.simulationStep(attemptId, stepNo));
+    return SimulationStepData.fromJson(data);
+  }
 }
 
 class SimulationSummary {
@@ -96,6 +104,56 @@ class SimulationAttempt {
   final int attemptId;
   final int currentStep;
   final int totalSteps;
+}
+
+class SimulationStepData {
+  const SimulationStepData({
+    required this.stepNo,
+    required this.type,
+    required this.title,
+    required this.prompt,
+    required this.choices,
+  });
+
+  factory SimulationStepData.fromJson(Map<String, dynamic> json) {
+    final step = _asMap(json['step']);
+    final payload = _asMap(step['payload']);
+    return SimulationStepData(
+      stepNo: _asInt(step['stepNo']),
+      type: _asString(step['type']),
+      title: _asString(step['title']),
+      prompt: _asString(step['prompt']),
+      choices: _asList(payload['choices']).map(SimulationChoice.fromJson).where((choice) => choice.id.isNotEmpty).toList(),
+    );
+  }
+
+  final int stepNo;
+  final String type;
+  final String title;
+  final String prompt;
+  final List<SimulationChoice> choices;
+
+  List<String> choiceIdsWhere(bool Function(SimulationChoice choice) test) {
+    return choices.where(test).map((choice) => choice.id).toList();
+  }
+}
+
+class SimulationChoice {
+  const SimulationChoice({
+    required this.id,
+    required this.text,
+  });
+
+  factory SimulationChoice.fromJson(Object? value) {
+    final json = _asMap(value);
+    return SimulationChoice(
+      id: _asString(json['id']),
+      text: _asString(json['text']),
+    );
+  }
+
+  final String id;
+  final String text;
 }
 
 Map<String, dynamic> _asMap(Object? value) {

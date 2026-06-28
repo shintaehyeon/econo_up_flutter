@@ -26,7 +26,8 @@ class InterestAreaSettingsScreen extends StatefulWidget {
 class _InterestAreaSettingsScreenState extends State<InterestAreaSettingsScreen> {
   late final ApiClient _client;
 
-  final List<String> _selectedIds = ['ECONOMY', 'SAVING'];
+  final List<String> _selectedIds = [];
+  bool _isLoading = true;
   bool _isSaving = false;
 
   static const List<_CategoryItem> _categories = [
@@ -44,6 +45,7 @@ class _InterestAreaSettingsScreenState extends State<InterestAreaSettingsScreen>
       accessTokenProvider: AuthSession.accessToken,
       onUnauthorized: AuthSession.clear,
     );
+    _loadSelectedInterests();
   }
 
   @override
@@ -60,6 +62,28 @@ class _InterestAreaSettingsScreenState extends State<InterestAreaSettingsScreen>
         _selectedIds.add(id);
       }
     });
+  }
+
+  Future<void> _loadSelectedInterests() async {
+    try {
+      final data = await _client.get<Map<String, dynamic>>(ApiEndpoints.home);
+      final continueLearning = _asMap(data['continueLearning']);
+      final categoryIds = _asList(continueLearning['categories'])
+          .map(_asMap)
+          .map((item) => '${item['categoryCode'] ?? ''}')
+          .where((code) => code.isNotEmpty)
+          .toList();
+      if (!mounted) return;
+      setState(() {
+        _selectedIds
+          ..clear()
+          ..addAll(categoryIds);
+        _isLoading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+    }
   }
 
   Future<void> _saveSettings() async {
@@ -125,7 +149,12 @@ class _InterestAreaSettingsScreenState extends State<InterestAreaSettingsScreen>
                 ),
               ),
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-              child: Column(
+              child: _isLoading
+                  ? const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 80),
+                      child: Center(child: CircularProgressIndicator(color: Color(0xFF00EE94))),
+                    )
+                  : Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -298,4 +327,15 @@ class _CategoryItem {
 
   final String id;
   final String label;
+}
+
+Map<String, dynamic> _asMap(Object? value) {
+  if (value is Map<String, dynamic>) return value;
+  if (value is Map) return Map<String, dynamic>.from(value);
+  return <String, dynamic>{};
+}
+
+List<Object?> _asList(Object? value) {
+  if (value is List) return value;
+  return const [];
 }
