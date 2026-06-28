@@ -3,6 +3,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../core/auth/auth_session.dart';
+import '../../../core/network/api_client.dart';
+import '../data/wallet_api.dart';
+
 class HeartRechargeScreen extends StatefulWidget {
   const HeartRechargeScreen({
     super.key,
@@ -18,61 +22,115 @@ class HeartRechargeScreen extends StatefulWidget {
 }
 
 class _HeartRechargeScreenState extends State<HeartRechargeScreen> {
+  late final ApiClient _client;
+  late final WalletApi _walletApi;
   int _heartCount = 1;
   int _billCount = 5;
   bool _isUnlimited = false;
+  bool _isLoading = true;
+  bool _isPurchasing = false;
 
-  void _chargeOneHeart() {
+  @override
+  void initState() {
+    super.initState();
+    _client = ApiClient(
+      accessTokenProvider: AuthSession.accessToken,
+      onUnauthorized: AuthSession.clear,
+    );
+    _walletApi = WalletApi(_client);
+    _loadWallet();
+  }
+
+  @override
+  void dispose() {
+    _client.close();
+    super.dispose();
+  }
+
+  Future<void> _loadWallet() async {
+    try {
+      final wallet = await _walletApi.balance();
+      if (!mounted) return;
+      _applyWallet(wallet);
+      setState(() => _isLoading = false);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+      _showMessage('지갑 정보를 불러오지 못했어요.');
+    }
+  }
+
+  Future<void> _chargeOneHeart() async {
+    if (_isPurchasing) return;
     if (_isUnlimited || _heartCount >= 3) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('하트가 이미 가득 찼거나 무제한 상태입니다.'),
-          duration: Duration(seconds: 1),
-        ),
-      );
+      _showMessage('하트가 이미 가득 찼거나 무제한 상태입니다.');
       return;
     }
     if (_billCount < 1) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('지폐가 부족합니다.'),
-          duration: Duration(seconds: 1),
-        ),
-      );
+      _showMessage('지폐가 부족합니다.');
       return;
     }
 
-    setState(() {
-      _heartCount += 1;
-      _billCount -= 1;
-    });
+    setState(() => _isPurchasing = true);
+    try {
+      final wallet = await _walletApi.refillHeart();
+      if (!mounted) return;
+      _applyWallet(wallet);
+      _showMessage('하트 1개가 충전되었습니다.');
+    } on ApiClientException catch (error) {
+      if (!mounted) return;
+      _showMessage(error.message);
+    } catch (_) {
+      if (!mounted) return;
+      _showMessage('하트 충전에 실패했어요.');
+    } finally {
+      if (mounted) setState(() => _isPurchasing = false);
+    }
   }
 
-  void _activateUnlimitedHearts() {
+  Future<void> _activateUnlimitedHearts() async {
+    if (_isPurchasing) return;
     if (_isUnlimited) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('이미 무제한 상태입니다.'),
-          duration: Duration(seconds: 1),
-        ),
-      );
+      _showMessage('이미 무제한 상태입니다.');
       return;
     }
     if (_billCount < 3) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('지폐가 부족합니다.'),
-          duration: Duration(seconds: 1),
-        ),
-      );
+      _showMessage('지폐가 부족합니다.');
       return;
     }
 
+    setState(() => _isPurchasing = true);
+    try {
+      final wallet = await _walletApi.unlimitedHearts();
+      if (!mounted) return;
+      _applyWallet(wallet);
+      _showMessage('24시간 하트 무제한이 적용되었습니다.');
+    } on ApiClientException catch (error) {
+      if (!mounted) return;
+      _showMessage(error.message);
+    } catch (_) {
+      if (!mounted) return;
+      _showMessage('무제한 하트 구매에 실패했어요.');
+    } finally {
+      if (mounted) setState(() => _isPurchasing = false);
+    }
+  }
+
+  void _applyWallet(WalletData wallet) {
     setState(() {
-      _isUnlimited = true;
-      _heartCount = 3;
-      _billCount -= 3;
+      _heartCount = wallet.heartCurrent;
+      _billCount = wallet.billBalance;
+      _isUnlimited = wallet.unlimited;
     });
+  }
+
+  void _showMessage(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        duration: const Duration(seconds: 1),
+      ),
+    );
   }
 
   @override
@@ -129,6 +187,17 @@ class _HeartRechargeScreenState extends State<HeartRechargeScreen> {
                   ),
                   const SizedBox(height: 2),
                   // Status Row
+                  if (_isLoading)
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 38),
+                      child: Center(
+                        child: CircularProgressIndicator(
+                          color: Color(0xFF00EE94),
+                          strokeWidth: 2,
+                        ),
+                      ),
+                    )
+                  else ...[
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.center,
@@ -153,7 +222,7 @@ class _HeartRechargeScreenState extends State<HeartRechargeScreen> {
                       Text(
                         _isUnlimited
                             ? '3/3 (무제한)'
-                            : '$_heartCount/3 · 자동 충전까지 2:14:30',
+                            : '$_heartCount/3',
                         style: const TextStyle(
                           fontFamily: 'Pretendard',
                           fontSize: 14,
@@ -316,6 +385,7 @@ class _HeartRechargeScreenState extends State<HeartRechargeScreen> {
                       ),
                     ),
                   ),
+                  ],
                   const SizedBox(height: 10),
                   // Close Button
                   GestureDetector(

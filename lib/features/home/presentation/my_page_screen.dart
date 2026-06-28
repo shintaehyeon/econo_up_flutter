@@ -3,9 +3,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../core/auth/auth_session.dart';
+import '../../../core/network/api_client.dart';
 import '../../../shared/widgets/econo_bottom_navigation_bar.dart';
+import '../data/my_page_api.dart';
 
-class MyPageScreen extends StatelessWidget {
+class MyPageScreen extends StatefulWidget {
   const MyPageScreen({
     super.key,
     this.onBottomTabSelected,
@@ -31,52 +34,112 @@ class MyPageScreen extends StatelessWidget {
   static const Color fireOrange = Color(0xFFFF6900);
 
   @override
+  State<MyPageScreen> createState() => _MyPageScreenState();
+}
+
+class _MyPageScreenState extends State<MyPageScreen> {
+  late final ApiClient _client;
+  late final MyPageApi _api;
+  late Future<MyPageData> _summaryFuture;
+
+  static const Color brandInk = MyPageScreen.brandInk;
+  static const Color textDark = MyPageScreen.textDark;
+  static const Color textMuted = MyPageScreen.textMuted;
+  static const Color textButton = MyPageScreen.textButton;
+  static const Color iconGrey = MyPageScreen.iconGrey;
+  static const Color borderGrey = MyPageScreen.borderGrey;
+  static const Color themeGreen = MyPageScreen.themeGreen;
+  static const Color selectedBg = MyPageScreen.selectedBg;
+  static const Color disabledBg = MyPageScreen.disabledBg;
+  static const Color disabledText = MyPageScreen.disabledText;
+  static const Color fireOrange = MyPageScreen.fireOrange;
+
+  @override
+  void initState() {
+    super.initState();
+    _client = ApiClient(
+      accessTokenProvider: AuthSession.accessToken,
+      onUnauthorized: AuthSession.clear,
+    );
+    _api = MyPageApi(_client);
+    _summaryFuture = _api.summary();
+  }
+
+  @override
+  void dispose() {
+    _client.close();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     final contentWidth = screenWidth.clamp(0.0, 447.0);
     final scale = contentWidth >= 390 ? 1.0 : contentWidth / 390.0;
 
-    final content = Center(
-      child: SizedBox(
-        width: contentWidth,
-        height: double.infinity,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Expanded(
-              child: SingleChildScrollView(
-                padding: EdgeInsets.fromLTRB(
-                  20 * scale,
-                  9 * scale,
-                  20 * scale,
-                  24 * scale,
+    final content = FutureBuilder<MyPageData>(
+      future: _summaryFuture,
+      builder: (context, snapshot) {
+        final data = snapshot.data;
+        return Center(
+          child: SizedBox(
+            width: contentWidth,
+            height: double.infinity,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(
+                  child: data == null && snapshot.connectionState == ConnectionState.waiting
+                      ? const Center(child: CircularProgressIndicator(color: themeGreen))
+                      : SingleChildScrollView(
+                          padding: EdgeInsets.fromLTRB(
+                            20 * scale,
+                            9 * scale,
+                            20 * scale,
+                            24 * scale,
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              if (snapshot.hasError && data == null) ...[
+                                SizedBox(height: 160 * scale),
+                                Text(
+                                  '마이페이지 정보를 불러오지 못했어요.',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    fontFamily: 'Pretendard',
+                                    fontSize: 14 * scale,
+                                    fontWeight: FontWeight.w600,
+                                    color: textMuted,
+                                  ),
+                                ),
+                              ] else ...[
+                                _buildProfileSection(scale, data),
+                                SizedBox(height: 20 * scale),
+                                _buildStatusCard(scale, data),
+                                SizedBox(height: 20 * scale),
+                                _buildCollectionSection(scale, data),
+                                SizedBox(height: 20 * scale),
+                                _buildLearningRecordSection(scale, data),
+                              ],
+                            ],
+                          ),
+                        ),
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    _buildProfileSection(scale),
-                    SizedBox(height: 20 * scale),
-                    _buildStatusCard(scale),
-                    SizedBox(height: 20 * scale),
-                    _buildCollectionSection(scale),
-                    SizedBox(height: 20 * scale),
-                    _buildLearningRecordSection(scale),
-                  ],
-                ),
-              ),
+                if (widget.showBottomNavigation)
+                  EconoBottomNavigationBar(
+                    activeTab: EconoBottomTab.my,
+                    onTabSelected: (tab) => widget.onBottomTabSelected?.call(_indexForBottomTab(tab)),
+                    scale: scale,
+                  ),
+              ],
             ),
-            if (showBottomNavigation)
-              EconoBottomNavigationBar(
-                activeTab: EconoBottomTab.my,
-                onTabSelected: (tab) => onBottomTabSelected?.call(_indexForBottomTab(tab)),
-                scale: scale,
-              ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
 
-    if (!showBottomNavigation) {
+    if (!widget.showBottomNavigation) {
       return ColoredBox(color: Colors.white, child: content);
     }
 
@@ -86,7 +149,10 @@ class MyPageScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildProfileSection(double scale) {
+  Widget _buildProfileSection(double scale, MyPageData? data) {
+    final nickname = data?.nickname.isNotEmpty == true ? data!.nickname : '사용자';
+    final equippedName = _characterName(data?.equippedCharacterId);
+    final equippedCategory = _categoryLabel(_characterCategoryCode(data?.equippedCharacterId));
     return SizedBox(
       height: 143 * scale,
       child: Column(
@@ -113,7 +179,7 @@ class MyPageScreen extends StatelessWidget {
             behavior: HitTestBehavior.opaque,
             onTap: () {
               HapticFeedback.lightImpact();
-              onOpenSettings?.call();
+              widget.onOpenSettings?.call();
             },
             child: Container(
               height: 110 * scale,
@@ -138,7 +204,7 @@ class MyPageScreen extends StatelessWidget {
                         Row(
                           children: [
                             Text(
-                              '경제왕',
+                              nickname,
                               style: TextStyle(
                                 fontFamily: 'Pretendard',
                                 fontSize: 16 * scale,
@@ -149,7 +215,7 @@ class MyPageScreen extends StatelessWidget {
                             ),
                             SizedBox(width: 13 * scale),
                             Text(
-                              '저축 캐릭터',
+                              '$equippedCategory 캐릭터',
                               style: TextStyle(
                                 fontFamily: 'Pretendard',
                                 fontSize: 10 * scale,
@@ -160,7 +226,7 @@ class MyPageScreen extends StatelessWidget {
                             ),
                             SizedBox(width: 4 * scale),
                             Text(
-                              '저금통 텅텅',
+                              equippedName,
                               style: TextStyle(
                                 fontFamily: 'Pretendard',
                                 fontSize: 10 * scale,
@@ -206,7 +272,9 @@ class MyPageScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildStatusCard(double scale) {
+  Widget _buildStatusCard(double scale, MyPageData? data) {
+    final streakDays = data?.streakDays ?? 0;
+    final leagueText = _leagueText(data?.leagueTier, data?.crowns ?? 0);
     return Container(
       height: 49 * scale,
       padding: EdgeInsets.symmetric(horizontal: 16 * scale),
@@ -228,7 +296,7 @@ class MyPageScreen extends StatelessWidget {
               ),
               SizedBox(width: 2 * scale),
               Text(
-                '14일 연속',
+                '$streakDays일 연속',
                 style: TextStyle(
                   fontFamily: 'Pretendard',
                   fontSize: 14 * scale,
@@ -246,7 +314,7 @@ class MyPageScreen extends StatelessWidget {
             color: borderGrey,
           ),
           Text(
-            '🥈 실버 리그 3위',
+            leagueText,
             style: TextStyle(
               fontFamily: 'Pretendard',
               fontSize: 14 * scale,
@@ -260,7 +328,9 @@ class MyPageScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildCollectionSection(double scale) {
+  Widget _buildCollectionSection(double scale, MyPageData? data) {
+    final equippedName = _characterName(data?.equippedCharacterId);
+    final equippedCategory = _categoryLabel(_characterCategoryCode(data?.equippedCharacterId));
     return SizedBox(
       height: 139 * scale,
       child: Column(
@@ -296,8 +366,8 @@ class MyPageScreen extends StatelessWidget {
                 child: _CharacterCard(
                   badge: '장착',
                   emoji: '🐷',
-                  title: '저금통 텅텅',
-                  subtitle: '저축 Lv.1 · 0xp',
+                  title: equippedName,
+                  subtitle: '$equippedCategory Lv.1',
                   backgroundColor: selectedBg,
                   badgeColor: textButton,
                   badgeTextColor: const Color(0xFFE8E8E8),
@@ -339,7 +409,7 @@ class MyPageScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildLearningRecordSection(double scale) {
+  Widget _buildLearningRecordSection(double scale, MyPageData? data) {
     return SizedBox(
       height: 122 * scale,
       child: Column(
@@ -377,7 +447,7 @@ class MyPageScreen extends StatelessWidget {
               border: Border.all(color: borderGrey, width: 1 * scale),
               borderRadius: BorderRadius.circular(10 * scale),
             ),
-            child: _LearningHeatmap(scale: scale),
+            child: _LearningHeatmap(scale: scale, calendar: data?.calendar ?? const []),
           ),
         ],
       ),
@@ -397,6 +467,44 @@ class MyPageScreen extends StatelessWidget {
       case EconoBottomTab.my:
         return 4;
     }
+  }
+
+  String _characterCategoryCode(String? id) {
+    final value = id ?? '';
+    if (!value.startsWith('char_')) return 'SAVING';
+    final last = value.lastIndexOf('_');
+    if (last <= 5) return 'SAVING';
+    return value.substring(5, last).toUpperCase();
+  }
+
+  String _categoryLabel(String code) {
+    return switch (code.toUpperCase()) {
+      'ECONOMY' => '경제',
+      'STOCK' => '주식',
+      'REAL_ESTATE' => '부동산',
+      'TAX' => '세금',
+      _ => '저축',
+    };
+  }
+
+  String _characterName(String? id) {
+    return switch (id) {
+      'char_economy_1' => '경제 기초왕',
+      'char_saving_1' => '저금통 텅텅',
+      'char_saving_2' => '동전 모으기',
+      'char_stock_1' => '주식 새싹',
+      _ => '장착 캐릭터',
+    };
+  }
+
+  String _leagueText(String? tier, int crowns) {
+    final tierText = switch ((tier ?? '').toUpperCase()) {
+      'GOLD' => '골드 리그',
+      'SILVER' => '실버 리그',
+      'BRONZE' => '브론즈 리그',
+      _ => '브론즈 리그',
+    };
+    return crowns > 0 ? '🥈 $tierText · $crowns관' : '🥈 $tierText';
   }
 }
 
@@ -672,9 +780,10 @@ class _MonthSelector extends StatelessWidget {
 }
 
 class _LearningHeatmap extends StatelessWidget {
-  const _LearningHeatmap({required this.scale});
+  const _LearningHeatmap({required this.scale, required this.calendar});
 
   final double scale;
+  final List<Map<String, dynamic>> calendar;
 
   @override
   Widget build(BuildContext context) {
@@ -697,9 +806,7 @@ class _LearningHeatmap extends StatelessWidget {
                         width: cellWidth,
                         height: rowHeights[row],
                         decoration: BoxDecoration(
-                          color: row == 0 && column == 0
-                              ? MyPageScreen.themeGreen
-                              : MyPageScreen.heatmapEmpty,
+                          color: _cellColor(row * 10 + column),
                           borderRadius: BorderRadius.circular(3 * scale),
                         ),
                       ),
@@ -714,5 +821,13 @@ class _LearningHeatmap extends StatelessWidget {
         );
       },
     );
+  }
+
+  Color _cellColor(int index) {
+    if (index >= calendar.length) return MyPageScreen.heatmapEmpty;
+    final value = calendar[index]['intensity'];
+    final intensity = value is int ? value : int.tryParse('$value') ?? 0;
+    if (intensity <= 0) return MyPageScreen.heatmapEmpty;
+    return MyPageScreen.themeGreen.withValues(alpha: (0.35 + intensity * 0.16).clamp(0.35, 1.0));
   }
 }

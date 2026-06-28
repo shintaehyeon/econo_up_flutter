@@ -3,6 +3,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../core/auth/auth_session.dart';
+import '../../../core/constants/api_endpoints.dart';
+import '../../../core/network/api_client.dart';
+
 class InterestAreaSettingsScreen extends StatefulWidget {
   const InterestAreaSettingsScreen({
     super.key,
@@ -20,15 +24,33 @@ class InterestAreaSettingsScreen extends StatefulWidget {
 }
 
 class _InterestAreaSettingsScreenState extends State<InterestAreaSettingsScreen> {
-  final List<String> _selectedIds = ['economy', 'saving'];
+  late final ApiClient _client;
+
+  final List<String> _selectedIds = ['ECONOMY', 'SAVING'];
+  bool _isSaving = false;
 
   static const List<_CategoryItem> _categories = [
-    _CategoryItem(id: 'economy', label: '📊 경제 상식'),
-    _CategoryItem(id: 'saving', label: '💰 저축'),
-    _CategoryItem(id: 'stock', label: '📈 주식'),
-    _CategoryItem(id: 'real_estate', label: '🏠 부동산'),
-    _CategoryItem(id: 'tax', label: '🧾 세금'),
+    _CategoryItem(id: 'ECONOMY', label: '📊 경제 상식'),
+    _CategoryItem(id: 'SAVING', label: '💰 저축'),
+    _CategoryItem(id: 'STOCK', label: '📈 주식'),
+    _CategoryItem(id: 'REAL_ESTATE', label: '🏠 부동산'),
+    _CategoryItem(id: 'TAX', label: '🧾 세금'),
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _client = ApiClient(
+      accessTokenProvider: AuthSession.accessToken,
+      onUnauthorized: AuthSession.clear,
+    );
+  }
+
+  @override
+  void dispose() {
+    _client.close();
+    super.dispose();
+  }
 
   void _toggleCategory(String id) {
     setState(() {
@@ -40,23 +62,44 @@ class _InterestAreaSettingsScreenState extends State<InterestAreaSettingsScreen>
     });
   }
 
-  void _saveSettings() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('관심 분야가 저장되었습니다.'),
-        duration: Duration(seconds: 1),
-      ),
-    );
+  Future<void> _saveSettings() async {
+    if (_isSaving) return;
+    if (_selectedIds.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('최소 1개 이상 선택해주세요.')),
+      );
+      return;
+    }
 
-    Future.delayed(const Duration(milliseconds: 800), () {
-      if (mounted) {
-        if (widget.onBack != null) {
-          widget.onBack!();
-        } else if (Navigator.of(context).canPop()) {
-          Navigator.of(context).pop();
-        }
+    setState(() => _isSaving = true);
+    try {
+      await _client.put<Map<String, dynamic>>(
+        ApiEndpoints.updateHomeInterests,
+        body: {'categoryCodesInOrder': _selectedIds},
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('관심 분야가 저장되었습니다.'),
+          duration: Duration(seconds: 1),
+        ),
+      );
+
+      if (widget.onBack != null) {
+        widget.onBack!();
+      } else if (Navigator.of(context).canPop()) {
+        Navigator.of(context).pop();
       }
-    });
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('관심 분야 저장에 실패했어요.')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isSaving = false);
+      }
+    }
   }
 
   @override
@@ -151,7 +194,7 @@ class _InterestAreaSettingsScreenState extends State<InterestAreaSettingsScreen>
                   const SizedBox(height: 20),
                   // Bottom Button: 저장
                   GestureDetector(
-                    onTap: () {
+                    onTap: _isSaving ? null : () {
                       HapticFeedback.mediumImpact();
                       _saveSettings();
                     },
@@ -162,8 +205,8 @@ class _InterestAreaSettingsScreenState extends State<InterestAreaSettingsScreen>
                         borderRadius: BorderRadius.circular(10),
                       ),
                       alignment: Alignment.center,
-                      child: const Text(
-                        '저장',
+                      child: Text(
+                        _isSaving ? '저장 중' : '저장',
                         style: TextStyle(
                           fontFamily: 'Pretendard',
                           fontSize: 14,

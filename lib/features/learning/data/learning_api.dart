@@ -194,13 +194,15 @@ class LearningQuestion {
   bool get isTextInput => type == 'TEXT_INPUT' || (!isChoice && !isOrdering && !isNumberInput && !isTheoryCard);
 
   factory LearningQuestion.fromJson(Map<String, dynamic> json) {
+    final context = _asMap(json['context']);
+    final resource = _asMap(json['resource'] ?? json['source']);
     return LearningQuestion(
       id: _asInt(json['id']),
       type: '${json['type'] ?? 'SINGLE_CHOICE'}',
       prompt: '${json['prompt'] ?? ''}',
       choices: _asList(json['choices']).map(LearningChoice.fromJson).toList(),
       payload: _asMap(json['payload']),
-      resource: _asMap(json['resource']),
+      resource: {...context, ...resource},
     );
   }
 }

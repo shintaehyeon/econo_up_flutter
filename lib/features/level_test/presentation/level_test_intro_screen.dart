@@ -2,6 +2,10 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../../../core/auth/auth_session.dart';
+import '../../../core/network/api_client.dart';
+import '../../auth/presentation/login_screen.dart';
+import '../data/level_test_api.dart';
 import 'level_test_screen.dart';
 import '../../home/presentation/home_screen.dart';
 
@@ -155,7 +159,7 @@ class LevelTestIntroScreen extends StatelessWidget {
                         ),
                         SizedBox(height: 2),
                         Text(
-                          '딱 10문제예요!',
+                          '딱 5문제예요!',
                           style: TextStyle(
                             fontFamily: 'Pretendard',
                             fontSize: 10,
@@ -221,7 +225,7 @@ class LevelTestIntroScreen extends StatelessWidget {
                             ),
                             SizedBox(width: 8),
                             Text(
-                              '10문제, 약 3분 소요',
+                              '5문제, 약 3분 소요',
                               style: TextStyle(
                                 fontFamily: 'Pretendard',
                                 fontSize: 12,
@@ -319,8 +323,32 @@ class LevelTestIntroScreen extends StatelessWidget {
                           borderRadius: BorderRadius.circular(10),
                         ),
                       ),
-                      onPressed: () {
+                      onPressed: () async {
                         HapticFeedback.mediumImpact();
+                        if (!AuthSession.hasAccessToken) {
+                          Navigator.pushAndRemoveUntil(
+                            context,
+                            MaterialPageRoute(builder: (context) => const LoginScreen()),
+                            (route) => false,
+                          );
+                          return;
+                        }
+                        final client = ApiClient(
+                          accessTokenProvider: AuthSession.accessToken,
+                          onUnauthorized: AuthSession.clear,
+                        );
+                        try {
+                          await LevelTestApi(client).skip();
+                        } catch (_) {
+                          if (!context.mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('레벨 테스트 건너뛰기 저장에 실패했어요. 다시 시도해주세요.')),
+                          );
+                          return;
+                        } finally {
+                          client.close();
+                        }
+                        if (!context.mounted) return;
                         Navigator.pushAndRemoveUntil(
                           context,
                           MaterialPageRoute(

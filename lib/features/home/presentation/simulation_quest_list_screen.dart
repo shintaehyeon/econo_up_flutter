@@ -3,9 +3,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../core/auth/auth_session.dart';
+import '../../../core/network/api_client.dart';
+import '../data/simulation_api.dart';
 import 'simulation_progress_screen.dart';
 
-class SimulationQuestListScreen extends StatelessWidget {
+class SimulationQuestListScreen extends StatefulWidget {
   const SimulationQuestListScreen({
     super.key,
     this.onBack,
@@ -22,6 +25,38 @@ class SimulationQuestListScreen extends StatelessWidget {
   static const Color disabledBorder = Color(0xFFE8E8E8);
   static const Color disabledText = Color(0xFFC0C0C0);
   static const Color disabledSubText = Color(0xFFD0D0D0);
+
+  @override
+  State<SimulationQuestListScreen> createState() => _SimulationQuestListScreenState();
+}
+
+class _SimulationQuestListScreenState extends State<SimulationQuestListScreen> {
+  late final ApiClient _client;
+  late final SimulationApi _simulationApi;
+  List<SimulationSummary> _simulations = const [];
+  bool _isLoading = true;
+  bool _isStarting = false;
+  String? _errorMessage;
+
+  static const Color brandInk = SimulationQuestListScreen.brandInk;
+  static const Color iconGrey = SimulationQuestListScreen.iconGrey;
+
+  @override
+  void initState() {
+    super.initState();
+    _client = ApiClient(
+      accessTokenProvider: AuthSession.accessToken,
+      onUnauthorized: AuthSession.clear,
+    );
+    _simulationApi = SimulationApi(_client);
+    _loadSimulations();
+  }
+
+  @override
+  void dispose() {
+    _client.close();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -42,7 +77,13 @@ class SimulationQuestListScreen extends StatelessWidget {
               children: [
                 _buildHeader(context, scale),
                 Expanded(
-                  child: SingleChildScrollView(
+                  child: _isLoading
+                      ? const Center(
+                          child: CircularProgressIndicator(color: SimulationQuestListScreen.brandInk),
+                        )
+                      : _errorMessage != null
+                          ? _ErrorPanel(message: _errorMessage!, onRetry: _loadSimulations)
+                          : SingleChildScrollView(
                     padding: EdgeInsets.fromLTRB(
                       24 * scale,
                       7 * scale,
@@ -69,34 +110,19 @@ class SimulationQuestListScreen extends StatelessWidget {
                           ),
                         ),
                         SizedBox(height: 10 * scale),
-                        _SimulationQuestCard(
-                          title: '청약 당첨 ! 그 이후',
-                          subtitle: 'Stage 2 완료 보상',
-                          emoji: '🏢',
-                          isUnlocked: true,
-                          scale: scale,
-                          onTap: () async {
-                            HapticFeedback.lightImpact();
-                            final result = await Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const SimulationProgressScreen(),
-                              ),
-                            );
-                            if (result is int && context.mounted) {
-                              Navigator.of(context).pop(result);
-                            }
-                          },
-                        ),
-                        SizedBox(height: 12 * scale),
-                        _SimulationQuestCard(
-                          title: '첫 대출 준비',
-                          subtitle: 'Stage 3 완료 후',
-                          emoji: '🏦',
-                          isUnlocked: false,
-                          scale: scale,
-                          onTap: HapticFeedback.lightImpact,
-                        ),
+                        for (var i = 0; i < _simulations.length; i++) ...[
+                          _SimulationQuestCard(
+                            title: _simulations[i].title,
+                            subtitle: _subtitleFor(_simulations[i]),
+                            emoji: _simulations[i].icon,
+                            isUnlocked: _simulations[i].unlocked,
+                            scale: scale,
+                            onTap: _simulations[i].unlocked
+                                ? () => _startSimulation(context, _simulations[i])
+                                : HapticFeedback.lightImpact,
+                          ),
+                          if (i != _simulations.length - 1) SizedBox(height: 12 * scale),
+                        ],
                       ],
                     ),
                   ),
@@ -123,8 +149,8 @@ class SimulationQuestListScreen extends StatelessWidget {
                 behavior: HitTestBehavior.opaque,
                 onTap: () {
                   HapticFeedback.lightImpact();
-                  if (onBack != null) {
-                    onBack!();
+                  if (widget.onBack != null) {
+                    widget.onBack!();
                     return;
                   }
                   if (Navigator.of(context).canPop()) {
@@ -155,6 +181,92 @@ class SimulationQuestListScreen extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Future<void> _loadSimulations() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final data = await _simulationApi.list();
+      if (!mounted) return;
+      setState(() {
+        _simulations = data;
+        _isLoading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+        _errorMessage = '시뮬레이션 목록을 불러오지 못했어요.';
+      });
+    }
+  }
+
+  Future<void> _startSimulation(BuildContext context, SimulationSummary simulation) async {
+    if (_isStarting) return;
+    HapticFeedback.lightImpact();
+    setState(() => _isStarting = true);
+
+    try {
+      final attempt = await _simulationApi.start(simulation.id);
+      if (!context.mounted) return;
+      final result = await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => SimulationProgressScreen(
+            simulation: simulation,
+            attemptId: attempt.attemptId,
+          ),
+        ),
+      );
+      if (result is int && context.mounted) {
+        Navigator.of(context).pop(result);
+      }
+    } catch (_) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('시뮬레이션을 시작하지 못했어요.')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isStarting = false);
+      }
+    }
+  }
+
+  String _subtitleFor(SimulationSummary simulation) {
+    if (!simulation.unlocked) {
+      return simulation.unlockStageId > 0 ? 'Stage ${simulation.unlockStageId} 완료 후' : '잠금';
+    }
+    if (simulation.status == 'COMPLETED') return '완료됨 · +${simulation.rewardXp} XP';
+    return '+${simulation.rewardXp} XP 보상';
+  }
+}
+
+class _ErrorPanel extends StatelessWidget {
+  const _ErrorPanel({
+    required this.message,
+    required this.onRetry,
+  });
+
+  final String message;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(message, style: const TextStyle(fontFamily: 'Pretendard')),
+          const SizedBox(height: 12),
+          TextButton(onPressed: onRetry, child: const Text('다시 불러오기')),
+        ],
       ),
     );
   }

@@ -3,15 +3,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../core/auth/auth_session.dart';
+import '../../../core/network/api_client.dart';
 import '../../../shared/widgets/econo_bottom_navigation_bar.dart';
+import '../data/simulation_api.dart';
 import 'simulation_contract_review_screen.dart';
 
 class SimulationDocumentSelectionScreen extends StatelessWidget {
   const SimulationDocumentSelectionScreen({
     super.key,
+    required this.attemptId,
     this.onBottomTabSelected,
   });
 
+  final int attemptId;
   final ValueChanged<int>? onBottomTabSelected;
 
   static const Color textDark = Color(0xFF111827);
@@ -92,18 +97,7 @@ class SimulationDocumentSelectionScreen extends StatelessWidget {
                         _PrimaryActionButton(
                           label: '확인! 다음 단계로 →',
                           scale: scale,
-                          onTap: () async {
-                            HapticFeedback.lightImpact();
-                            final result = await Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const SimulationContractReviewScreen(),
-                              ),
-                            );
-                            if (result is int && context.mounted) {
-                              Navigator.of(context).pop(result);
-                            }
-                          },
+                          onTap: () => _submitAndContinue(context),
                         ),
                         SizedBox(height: 31 * scale),
                       ],
@@ -214,6 +208,41 @@ class SimulationDocumentSelectionScreen extends StatelessWidget {
         return 3;
       case EconoBottomTab.my:
         return 4;
+    }
+  }
+
+  Future<void> _submitAndContinue(BuildContext context) async {
+    HapticFeedback.lightImpact();
+    final client = ApiClient(
+      accessTokenProvider: AuthSession.accessToken,
+      onUnauthorized: AuthSession.clear,
+    );
+    final api = SimulationApi(client);
+    try {
+      await api.submitAnswer(
+        attemptId: attemptId,
+        stepNo: 1,
+        answer: const {
+          'choiceIds': ['A', 'B', 'C', 'E', 'F'],
+        },
+      );
+      if (!context.mounted) return;
+      final result = await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => SimulationContractReviewScreen(attemptId: attemptId),
+        ),
+      );
+      if (result is int && context.mounted) {
+        Navigator.of(context).pop(result);
+      }
+    } catch (_) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('시뮬레이션 답안 저장에 실패했어요.')),
+      );
+    } finally {
+      client.close();
     }
   }
 }

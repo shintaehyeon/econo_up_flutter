@@ -4,6 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
+import '../../../core/auth/auth_session.dart';
+import '../../../core/network/api_client.dart';
+import '../data/wallet_api.dart';
+
 class BillPurchaseCenterScreen extends StatefulWidget {
   const BillPurchaseCenterScreen({
     super.key,
@@ -17,8 +21,44 @@ class BillPurchaseCenterScreen extends StatefulWidget {
 }
 
 class _BillPurchaseCenterScreenState extends State<BillPurchaseCenterScreen> {
+  late final ApiClient _client;
+  late final WalletApi _walletApi;
   int _selectedIdx = 0; // 0: 5개, 1: 10개, 2: 20개
   int _billCount = 5;
+  bool _isLoading = true;
+  bool _isPurchasing = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _client = ApiClient(
+      accessTokenProvider: AuthSession.accessToken,
+      onUnauthorized: AuthSession.clear,
+    );
+    _walletApi = WalletApi(_client);
+    _loadWallet();
+  }
+
+  @override
+  void dispose() {
+    _client.close();
+    super.dispose();
+  }
+
+  Future<void> _loadWallet() async {
+    try {
+      final wallet = await _walletApi.balance();
+      if (!mounted) return;
+      setState(() {
+        _billCount = wallet.billBalance;
+        _isLoading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+      _showMessage('지갑 정보를 불러오지 못했어요.');
+    }
+  }
 
   Widget _buildStackedBillIcon(int count) {
     if (count == 1) {
@@ -51,28 +91,38 @@ class _BillPurchaseCenterScreenState extends State<BillPurchaseCenterScreen> {
     }
   }
 
-  void _handlePayment() {
+  Future<void> _handlePayment() async {
+    if (_isPurchasing) return;
     int addedBills = 0;
     if (_selectedIdx == 0) addedBills = 5;
     if (_selectedIdx == 1) addedBills = 10;
     if (_selectedIdx == 2) addedBills = 20;
 
-    setState(() {
-      _billCount += addedBills;
-    });
+    setState(() => _isPurchasing = true);
+    try {
+      final wallet = await _walletApi.grantBills(addedBills);
+      if (!mounted) return;
+      setState(() => _billCount = wallet.billBalance);
+      _showMessage('지폐 $addedBills개가 충전되었습니다.');
+      widget.onClose();
+    } on ApiClientException catch (error) {
+      if (!mounted) return;
+      _showMessage(error.message);
+    } catch (_) {
+      if (!mounted) return;
+      _showMessage('지폐 충전에 실패했어요.');
+    } finally {
+      if (mounted) setState(() => _isPurchasing = false);
+    }
+  }
 
+  void _showMessage(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('지폐 $addedBills개가 성공적으로 충전되었습니다!'),
+        content: Text(message),
         duration: const Duration(seconds: 1),
       ),
     );
-
-    Future.delayed(const Duration(milliseconds: 800), () {
-      if (mounted) {
-        widget.onClose();
-      }
-    });
   }
 
   @override
@@ -129,6 +179,17 @@ class _BillPurchaseCenterScreenState extends State<BillPurchaseCenterScreen> {
                   ),
                   const SizedBox(height: 2),
                   // Subtitle: 현재 보유: 💵 _billCount개
+                  if (_isLoading)
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 38),
+                      child: Center(
+                        child: CircularProgressIndicator(
+                          color: Color(0xFF00EE94),
+                          strokeWidth: 2,
+                        ),
+                      ),
+                    )
+                  else ...[
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.center,
@@ -189,7 +250,7 @@ class _BillPurchaseCenterScreenState extends State<BillPurchaseCenterScreen> {
                   const SizedBox(height: 20),
                   // Bottom Button: 결제하기
                   GestureDetector(
-                    onTap: () {
+                    onTap: _isPurchasing ? null : () {
                       HapticFeedback.mediumImpact();
                       _handlePayment();
                     },
@@ -200,8 +261,8 @@ class _BillPurchaseCenterScreenState extends State<BillPurchaseCenterScreen> {
                         borderRadius: BorderRadius.circular(10),
                       ),
                       alignment: Alignment.center,
-                      child: const Text(
-                        '결제하기',
+                      child: Text(
+                        _isPurchasing ? '처리 중...' : '결제하기',
                         style: TextStyle(
                           fontFamily: 'Pretendard',
                           fontSize: 14,
@@ -212,6 +273,7 @@ class _BillPurchaseCenterScreenState extends State<BillPurchaseCenterScreen> {
                       ),
                     ),
                   ),
+                  ],
                   const SizedBox(height: 51),
                 ],
               ),

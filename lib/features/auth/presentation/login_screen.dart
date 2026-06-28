@@ -2,7 +2,6 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../../../core/theme/app_colors.dart';
 import '../../../core/constants/api_endpoints.dart';
 import '../../../core/auth/auth_session.dart';
 import '../../../core/network/api_client.dart';
@@ -17,6 +16,8 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
+  static const bool _showDevLogin = bool.fromEnvironment('ECONOUP_SHOW_DEV_LOGIN');
+
   final ApiClient _client = ApiClient();
   bool _termsAgreed = true; // 💡 피그마 시안과 동일하게 기본적으로 체크(true)된 상태로 시작합니다.
   bool _adminLoginLoading = false;
@@ -169,20 +170,22 @@ class _LoginScreenState extends State<LoginScreen> {
                     hasBorder: true,
                     onTap: () => _handleSocialLogin('GOOGLE'),
                   ),
-                  const SizedBox(height: 16),
-                  _buildSocialButton(
-                    label: _adminLoginLoading ? '로그인 중...' : 'Admin Test Login (테스트용)',
-                    bgColor: const Color(0xFF00EE94),
-                    textColor: const Color(0xFF053B2B),
-                    onTap: _handleAdminTestLogin,
-                    child: _adminLoginLoading
-                        ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2.4, color: Color(0xFF053B2B)),
-                          )
-                        : null,
-                  ),
+                  if (_showDevLogin) ...[
+                    const SizedBox(height: 16),
+                    _buildSocialButton(
+                      label: _adminLoginLoading ? '로그인 중...' : 'Admin Test Login (테스트용)',
+                      bgColor: const Color(0xFF00EE94),
+                      textColor: const Color(0xFF053B2B),
+                      onTap: _handleAdminTestLogin,
+                      child: _adminLoginLoading
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2.4, color: Color(0xFF053B2B)),
+                            )
+                          : null,
+                    ),
+                  ],
                 ],
               ),
 

@@ -1,13 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../../../shared/widgets/econo_bottom_navigation_bar.dart';
+import 'package:url_launcher/url_launcher.dart';
 
-class NewsDetailScreen extends StatelessWidget {
+import '../../../core/auth/auth_session.dart';
+import '../../../core/network/api_client.dart';
+import '../../../shared/widgets/econo_bottom_navigation_bar.dart';
+import '../data/daily_connect_api.dart';
+
+class NewsDetailScreen extends StatefulWidget {
   const NewsDetailScreen({
     super.key,
+    required this.article,
     this.onBottomTabSelected,
   });
 
+  final DailyArticle article;
   final ValueChanged<int>? onBottomTabSelected;
 
   static const Color brandInk = Color(0xFF122711);
@@ -16,7 +23,46 @@ class NewsDetailScreen extends StatelessWidget {
   static const Color textDark = Color(0xFF111827);
   static const Color textMuted = Color(0xFF6A7282);
   static const Color textLight = Color(0xFF9CA3AF);
-  static const String _newsImagePath = 'assets/images/news_fed_powell.png';
+  static const String _fallbackImagePath = 'assets/images/news_fed_powell.png';
+
+  @override
+  State<NewsDetailScreen> createState() => _NewsDetailScreenState();
+}
+
+class _NewsDetailScreenState extends State<NewsDetailScreen> {
+  late final ApiClient _client;
+  late final DailyConnectApi _api;
+
+  DailyArticleDetail? _detail;
+
+  DailyArticle get _article => _detail?.article ?? widget.article;
+
+  @override
+  void initState() {
+    super.initState();
+    _client = ApiClient(
+      accessTokenProvider: AuthSession.accessToken,
+      onUnauthorized: AuthSession.clear,
+    );
+    _api = DailyConnectApi(_client);
+    _loadDetail();
+  }
+
+  @override
+  void dispose() {
+    _client.close();
+    super.dispose();
+  }
+
+  Future<void> _loadDetail() async {
+    try {
+      final detail = await _api.article(widget.article.id);
+      if (!mounted) return;
+      setState(() => _detail = detail);
+    } catch (_) {
+      // 목록 응답만으로도 상세 화면을 그릴 수 있어, 상세 API 실패 시 화면은 유지합니다.
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -51,21 +97,7 @@ class NewsDetailScreen extends StatelessWidget {
                         SizedBox(height: 20 * scale),
                         _buildSectionTitle(scale),
                         SizedBox(height: 12 * scale),
-                        _buildTermCard(
-                          context: context,
-                          title: '기준금리',
-                          description: '중앙은행이 결정하는 시중금리의 기준',
-                          modalDefinition: '중앙은행이 결정하는 단기 금리의 기준점으로, 시중 금리 전반에 영향을 줍니다.',
-                          scale: scale,
-                        ),
-                        SizedBox(height: 8 * scale),
-                        _buildTermCard(
-                          context: context,
-                          title: '동결',
-                          description: '현행 금리 수준을 유지하는 것',
-                          modalDefinition: '금리나 정책을 현재 수준 그대로 유지해 당분간 변화를 주지 않는 것을 뜻합니다.',
-                          scale: scale,
-                        ),
+                        ..._buildTermCards(context, scale),
                         SizedBox(height: 14 * scale),
                         _buildLearnButton(scale),
                       ],
@@ -106,7 +138,7 @@ class NewsDetailScreen extends StatelessWidget {
                   height: 24 * scale,
                   child: Icon(
                     Icons.arrow_back_ios_new_rounded,
-                    color: textMuted,
+                    color: NewsDetailScreen.textMuted,
                     size: 18 * scale,
                   ),
                 ),
@@ -119,7 +151,7 @@ class NewsDetailScreen extends StatelessWidget {
                 fontFamily: 'Pretendard',
                 fontSize: 16 * scale,
                 fontWeight: FontWeight.w600,
-                color: brandInk,
+                color: NewsDetailScreen.brandInk,
                 height: 16 / 16,
               ),
             ),
@@ -131,7 +163,7 @@ class NewsDetailScreen extends StatelessWidget {
                 child: _BookmarkIcon(
                   width: 19 * scale,
                   height: 19 * scale,
-                  color: textMuted,
+                  color: NewsDetailScreen.textMuted,
                 ),
               ),
             ),
@@ -157,24 +189,24 @@ class NewsDetailScreen extends StatelessWidget {
                 borderRadius: BorderRadius.circular(16777216),
               ),
               child: Text(
-                '금리',
+                _categoryLabel(_article),
                 style: TextStyle(
                   fontFamily: 'Pretendard',
                   fontSize: 12 * scale,
                   fontWeight: FontWeight.w700,
-                  color: accentGreen,
+                  color: NewsDetailScreen.accentGreen,
                   height: 18 / 12,
                 ),
               ),
             ),
             SizedBox(width: 6 * scale),
             Text(
-              '2026.04.06',
+              _formatDate(_article.publishedAt),
               style: TextStyle(
                 fontFamily: 'Pretendard',
                 fontSize: 10 * scale,
                 fontWeight: FontWeight.w500,
-                color: textLight,
+                color: NewsDetailScreen.textLight,
                 height: 15 / 10,
               ),
             ),
@@ -191,7 +223,7 @@ class NewsDetailScreen extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            '미 연준, 기준금리 동결 결정',
+            _article.title,
             style: TextStyle(
               fontFamily: 'Pretendard',
               fontSize: 18 * scale,
@@ -202,7 +234,7 @@ class NewsDetailScreen extends StatelessWidget {
           ),
           SizedBox(height: 6 * scale),
           Text(
-            '시장 예상에 부합, 연내 인하 기대 유지',
+            _article.subtitle.isEmpty ? _article.sourceName : _article.subtitle,
             style: TextStyle(
               fontFamily: 'Pretendard',
               fontSize: 12 * scale,
@@ -217,6 +249,7 @@ class NewsDetailScreen extends StatelessWidget {
   }
 
   Widget _buildSummaryCard(double scale) {
+    final summary = _summaryLines();
     return Container(
       height: 124 * scale,
       padding: EdgeInsets.fromLTRB(20 * scale, 14 * scale, 18 * scale, 16 * scale),
@@ -241,16 +274,16 @@ class NewsDetailScreen extends StatelessWidget {
               fontFamily: 'Pretendard',
               fontSize: 12 * scale,
               fontWeight: FontWeight.w700,
-              color: themeGreen,
+              color: NewsDetailScreen.themeGreen,
               height: 18 / 12,
             ),
           ),
           SizedBox(height: 8 * scale),
-          _buildSummaryLine('① 연준은 기준금리를 현행 수준에서 동결했습니다.', scale),
+          _buildSummaryLine('① ${summary[0]}', scale),
           SizedBox(height: 6 * scale),
-          _buildSummaryLine('② 인플레이션 둔화를 확인하나 추가 근거가 필요합니다.', scale),
+          _buildSummaryLine('② ${summary[1]}', scale),
           SizedBox(height: 6 * scale),
-          _buildSummaryLine('③ 시장은 연내 1~2회 인하 가능성을 유지 중입니다.', scale),
+          _buildSummaryLine('③ ${summary[2]}', scale),
         ],
       ),
     );
@@ -265,42 +298,39 @@ class NewsDetailScreen extends StatelessWidget {
         fontFamily: 'Pretendard',
         fontSize: 11 * scale,
         fontWeight: FontWeight.w400,
-        color: textMuted,
+        color: NewsDetailScreen.textMuted,
         height: 16.5 / 11,
       ),
     );
   }
 
   Widget _buildImageCard(double scale) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(16 * scale),
-      child: SizedBox(
-        height: 193 * scale,
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            Image.asset(
-              _newsImagePath,
-              fit: BoxFit.cover,
-            ),
-            const DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Color(0x1A000000),
-                    Color(0xE6000000),
-                  ],
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: _openOriginal,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16 * scale),
+        child: SizedBox(
+          height: 193 * scale,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              _buildThumbnail(_article.thumbnailUrl),
+              const DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Color(0x1A000000),
+                      Color(0xE6000000),
+                    ],
+                  ),
                 ),
               ),
-            ),
-            Positioned(
-              left: 17 * scale,
-              bottom: 18 * scale,
-              child: GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: HapticFeedback.lightImpact,
+              Positioned(
+                left: 17 * scale,
+                bottom: 18 * scale,
                 child: Container(
                   width: 95 * scale,
                   height: 22 * scale,
@@ -332,8 +362,8 @@ class NewsDetailScreen extends StatelessWidget {
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -350,13 +380,40 @@ class NewsDetailScreen extends StatelessWidget {
             fontFamily: 'Pretendard',
             fontSize: 14 * scale,
             fontWeight: FontWeight.w700,
-            color: brandInk,
+            color: NewsDetailScreen.brandInk,
             height: 17 / 14,
             letterSpacing: -0.439453 * scale,
           ),
         ),
       ),
     );
+  }
+
+  List<Widget> _buildTermCards(BuildContext context, double scale) {
+    final terms = _detail?.terms.where((term) => term.name.isNotEmpty).toList() ?? const <DailyTerm>[];
+    final displayTerms = terms.isEmpty
+        ? [
+            DailyTerm(
+              id: _article.id,
+              name: _article.term.isEmpty ? _article.title : _article.term,
+              definition: _article.subtitle.isEmpty ? '데일리 커넥트 핵심 용어입니다.' : _article.subtitle,
+              relatedStageId: 0,
+            ),
+          ]
+        : terms.take(2).toList();
+
+    return [
+      for (final term in displayTerms) ...[
+        _buildTermCard(
+          context: context,
+          title: term.name,
+          description: term.definition,
+          modalDefinition: term.definition,
+          scale: scale,
+        ),
+        SizedBox(height: 8 * scale),
+      ],
+    ];
   }
 
   Widget _buildTermCard({
@@ -393,7 +450,7 @@ class NewsDetailScreen extends StatelessWidget {
               width: 4 * scale,
               height: 37 * scale,
               decoration: BoxDecoration(
-                color: themeGreen,
+                color: NewsDetailScreen.themeGreen,
                 borderRadius: BorderRadius.circular(16777216),
               ),
             ),
@@ -409,7 +466,7 @@ class NewsDetailScreen extends StatelessWidget {
                       fontFamily: 'Pretendard',
                       fontSize: 14 * scale,
                       fontWeight: FontWeight.w700,
-                      color: textMuted,
+                      color: NewsDetailScreen.textMuted,
                       height: 18 / 14,
                     ),
                   ),
@@ -421,7 +478,7 @@ class NewsDetailScreen extends StatelessWidget {
                       fontFamily: 'Pretendard',
                       fontSize: 12 * scale,
                       fontWeight: FontWeight.w500,
-                      color: textMuted,
+                      color: NewsDetailScreen.textMuted,
                       height: 14 / 12,
                     ),
                   ),
@@ -442,7 +499,7 @@ class NewsDetailScreen extends StatelessWidget {
                   fontFamily: 'Pretendard',
                   fontSize: 12 * scale,
                   fontWeight: FontWeight.w500,
-                  color: textMuted,
+                  color: NewsDetailScreen.textMuted,
                   height: 14 / 12,
                 ),
               ),
@@ -454,6 +511,7 @@ class NewsDetailScreen extends StatelessWidget {
   }
 
   Widget _buildLearnButton(double scale) {
+    final stageId = _detail?.relatedStageId ?? 0;
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: HapticFeedback.lightImpact,
@@ -462,7 +520,7 @@ class NewsDetailScreen extends StatelessWidget {
         alignment: Alignment.center,
         decoration: BoxDecoration(
           color: const Color(0xFFF2FFFA),
-          border: Border.all(color: themeGreen),
+          border: Border.all(color: NewsDetailScreen.themeGreen),
           borderRadius: BorderRadius.circular(16 * scale),
         ),
         child: Column(
@@ -475,7 +533,7 @@ class NewsDetailScreen extends StatelessWidget {
                 Icon(
                   Icons.menu_book_rounded,
                   size: 15 * scale,
-                  color: accentGreen,
+                  color: NewsDetailScreen.accentGreen,
                 ),
                 SizedBox(width: 4 * scale),
                 Text(
@@ -484,7 +542,7 @@ class NewsDetailScreen extends StatelessWidget {
                     fontFamily: 'Pretendard',
                     fontSize: 14 * scale,
                     fontWeight: FontWeight.w600,
-                    color: accentGreen,
+                    color: NewsDetailScreen.accentGreen,
                     height: 17 / 14,
                   ),
                 ),
@@ -492,13 +550,13 @@ class NewsDetailScreen extends StatelessWidget {
             ),
             SizedBox(height: 2 * scale),
             Text(
-              '경제 상식 > Unit 1. 금리 →',
+              stageId > 0 ? '관련 Stage $stageId →' : '경제 상식 > Unit 1. 금리 →',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontFamily: 'Pretendard',
                 fontSize: 10 * scale,
                 fontWeight: FontWeight.w400,
-                color: textMuted,
+                color: NewsDetailScreen.textMuted,
                 height: 15 / 10,
               ),
             ),
@@ -506,6 +564,45 @@ class NewsDetailScreen extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Widget _buildThumbnail(String url) {
+    if (url.trim().isEmpty) {
+      return Image.asset(
+        NewsDetailScreen._fallbackImagePath,
+        fit: BoxFit.cover,
+      );
+    }
+    return Image.network(
+      url,
+      fit: BoxFit.cover,
+      errorBuilder: (_, __, ___) {
+        return Image.asset(
+          NewsDetailScreen._fallbackImagePath,
+          fit: BoxFit.cover,
+        );
+      },
+    );
+  }
+
+  Future<void> _openOriginal() async {
+    HapticFeedback.lightImpact();
+    final url = (_detail?.sourceUrl.isNotEmpty == true ? _detail!.sourceUrl : _article.youtubeUrl).trim();
+    final uri = Uri.tryParse(url);
+    if (uri == null || !uri.hasScheme) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('연결할 원문 링크가 없습니다.')),
+      );
+      return;
+    }
+
+    final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!opened && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('원문 링크를 열 수 없습니다.')),
+      );
+    }
   }
 
   void _showTermExplanation({
@@ -541,7 +638,7 @@ class NewsDetailScreen extends StatelessWidget {
     }
 
     Navigator.pop(context);
-    onBottomTabSelected?.call(_indexForBottomTab(tab));
+    widget.onBottomTabSelected?.call(_indexForBottomTab(tab));
   }
 
   int _indexForBottomTab(EconoBottomTab tab) {
@@ -557,6 +654,38 @@ class NewsDetailScreen extends StatelessWidget {
       case EconoBottomTab.my:
         return 4;
     }
+  }
+
+  List<String> _summaryLines() {
+    final lines = _article.summary.where((line) => line.trim().isNotEmpty).toList();
+    while (lines.length < 3) {
+      lines.add(_article.subtitle.isEmpty ? '${_article.title} 내용을 확인해보세요.' : _article.subtitle);
+    }
+    return lines.take(3).toList();
+  }
+
+  String _categoryLabel(DailyArticle article) {
+    switch (article.categoryCode.toUpperCase()) {
+      case 'ECONOMY':
+        return '경제';
+      case 'SAVING':
+        return '저축';
+      case 'STOCK':
+        return '주식';
+      case 'REAL_ESTATE':
+        return '부동산';
+      case 'TAX':
+        return '세금';
+      default:
+        return article.term.isEmpty ? '경제' : article.term;
+    }
+  }
+
+  String _formatDate(String value) {
+    final parsed = DateTime.tryParse(value);
+    if (parsed == null) return value;
+    final local = parsed.toLocal();
+    return '${local.year}.${local.month.toString().padLeft(2, '0')}.${local.day.toString().padLeft(2, '0')}';
   }
 }
 

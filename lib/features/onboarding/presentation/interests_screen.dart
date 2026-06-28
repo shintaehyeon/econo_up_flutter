@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/constants/api_endpoints.dart';
+import '../../../core/auth/auth_session.dart';
+import '../../../core/network/api_client.dart';
 import '../../level_test/presentation/level_test_intro_screen.dart';
 
 class InterestsScreen extends StatefulWidget {
@@ -15,8 +17,11 @@ class InterestsScreen extends StatefulWidget {
 }
 
 class _InterestsScreenState extends State<InterestsScreen> {
+  late final ApiClient _client;
+
   int _currentStep = 1; // 1 ~ 4 단계 (실질적인 온보딩 2/6 ~ 5/6 단계에 매핑)
   final int _totalSteps = 4;
+  bool _isSubmitting = false;
 
   // 선택된 상태 변수들
   final List<String> _selectedInterests = [];
@@ -57,6 +62,21 @@ class _InterestsScreenState extends State<InterestsScreen> {
     {'code': 'NONE', 'emoji': '❌', 'title': '해당없음'},
   ];
 
+  @override
+  void initState() {
+    super.initState();
+    _client = ApiClient(
+      accessTokenProvider: AuthSession.accessToken,
+      onUnauthorized: AuthSession.clear,
+    );
+  }
+
+  @override
+  void dispose() {
+    _client.close();
+    super.dispose();
+  }
+
   void _nextStep() {
     if (_currentStep < _totalSteps) {
       HapticFeedback.lightImpact();
@@ -80,6 +100,7 @@ class _InterestsScreenState extends State<InterestsScreen> {
   }
 
   Future<void> _submitSurvey() async {
+    if (_isSubmitting) return;
     HapticFeedback.mediumImpact();
     // 💡 백엔드 명세서 PUT API 데이터 연동 매핑
     final interestsPayload = {"categoryCodes": _selectedInterests};
@@ -101,16 +122,49 @@ class _InterestsScreenState extends State<InterestsScreen> {
     debugPrint('Submitting Study Style: $studyStylePayload to ${ApiEndpoints.onboardingStudyStyle}');
     debugPrint('Submitting Failure Reason: $failureReasonPayload to ${ApiEndpoints.onboardingFailureReason}');
 
+    setState(() => _isSubmitting = true);
+    try {
+      await _client.put<Map<String, dynamic>>(
+        ApiEndpoints.onboardingInterests,
+        body: interestsPayload,
+      );
+      await _client.put<Map<String, dynamic>>(
+        ApiEndpoints.onboardingGoal,
+        body: goalPayload,
+      );
+      await _client.put<Map<String, dynamic>>(
+        ApiEndpoints.onboardingStudyStyle,
+        body: studyStylePayload,
+      );
+      await _client.put<Map<String, dynamic>>(
+        ApiEndpoints.onboardingFailureReason,
+        body: failureReasonPayload,
+      );
 
-
-    // 다음 화면: 레벨테스트 선택 화면(EC-0007)으로 이동
-    if (mounted) {
+      if (!mounted) return;
       Navigator.push(
         context,
         MaterialPageRoute(
           builder: (context) => LevelTestIntroScreen(nickname: widget.nickname),
         ),
       );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text(
+            '온보딩 저장에 실패했어요. 서버 연결을 확인해주세요.',
+            style: TextStyle(fontFamily: 'Pretendard', fontWeight: FontWeight.w600),
+          ),
+          backgroundColor: AppColors.danger,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+      }
     }
   }
 
@@ -689,82 +743,6 @@ class _InterestsScreenState extends State<InterestsScreen> {
                   fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                   color: isSelected ? const Color(0xFF0DE593) : const Color(0xFF111827),
                   height: 16 / 13,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  // 공용 세로형 리스트 타일 컴포넌트
-  Widget _buildSelectionTile({
-    required String title,
-    required String desc,
-    required bool isSelected,
-    required VoidCallback onTap,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12.0),
-      child: SizedBox(
-        height: 72,
-        width: double.infinity,
-        child: OutlinedButton(
-          style: OutlinedButton.styleFrom(
-            backgroundColor: isSelected ? const Color(0xFFF2FFFA) : Colors.white,
-            side: BorderSide(
-              color: isSelected ? const Color(0xFF00EE94) : const Color(0xFFD0D5E0),
-              width: isSelected ? 2.0 : 1.0,
-            ),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
-            ),
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-          ),
-          onPressed: onTap,
-          child: Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        fontFamily: 'Pretendard',
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF111827),
-                        height: 20 / 14,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      desc,
-                      style: const TextStyle(
-                        fontFamily: 'Pretendard',
-                        fontSize: 11,
-                        fontWeight: FontWeight.w400,
-                        color: Color(0xFF9CA3AF),
-                        height: 15 / 11,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              Container(
-                width: 18,
-                height: 18,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: isSelected ? const Color(0xFF00EE94) : const Color(0xFFD0D5E0),
-                    width: isSelected ? 5.5 : 1.0,
-                  ),
-                  color: Colors.white,
                 ),
               ),
             ],

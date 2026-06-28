@@ -6,17 +6,25 @@ import '../../home/presentation/home_screen.dart';
 class LevelTestResultScreen extends StatelessWidget {
   final int score; // 0 ~ 100
   final String nickname;
+  final int? correctCount;
+  final int? totalCount;
+  final String? resultTitle;
+  final String? recommendedCategoryCode;
 
   const LevelTestResultScreen({
     super.key,
     required this.score,
     this.nickname = '경제왕',
+    this.correctCount,
+    this.totalCount,
+    this.resultTitle,
+    this.recommendedCategoryCode,
   });
 
   @override
   Widget build(BuildContext context) {
-    int correctCount = (score / 10).round();
-    double progressRatio = correctCount / 10.0;
+    final answeredTotal = totalCount == null || totalCount! <= 0 ? 10 : totalCount!;
+    final solvedCount = correctCount ?? (score * answeredTotal / 100).round();
 
     // 레벨 판단 로직
     String levelName;
@@ -26,19 +34,19 @@ class LevelTestResultScreen extends StatelessWidget {
     IconData iconData;
 
     if (score >= 80) {
-      levelName = '프로 골드 주주';
+      levelName = resultTitle?.isNotEmpty == true ? resultTitle! : '프로 골드 주주';
       description = '완벽한 경제 지식을 갖추셨네요!';
       levelColor = AppColors.gold;
       levelBg = const Color(0xFFFFFDF2);
       iconData = Icons.workspace_premium_rounded;
     } else if (score >= 50) {
-      levelName = '성장하는 실버 투자자';
+      levelName = resultTitle?.isNotEmpty == true ? resultTitle! : '성장하는 실버 투자자';
       description = '기초적인 경제 흐름을 잘 이해하고 계십니다!';
       levelColor = AppColors.brand;
       levelBg = const Color(0xFFF2FFFA);
       iconData = Icons.stars_rounded;
     } else {
-      levelName = '기초 탄탄 필요형';
+      levelName = resultTitle?.isNotEmpty == true ? resultTitle! : '기초 탄탄 필요형';
       description = '경제 기본기를 다질 시간이에요!';
       levelColor = const Color(0xFF0DE593); // Figma spec
       levelBg = const Color(0xFFF2FFFA);
@@ -131,7 +139,7 @@ class LevelTestResultScreen extends StatelessWidget {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          '$correctCount / 10',
+                          '$solvedCount / $answeredTotal',
                           style: const TextStyle(
                             fontFamily: 'Pretendard',
                             fontSize: 18,
@@ -169,7 +177,7 @@ class LevelTestResultScreen extends StatelessWidget {
                             child: _buildRecommendedCard(
                               emoji: '📚',
                               title: '경제 상식',
-                              subtitle: 'Unit 1. 금리',
+                              subtitle: _recommendedSubtitle(),
                             ),
                           ),
                           const SizedBox(width: 12),
@@ -230,6 +238,17 @@ class LevelTestResultScreen extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  String _recommendedSubtitle() {
+    final code = recommendedCategoryCode?.toUpperCase();
+    return switch (code) {
+      'SAVING' => 'Unit 1. 현금 관리',
+      'STOCK' => 'Unit 1. 주식 기초',
+      'REAL_ESTATE' => 'Unit 1. 부동산 기초',
+      'TAX' => 'Unit 1. 세금 기초',
+      _ => 'Unit 1. 금리',
+    };
   }
 
   Widget _buildRecommendedCard({

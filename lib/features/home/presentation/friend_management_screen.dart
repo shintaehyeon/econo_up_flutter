@@ -5,6 +5,9 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../core/auth/auth_session.dart';
+import '../../../core/constants/api_endpoints.dart';
+import '../../../core/network/api_client.dart';
 import '../../../shared/widgets/econo_bottom_navigation_bar.dart';
 
 class FriendManagementScreen extends StatefulWidget {
@@ -31,19 +34,21 @@ class FriendManagementScreen extends StatefulWidget {
   static const Color selectedBg = Color(0xFFF2FFFA);
   static const Color fireOrange = Color(0xFFFF6900);
 
-  static const List<_FriendItem> _friends = [
-    _FriendItem(name: '김준서', description: '골드 리그 · 14일 연속', streak: true),
-    _FriendItem(name: '박태현', description: '실버 리그 · 5일 연속'),
-    _FriendItem(name: '이수아', description: '브론즈 리그 · 오늘 미접속'),
-  ];
-
   @override
   State<FriendManagementScreen> createState() => _FriendManagementScreenState();
 }
 
 class _FriendManagementScreenState extends State<FriendManagementScreen> {
   final TextEditingController _searchController = TextEditingController();
+  late final ApiClient _client;
+
+  List<_FriendItem> _friends = const [];
+  List<_FriendItem> _searchResults = const [];
+  List<_FriendRequestItem> _requests = const [];
   String _appliedQuery = '';
+  bool _isLoading = true;
+  bool _isSearching = false;
+  bool _isSubmitting = false;
 
   static const Color brandInk = FriendManagementScreen.brandInk;
   static const Color textDark = FriendManagementScreen.textDark;
@@ -57,17 +62,20 @@ class _FriendManagementScreenState extends State<FriendManagementScreen> {
 
   List<_FriendItem> get _visibleFriends {
     final query = _appliedQuery.trim();
-    if (query.isEmpty) {
-      return FriendManagementScreen._friends;
-    }
-    return FriendManagementScreen._friends
-        .where((friend) => friend.name.contains(query))
-        .toList(growable: false);
+    return query.isEmpty ? _friends : _searchResults;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _client = ApiClient(accessTokenProvider: AuthSession.accessToken);
+    _loadFriends();
   }
 
   @override
   void dispose() {
     _searchController.dispose();
+    _client.close();
     super.dispose();
   }
 
@@ -236,87 +244,162 @@ class _FriendManagementScreenState extends State<FriendManagementScreen> {
 
   Widget _buildFriendsSection(BuildContext context, double scale) {
     final friends = _visibleFriends;
+    final isSearchMode = _appliedQuery.trim().isNotEmpty;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _SectionTitle(text: '친구 목록 ${friends.length}명', scale: scale),
+        _SectionTitle(text: isSearchMode ? '검색 결과 ${friends.length}명' : '친구 목록 ${friends.length}명', scale: scale),
         SizedBox(height: 10 * scale),
-        for (var i = 0; i < friends.length; i++) ...[
-          _FriendCard(
-            item: friends[i],
+        if (_isLoading || _isSearching)
+          _StatusCard(
+            text: _isSearching ? '친구를 검색하고 있어요.' : '친구 목록을 불러오고 있어요.',
             scale: scale,
-            onDelete: () => _showDeleteDialog(context),
+          )
+        else if (friends.isEmpty)
+          _StatusCard(
+            text: isSearchMode ? '검색 결과가 없습니다.' : '아직 등록된 친구가 없습니다.',
+            scale: scale,
+          )
+        else
+          for (var i = 0; i < friends.length; i++) ...[
+            _FriendCard(
+              item: friends[i],
+              scale: scale,
+              actionLabel: isSearchMode ? _friendActionLabel(friends[i]) : null,
+              onAction: isSearchMode ? () => _requestFriend(friends[i]) : null,
+              onDelete: isSearchMode ? null : () => _showDeleteDialog(context, friends[i]),
+            ),
+            if (i != friends.length - 1) SizedBox(height: 10 * scale),
+          ],
+      ],
+    );
+  }
+
+  Future<void> _loadFriends() async {
+    setState(() {
+      _isLoading = true;
+    });
+    try {
+      final data = await _client.get<Map<String, dynamic>>(ApiEndpoints.friends);
+      if (!mounted) return;
+      setState(() {
+        _friends = _asList(data['friends']).map(_FriendItem.fromUserJson).toList(growable: false);
+        _requests = _asList(data['pendingRequests']).map(_FriendRequestItem.fromJson).toList(growable: false);
+        _isLoading = false;
+      });
+    } on Exception catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _friends = const [];
+        _requests = const [];
+        _isLoading = false;
+      });
+      _showSnackBar('친구 목록을 불러오지 못했습니다. $error');
+    }
+  }
+
+  Future<void> _applySearch() async {
+    HapticFeedback.lightImpact();
+    FocusManager.instance.primaryFocus?.unfocus();
+    final query = _searchController.text.trim();
+    if (query.isEmpty) {
+      setState(() {
+        _appliedQuery = '';
+        _searchResults = const [];
+      });
+      return;
+    }
+    if (query.length < 2) {
+      _showSnackBar('닉네임은 2글자 이상 입력해주세요.');
+      return;
+    }
+    setState(() {
+      _appliedQuery = query;
+      _isSearching = true;
+    });
+    try {
+      final data = await _client.get<Map<String, dynamic>>(
+        ApiEndpoints.friendSearch,
+        query: {'nickname': query},
+      );
+      if (!mounted) return;
+      setState(() {
+        _searchResults = _asList(data['users']).map(_FriendItem.fromUserJson).toList(growable: false);
+        _isSearching = false;
+      });
+    } on Exception catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _searchResults = const [];
+        _isSearching = false;
+      });
+      _showSnackBar('친구 검색에 실패했습니다. $error');
+    }
+  }
+
+  Widget _buildRequestsSection(double scale) {
+    if (_isLoading || _requests.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _SectionTitle(text: '받은 친구 요청 ${_requests.length}개', scale: scale),
+        SizedBox(height: 10 * scale),
+        for (var i = 0; i < _requests.length; i++) ...[
+          Container(
+            height: 73 * scale,
+            padding: EdgeInsets.all(16 * scale),
+            decoration: BoxDecoration(
+              color: selectedBg,
+              border: Border.all(color: themeGreen, width: 1 * scale),
+              borderRadius: BorderRadius.circular(10 * scale),
+            ),
+            child: Row(
+              children: [
+                _Avatar(scale: scale),
+                SizedBox(width: 8 * scale),
+                Expanded(
+                  child: _FriendTextBlock(
+                    name: _requests[i].name,
+                    description: _requests[i].description,
+                    scale: scale,
+                  ),
+                ),
+                SizedBox(width: 8 * scale),
+                Row(
+                  children: [
+                    _SmallPillButton(
+                      label: '거절',
+                      width: 49.18,
+                      backgroundColor: chipGrey,
+                      textColor: textButton,
+                      scale: scale,
+                      onTap: () => _respondFriendRequest(_requests[i], false),
+                    ),
+                    SizedBox(width: 5 * scale),
+                    _SmallPillButton(
+                      label: '수락',
+                      width: 49.18,
+                      backgroundColor: themeGreen,
+                      textColor: textButton,
+                      scale: scale,
+                      onTap: () => _respondFriendRequest(_requests[i], true),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
-          if (i != friends.length - 1) SizedBox(height: 10 * scale),
+          if (i != _requests.length - 1) SizedBox(height: 10 * scale),
         ],
       ],
     );
   }
 
-  void _applySearch() {
-    HapticFeedback.lightImpact();
-    FocusManager.instance.primaryFocus?.unfocus();
-    setState(() {
-      _appliedQuery = _searchController.text;
-    });
-  }
-
-  Widget _buildRequestsSection(double scale) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        _SectionTitle(text: '받은 친구 요청 1개', scale: scale),
-        SizedBox(height: 10 * scale),
-        Container(
-          height: 73 * scale,
-          padding: EdgeInsets.all(16 * scale),
-          decoration: BoxDecoration(
-            color: selectedBg,
-            border: Border.all(color: themeGreen, width: 1 * scale),
-            borderRadius: BorderRadius.circular(10 * scale),
-          ),
-          child: Row(
-            children: [
-              _Avatar(scale: scale),
-              SizedBox(width: 8 * scale),
-              Expanded(
-                child: _FriendTextBlock(
-                  name: '경제마스터',
-                  description: '친구 요청 보냄',
-                  scale: scale,
-                ),
-              ),
-              SizedBox(width: 8 * scale),
-              Row(
-                children: [
-                  _SmallPillButton(
-                    label: '거절',
-                    width: 49.18,
-                    backgroundColor: chipGrey,
-                    textColor: textButton,
-                    scale: scale,
-                    onTap: HapticFeedback.lightImpact,
-                  ),
-                  SizedBox(width: 5 * scale),
-                  _SmallPillButton(
-                    label: '수락',
-                    width: 49.18,
-                    backgroundColor: themeGreen,
-                    textColor: textButton,
-                    scale: scale,
-                    onTap: HapticFeedback.lightImpact,
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  void _showDeleteDialog(BuildContext context) {
+  void _showDeleteDialog(BuildContext context, _FriendItem friend) {
     showDialog<void>(
       context: context,
       barrierColor: const Color(0x66000000),
@@ -328,10 +411,107 @@ class _FriendManagementScreenState extends State<FriendManagementScreen> {
           insetPadding: EdgeInsets.symmetric(horizontal: 20 * scale),
           backgroundColor: Colors.transparent,
           elevation: 0,
-          child: FriendDeleteConfirmDialog(scale: scale),
+          child: FriendDeleteConfirmDialog(
+            scale: scale,
+            onConfirm: () => _deleteFriend(friend),
+          ),
         );
       },
     );
+  }
+
+  String _friendActionLabel(_FriendItem friend) {
+    return switch (friend.friendStatus) {
+      'ACCEPTED' => '친구',
+      'PENDING' => '대기',
+      _ => '요청',
+    };
+  }
+
+  Future<void> _requestFriend(_FriendItem friend) async {
+    if (_isSubmitting || friend.friendStatus == 'ACCEPTED' || friend.friendStatus == 'PENDING') {
+      return;
+    }
+    HapticFeedback.lightImpact();
+    setState(() {
+      _isSubmitting = true;
+    });
+    try {
+      await _client.post<Map<String, dynamic>>(
+        ApiEndpoints.friendRequests,
+        body: {'receiverId': friend.id},
+      );
+      if (!mounted) return;
+      setState(() {
+        _searchResults = _searchResults
+            .map((item) => item.id == friend.id ? item.copyWith(friendStatus: 'PENDING') : item)
+            .toList(growable: false);
+        _isSubmitting = false;
+      });
+      _showSnackBar('친구 요청을 보냈습니다.');
+    } on Exception catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _isSubmitting = false;
+      });
+      _showSnackBar('친구 요청에 실패했습니다. $error');
+    }
+  }
+
+  Future<void> _respondFriendRequest(_FriendRequestItem request, bool accept) async {
+    if (_isSubmitting) return;
+    HapticFeedback.lightImpact();
+    setState(() {
+      _isSubmitting = true;
+    });
+    try {
+      final path = accept
+          ? ApiEndpoints.acceptFriendRequest(request.requestId)
+          : ApiEndpoints.rejectFriendRequest(request.requestId);
+      await _client.post<Map<String, dynamic>>(path);
+      if (!mounted) return;
+      setState(() {
+        _requests = _requests.where((item) => item.requestId != request.requestId).toList(growable: false);
+        _isSubmitting = false;
+      });
+      await _loadFriends();
+      _showSnackBar(accept ? '친구 요청을 수락했습니다.' : '친구 요청을 거절했습니다.');
+    } on Exception catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _isSubmitting = false;
+      });
+      _showSnackBar('친구 요청 처리에 실패했습니다. $error');
+    }
+  }
+
+  Future<void> _deleteFriend(_FriendItem friend) async {
+    if (_isSubmitting) return;
+    setState(() {
+      _isSubmitting = true;
+    });
+    try {
+      await _client.delete<Map<String, dynamic>>(ApiEndpoints.deleteFriend(friend.id));
+      if (!mounted) return;
+      setState(() {
+        _friends = _friends.where((item) => item.id != friend.id).toList(growable: false);
+        _isSubmitting = false;
+      });
+      _showSnackBar('친구를 삭제했습니다.');
+    } on Exception catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _isSubmitting = false;
+      });
+      _showSnackBar('친구 삭제에 실패했습니다. $error');
+    }
+  }
+
+  void _showSnackBar(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
   }
 
   int _indexForBottomTab(EconoBottomTab tab) {
@@ -347,6 +527,40 @@ class _FriendManagementScreenState extends State<FriendManagementScreen> {
       case EconoBottomTab.my:
         return 4;
     }
+  }
+}
+
+class _StatusCard extends StatelessWidget {
+  const _StatusCard({
+    required this.text,
+    required this.scale,
+  });
+
+  final String text;
+  final double scale;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 73 * scale,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(color: FriendManagementScreen.borderGrey, width: 1 * scale),
+        borderRadius: BorderRadius.circular(10 * scale),
+      ),
+      child: Text(
+        text,
+        textAlign: TextAlign.center,
+        style: TextStyle(
+          fontFamily: 'Pretendard',
+          fontSize: 12 * scale,
+          fontWeight: FontWeight.w500,
+          color: FriendManagementScreen.textMuted,
+          height: 14 / 12,
+        ),
+      ),
+    );
   }
 }
 
@@ -385,12 +599,16 @@ class _FriendCard extends StatelessWidget {
   const _FriendCard({
     required this.item,
     required this.scale,
-    required this.onDelete,
+    this.onDelete,
+    this.actionLabel,
+    this.onAction,
   });
 
   final _FriendItem item;
   final double scale;
-  final VoidCallback onDelete;
+  final VoidCallback? onDelete;
+  final String? actionLabel;
+  final VoidCallback? onAction;
 
   @override
   Widget build(BuildContext context) {
@@ -415,22 +633,32 @@ class _FriendCard extends StatelessWidget {
             ),
           ),
           SizedBox(width: 8 * scale),
-          GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: () {
-              HapticFeedback.lightImpact();
-              onDelete();
-            },
-            child: SizedBox(
-              width: 28 * scale,
-              height: 28 * scale,
-              child: Icon(
-                Icons.delete_outline_rounded,
-                size: 22 * scale,
-                color: FriendManagementScreen.iconGrey,
+          if (actionLabel != null)
+            _SmallPillButton(
+              label: actionLabel!,
+              width: 49.18,
+              backgroundColor: actionLabel == '요청' ? FriendManagementScreen.themeGreen : FriendManagementScreen.chipGrey,
+              textColor: FriendManagementScreen.textButton,
+              scale: scale,
+              onTap: onAction ?? HapticFeedback.lightImpact,
+            )
+          else
+            GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () {
+                HapticFeedback.lightImpact();
+                onDelete?.call();
+              },
+              child: SizedBox(
+                width: 28 * scale,
+                height: 28 * scale,
+                child: Icon(
+                  Icons.delete_outline_rounded,
+                  size: 22 * scale,
+                  color: FriendManagementScreen.iconGrey,
+                ),
               ),
             ),
-          ),
         ],
       ),
     );
@@ -573,9 +801,11 @@ class FriendDeleteConfirmDialog extends StatelessWidget {
   const FriendDeleteConfirmDialog({
     super.key,
     required this.scale,
+    required this.onConfirm,
   });
 
   final double scale;
+  final VoidCallback onConfirm;
 
   static const Color textDark = Color(0xFF111827);
   static const Color textMuted = Color(0xFF9CA3AF);
@@ -674,7 +904,10 @@ class FriendDeleteConfirmDialog extends StatelessWidget {
                     textColor: buttonText,
                     fontWeight: FontWeight.w700,
                     scale: scale,
-                    onTap: () => Navigator.of(context).pop(),
+                    onTap: () {
+                      Navigator.of(context).pop();
+                      onConfirm();
+                    },
                   ),
                 ),
               ],
@@ -863,12 +1096,80 @@ class _SadFacePainter extends CustomPainter {
 
 class _FriendItem {
   const _FriendItem({
+    required this.id,
     required this.name,
     required this.description,
     this.streak = false,
+    this.friendStatus = 'NONE',
   });
 
+  final int id;
   final String name;
   final String description;
   final bool streak;
+  final String friendStatus;
+
+  factory _FriendItem.fromUserJson(Object? raw) {
+    final json = raw is Map ? raw : const <String, Object?>{};
+    final streakDays = _asInt(json['streakDays']);
+    final totalXp = _asInt(json['totalXp']);
+    return _FriendItem(
+      id: _asInt(json['id']),
+      name: _asString(json['nickname'], fallback: '이름 없음'),
+      description: totalXp > 0 ? '$totalXp XP · $streakDays일 연속' : '$streakDays일 연속',
+      streak: streakDays >= 7,
+      friendStatus: _asString(json['friendStatus'], fallback: 'NONE'),
+    );
+  }
+
+  _FriendItem copyWith({
+    String? friendStatus,
+  }) {
+    return _FriendItem(
+      id: id,
+      name: name,
+      description: description,
+      streak: streak,
+      friendStatus: friendStatus ?? this.friendStatus,
+    );
+  }
+}
+
+class _FriendRequestItem {
+  const _FriendRequestItem({
+    required this.requestId,
+    required this.name,
+    required this.description,
+  });
+
+  final int requestId;
+  final String name;
+  final String description;
+
+  factory _FriendRequestItem.fromJson(Object? raw) {
+    final json = raw is Map ? raw : const <String, Object?>{};
+    final user = json['user'] is Map ? json['user'] as Map : const <String, Object?>{};
+    return _FriendRequestItem(
+      requestId: _asInt(json['requestId']),
+      name: _asString(user['nickname'], fallback: '이름 없음'),
+      description: '친구 요청 보냄',
+    );
+  }
+}
+
+List<Object?> _asList(Object? value) {
+  return value is List ? value : const [];
+}
+
+int _asInt(Object? value) {
+  if (value is int) return value;
+  if (value is num) return value.toInt();
+  if (value is String) return int.tryParse(value) ?? 0;
+  return 0;
+}
+
+String _asString(Object? value, {String fallback = ''}) {
+  if (value == null) return fallback;
+  final text = value.toString();
+  return text.isEmpty ? fallback : text;
 }

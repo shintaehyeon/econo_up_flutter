@@ -3,15 +3,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../core/auth/auth_session.dart';
+import '../../../core/network/api_client.dart';
 import '../../../shared/widgets/econo_bottom_navigation_bar.dart';
+import '../data/simulation_api.dart';
 import 'simulation_payment_screen.dart';
 
 class SimulationContractReviewScreen extends StatelessWidget {
   const SimulationContractReviewScreen({
     super.key,
+    required this.attemptId,
     this.onBottomTabSelected,
   });
 
+  final int attemptId;
   final ValueChanged<int>? onBottomTabSelected;
 
   static const Color textDark = Color(0xFF111827);
@@ -91,18 +96,7 @@ class SimulationContractReviewScreen extends StatelessWidget {
                         _PrimaryActionButton(
                           label: '위험 조항 확인 완료! →',
                           scale: scale,
-                          onTap: () async {
-                            HapticFeedback.lightImpact();
-                            final result = await Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const SimulationPaymentScreen(),
-                              ),
-                            );
-                            if (result is int && context.mounted) {
-                              Navigator.of(context).pop(result);
-                            }
-                          },
+                          onTap: () => _submitAndContinue(context),
                         ),
                         SizedBox(height: 28 * scale),
                       ],
@@ -213,6 +207,41 @@ class SimulationContractReviewScreen extends StatelessWidget {
         return 3;
       case EconoBottomTab.my:
         return 4;
+    }
+  }
+
+  Future<void> _submitAndContinue(BuildContext context) async {
+    HapticFeedback.lightImpact();
+    final client = ApiClient(
+      accessTokenProvider: AuthSession.accessToken,
+      onUnauthorized: AuthSession.clear,
+    );
+    final api = SimulationApi(client);
+    try {
+      await api.submitAnswer(
+        attemptId: attemptId,
+        stepNo: 2,
+        answer: const {
+          'choiceIds': ['B', 'C'],
+        },
+      );
+      if (!context.mounted) return;
+      final result = await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => SimulationPaymentScreen(attemptId: attemptId),
+        ),
+      );
+      if (result is int && context.mounted) {
+        Navigator.of(context).pop(result);
+      }
+    } catch (_) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('시뮬레이션 답안 저장에 실패했어요.')),
+      );
+    } finally {
+      client.close();
     }
   }
 }

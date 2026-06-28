@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'stage_map_screen.dart';
 import 'widgets/unlock_bottom_sheet.dart';
-import 'stage_map_screen.dart';
 import '../../../shared/widgets/econo_bottom_navigation_bar.dart';
 
 class CurriculumRoadmapScreen extends StatefulWidget {

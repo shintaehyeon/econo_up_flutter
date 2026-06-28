@@ -9,9 +9,13 @@ class SimulationCompleteScreen extends StatelessWidget {
   const SimulationCompleteScreen({
     super.key,
     this.onBottomTabSelected,
+    this.xpGained = 200,
+    this.badge = '내 집 마련 완료',
   });
 
   final ValueChanged<int>? onBottomTabSelected;
+  final int xpGained;
+  final String badge;
 
   static const Color brandInk = Color(0xFF122711);
   static const Color textDark = Color(0xFF111827);
@@ -66,7 +70,11 @@ class SimulationCompleteScreen extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        _CompletionSummary(scale: scale),
+                        _CompletionSummary(
+                          scale: scale,
+                          xpGained: xpGained,
+                          badge: badge,
+                        ),
                         SizedBox(height: 10 * scale),
                         _JourneySection(scale: scale),
                         SizedBox(height: 10 * scale),
@@ -165,9 +173,13 @@ class _TitleHeader extends StatelessWidget {
 class _CompletionSummary extends StatelessWidget {
   const _CompletionSummary({
     required this.scale,
+    required this.xpGained,
+    required this.badge,
   });
 
   final double scale;
+  final int xpGained;
+  final String badge;
 
   @override
   Widget build(BuildContext context) {
@@ -198,7 +210,7 @@ class _CompletionSummary extends StatelessWidget {
             ),
             SizedBox(height: 11 * scale),
             Text(
-              '내 집 마련 완료!',
+              badge,
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontFamily: 'Pretendard',
@@ -231,7 +243,7 @@ class _CompletionSummary extends StatelessWidget {
                   borderRadius: BorderRadius.circular(30 * scale),
                 ),
                 child: Text(
-                  '+200 XP',
+                  '+$xpGained XP',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontFamily: 'Pretendard',

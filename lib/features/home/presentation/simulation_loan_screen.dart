@@ -3,15 +3,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../core/auth/auth_session.dart';
+import '../../../core/network/api_client.dart';
 import '../../../shared/widgets/econo_bottom_navigation_bar.dart';
+import '../data/simulation_api.dart';
 import 'simulation_settlement_screen.dart';
 
 class SimulationLoanScreen extends StatelessWidget {
   const SimulationLoanScreen({
     super.key,
+    required this.attemptId,
     this.onBottomTabSelected,
   });
 
+  final int attemptId;
   final ValueChanged<int>? onBottomTabSelected;
 
   static const Color brandInk = Color(0xFF122711);
@@ -91,14 +96,7 @@ class SimulationLoanScreen extends StatelessWidget {
                         _PrimaryActionButton(
                           label: '대출 신청 완료! 다음 단계로 →',
                           scale: scale,
-                          onTap: () {
-                            HapticFeedback.lightImpact();
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (context) => const SimulationSettlementScreen(),
-                              ),
-                            );
-                          },
+                          onTap: () => _submitAndContinue(context),
                         ),
                       ],
                     ),
@@ -144,6 +142,35 @@ class SimulationLoanScreen extends StatelessWidget {
         return 3;
       case EconoBottomTab.my:
         return 4;
+    }
+  }
+
+  Future<void> _submitAndContinue(BuildContext context) async {
+    HapticFeedback.lightImpact();
+    final client = ApiClient(
+      accessTokenProvider: AuthSession.accessToken,
+      onUnauthorized: AuthSession.clear,
+    );
+    final api = SimulationApi(client);
+    try {
+      await api.submitAnswer(
+        attemptId: attemptId,
+        stepNo: 4,
+        answer: const {'choiceIds': ['A']},
+      );
+      if (!context.mounted) return;
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (context) => SimulationSettlementScreen(attemptId: attemptId),
+        ),
+      );
+    } catch (_) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('시뮬레이션 답안 저장에 실패했어요.')),
+      );
+    } finally {
+      client.close();
     }
   }
 }

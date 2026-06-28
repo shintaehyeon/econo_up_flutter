@@ -4,15 +4,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../shared/widgets/econo_bottom_navigation_bar.dart';
+import '../data/simulation_api.dart';
 import 'simulation_document_selection_screen.dart';
 
 class SimulationProgressScreen extends StatelessWidget {
   const SimulationProgressScreen({
     super.key,
+    required this.attemptId,
+    required this.simulation,
     this.onBack,
     this.onBottomTabSelected,
   });
 
+  final int attemptId;
+  final SimulationSummary simulation;
   final VoidCallback? onBack;
   final ValueChanged<int>? onBottomTabSelected;
 
@@ -81,7 +86,7 @@ class SimulationProgressScreen extends StatelessWidget {
                             final result = await Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => const SimulationDocumentSelectionScreen(),
+                                builder: (context) => SimulationDocumentSelectionScreen(attemptId: attemptId),
                               ),
                             );
                             if (result is int && context.mounted) {
@@ -171,7 +176,7 @@ class SimulationProgressScreen extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
-            '🏠️',
+            simulation.icon,
             textAlign: TextAlign.center,
             style: TextStyle(
               fontFamily: 'Pretendard',
@@ -182,7 +187,7 @@ class SimulationProgressScreen extends StatelessWidget {
           ),
           SizedBox(height: 12 * scale),
           Text(
-            '청약 당첨 후 60일의 기록',
+            simulation.title,
             textAlign: TextAlign.center,
             style: TextStyle(
               fontFamily: 'Pretendard',
@@ -194,7 +199,7 @@ class SimulationProgressScreen extends StatelessWidget {
           ),
           SizedBox(height: 2 * scale),
           Text(
-            '계약부터 등기까지, 직접 경험해보세요',
+            simulation.description.isEmpty ? '단계별로 직접 경험해보세요' : simulation.description,
             textAlign: TextAlign.center,
             style: TextStyle(
               fontFamily: 'Pretendard',

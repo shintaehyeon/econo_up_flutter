@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/constants/api_endpoints.dart';
+import '../../../core/auth/auth_session.dart';
+import '../../../core/network/api_client.dart';
 import 'interests_screen.dart';
 
 class ProfileSetupScreen extends StatefulWidget {
@@ -15,6 +17,8 @@ class ProfileSetupScreen extends StatefulWidget {
 }
 
 class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
+  late final ApiClient _client;
+
   // 피그마 시안의 예시 가이드 반영 (닉네임 힌트: "ex) 경제왕", 나이 힌트: "ex) 26", 성별 기본값: "MALE")
   final _nicknameController = TextEditingController();
   final _ageController = TextEditingController();
@@ -23,10 +27,15 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
 
   bool _isCheckingNickname = false;
   bool? _isNicknameAvailable; // 💡 비어있으므로 초기 검증 상태는 null로 시작합니다.
+  bool _isSubmitting = false;
 
   @override
   void initState() {
     super.initState();
+    _client = ApiClient(
+      accessTokenProvider: AuthSession.accessToken,
+      onUnauthorized: AuthSession.clear,
+    );
     _nicknameController.addListener(_onNicknameChanged);
   }
 
@@ -52,18 +61,27 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
   }
 
   Future<void> _checkNicknameAvailability(String nickname) async {
-    // 💡 백엔드 GET /users/nickname-availability?nickname={nickname} API 호출 모방
-    await Future.delayed(const Duration(milliseconds: 300));
-    if (!mounted) return;
-
-    setState(() {
-      _isCheckingNickname = false;
-      // 단순 검증 규칙: 2글자 이상이고 'admin'이 아니면 가용한 것으로 처리
-      _isNicknameAvailable = nickname.length >= 2 && !nickname.toLowerCase().contains('admin');
-    });
+    try {
+      final data = await _client.get<Map<String, dynamic>>(
+        ApiEndpoints.checkNickname,
+        query: {'nickname': nickname},
+      );
+      if (!mounted || _nicknameController.text.trim() != nickname) return;
+      setState(() {
+        _isCheckingNickname = false;
+        _isNicknameAvailable = data['available'] == true;
+      });
+    } catch (_) {
+      if (!mounted || _nicknameController.text.trim() != nickname) return;
+      setState(() {
+        _isCheckingNickname = false;
+        _isNicknameAvailable = false;
+      });
+    }
   }
 
   Future<void> _submitProfile() async {
+    if (_isSubmitting) return;
     final nickname = _nicknameController.text.trim();
     final ageText = _ageController.text.trim();
 
@@ -111,13 +129,36 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
 
     HapticFeedback.mediumImpact();
 
-    if (mounted) {
+    setState(() => _isSubmitting = true);
+    try {
+      await _client.put<Map<String, dynamic>>(
+        ApiEndpoints.onboardingProfile,
+        body: requestPayload,
+      );
+      if (!mounted) return;
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => const InterestsScreen(),
+          builder: (context) => InterestsScreen(nickname: nickname),
         ),
       );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text(
+            '프로필 저장에 실패했어요. 로그인 상태와 서버 연결을 확인해주세요.',
+            style: TextStyle(fontFamily: 'Pretendard', fontWeight: FontWeight.w600),
+          ),
+          backgroundColor: AppColors.danger,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+      }
     }
   }
 
@@ -127,6 +168,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
     _nicknameController.dispose();
     _ageController.dispose();
     _debounceTimer?.cancel();
+    _client.close();
     super.dispose();
   }
 

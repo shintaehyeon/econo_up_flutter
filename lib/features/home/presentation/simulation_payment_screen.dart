@@ -3,16 +3,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../core/auth/auth_session.dart';
+import '../../../core/network/api_client.dart';
 import '../../../shared/widgets/econo_bottom_navigation_bar.dart';
+import '../data/simulation_api.dart';
 import 'simulation_loan_screen.dart';
 
 class SimulationPaymentScreen extends StatefulWidget {
   const SimulationPaymentScreen({
     super.key,
+    required this.attemptId,
     this.onBottomTabSelected,
-    this.initialPaymentAmount = '4억 2,000만원',
+    this.initialPaymentAmount = '',
   });
 
+  final int attemptId;
   final ValueChanged<int>? onBottomTabSelected;
   final String initialPaymentAmount;
 
@@ -115,14 +120,7 @@ class _SimulationPaymentScreenState extends State<SimulationPaymentScreen> {
                         _PrimaryActionButton(
                           label: '납부 완료! 다음 단계로 →',
                           scale: scale,
-                          onTap: () {
-                            HapticFeedback.lightImpact();
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (context) => const SimulationLoanScreen(),
-                              ),
-                            );
-                          },
+                          onTap: _submitAndContinue,
                         ),
                       ],
                     ),
@@ -148,6 +146,57 @@ class _SimulationPaymentScreenState extends State<SimulationPaymentScreen> {
       baseOffset: 0,
       extentOffset: _paymentAmountController.text.length,
     );
+  }
+
+  Future<void> _submitAndContinue() async {
+    HapticFeedback.lightImpact();
+    final value = _parseManwon(_paymentAmountController.text);
+    if (value == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('계약금을 만원 단위 숫자로 입력해주세요. 예: 4200')),
+      );
+      return;
+    }
+
+    final client = ApiClient(
+      accessTokenProvider: AuthSession.accessToken,
+      onUnauthorized: AuthSession.clear,
+    );
+    final api = SimulationApi(client);
+    try {
+      final data = await api.submitAnswer(
+        attemptId: widget.attemptId,
+        stepNo: 3,
+        answer: {'numberValue': value},
+      );
+      final feedback = _asMap(data['feedback']);
+      if (feedback['correct'] != true) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('계산값을 다시 확인해주세요.')),
+        );
+        return;
+      }
+      if (!mounted) return;
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (context) => SimulationLoanScreen(attemptId: widget.attemptId),
+        ),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('시뮬레이션 답안 저장에 실패했어요.')),
+      );
+    } finally {
+      client.close();
+    }
+  }
+
+  int? _parseManwon(String text) {
+    final normalized = text.replaceAll(RegExp(r'[^0-9]'), '');
+    if (normalized.isEmpty) return null;
+    return int.tryParse(normalized);
   }
 
   Widget _buildProgressHeader(double scale) {
@@ -243,6 +292,12 @@ class _SimulationPaymentScreenState extends State<SimulationPaymentScreen> {
         return 4;
     }
   }
+}
+
+Map<String, dynamic> _asMap(Object? value) {
+  if (value is Map<String, dynamic>) return value;
+  if (value is Map) return value.map((key, item) => MapEntry('$key', item));
+  return <String, dynamic>{};
 }
 
 class _SituationCard extends StatelessWidget {

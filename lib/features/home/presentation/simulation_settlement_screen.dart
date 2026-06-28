@@ -3,17 +3,22 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../core/auth/auth_session.dart';
+import '../../../core/network/api_client.dart';
 import '../../../shared/widgets/econo_bottom_navigation_bar.dart';
+import '../data/simulation_api.dart';
 import 'simulation_complete_screen.dart';
 
 class SimulationSettlementScreen extends StatefulWidget {
   const SimulationSettlementScreen({
     super.key,
+    required this.attemptId,
     this.onBottomTabSelected,
     this.initialSalePriceManwon = 42000,
     this.initialAcquisitionTaxRate = 1.5,
   });
 
+  final int attemptId;
   final ValueChanged<int>? onBottomTabSelected;
   final int initialSalePriceManwon;
   final double initialAcquisitionTaxRate;
@@ -113,14 +118,7 @@ class _SimulationSettlementScreenState extends State<SimulationSettlementScreen>
                         _PrimaryActionButton(
                           label: '잔금 납부 & 등기 완료! →',
                           scale: scale,
-                          onTap: () {
-                            HapticFeedback.lightImpact();
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (context) => const SimulationCompleteScreen(),
-                              ),
-                            );
-                          },
+                          onTap: _submitAndComplete,
                         ),
                       ],
                     ),
@@ -174,6 +172,62 @@ class _SimulationSettlementScreenState extends State<SimulationSettlementScreen>
     return _formatManwon(estimatedTaxManwon);
   }
 
+  Future<void> _submitAndComplete() async {
+    HapticFeedback.lightImpact();
+    final value = _parseManwon(_expectedTaxController.text);
+    if (value == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('예상 취득세를 만원 단위 숫자로 입력해주세요. 예: 630')),
+      );
+      return;
+    }
+
+    final client = ApiClient(
+      accessTokenProvider: AuthSession.accessToken,
+      onUnauthorized: AuthSession.clear,
+    );
+    final api = SimulationApi(client);
+    try {
+      final answerData = await api.submitAnswer(
+        attemptId: widget.attemptId,
+        stepNo: 5,
+        answer: {'numberValue': value},
+      );
+      final feedback = _asMap(answerData['feedback']);
+      if (feedback['correct'] != true) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('취득세 계산값을 다시 확인해주세요.')),
+        );
+        return;
+      }
+
+      final completeData = await api.complete(widget.attemptId);
+      if (!mounted) return;
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (context) => SimulationCompleteScreen(
+            xpGained: _asInt(completeData['xpGained'], fallback: 200),
+            badge: '${completeData['badge'] ?? '내 집 마련 완료'}',
+          ),
+        ),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('시뮬레이션 완료 저장에 실패했어요.')),
+      );
+    } finally {
+      client.close();
+    }
+  }
+
+  int? _parseManwon(String text) {
+    final normalized = text.replaceAll(RegExp(r'[^0-9]'), '');
+    if (normalized.isEmpty) return null;
+    return int.tryParse(normalized);
+  }
+
   static String _formatManwon(double value) {
     final rounded = value.round();
     if (rounded >= 10000) {
@@ -198,6 +252,18 @@ class _SimulationSettlementScreenState extends State<SimulationSettlementScreen>
     }
     return buffer.toString();
   }
+}
+
+Map<String, dynamic> _asMap(Object? value) {
+  if (value is Map<String, dynamic>) return value;
+  if (value is Map) return value.map((key, item) => MapEntry('$key', item));
+  return <String, dynamic>{};
+}
+
+int _asInt(Object? value, {int fallback = 0}) {
+  if (value is int) return value;
+  if (value is num) return value.toInt();
+  return int.tryParse('$value') ?? fallback;
 }
 
 class _ProgressHeader extends StatelessWidget {
