@@ -20,6 +20,14 @@ class CurriculumApi {
     final data = await _client.get<Map<String, dynamic>>(ApiEndpoints.stageMap(unitId, stageId));
     return StageMapResult.fromJson(data);
   }
+
+  Future<ContentUnlocksResult> contentUnlocks(String contentType) async {
+    final data = await _client.get<Map<String, dynamic>>(
+      ApiEndpoints.contentUnlocks,
+      query: {'contentType': contentType},
+    );
+    return ContentUnlocksResult.fromJson(data);
+  }
 }
 
 class CategoriesResult {
@@ -190,6 +198,36 @@ class CurriculumStage {
       title: '${json['title'] ?? ''}',
       status: '${json['status'] ?? 'AVAILABLE'}',
       progressPercent: _asInt(json['progressPercent']),
+    );
+  }
+}
+
+class ContentUnlocksResult {
+  const ContentUnlocksResult({required this.items});
+
+  final List<ContentUnlock> items;
+
+  factory ContentUnlocksResult.fromJson(Map<String, dynamic> json) {
+    return ContentUnlocksResult(
+      items: _asList(json['items']).map(ContentUnlock.fromJson).toList(),
+    );
+  }
+}
+
+class ContentUnlock {
+  const ContentUnlock({
+    required this.contentType,
+    required this.contentKey,
+  });
+
+  final String contentType;
+  final String contentKey;
+
+  factory ContentUnlock.fromJson(Object? value) {
+    final json = _asMap(value);
+    return ContentUnlock(
+      contentType: '${json['contentType'] ?? ''}',
+      contentKey: '${json['contentKey'] ?? ''}',
     );
   }
 }

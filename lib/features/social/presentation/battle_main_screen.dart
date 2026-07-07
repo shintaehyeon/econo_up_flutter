@@ -5,6 +5,7 @@ import 'league_screen.dart';
 import 'quiz_battle_intro_screen.dart';
 import 'quiz_battle_friend_invite_screen.dart';
 import 'quiz_battle_history_screen.dart';
+import '../../../shared/widgets/econo_bottom_navigation_bar.dart';
 
 class BattleMainScreen extends StatefulWidget {
   final ValueChanged<int>? onBottomTabSelected;
@@ -148,6 +149,11 @@ class _BattleMainScreenState extends State<BattleMainScreen> {
                       Navigator.of(context).pop();
                       if (widget.onBottomTabSelected != null) {
                         widget.onBottomTabSelected!(index);
+                      } else {
+                        EconoBottomNavigationBar.goToRootTab(
+                          context,
+                          _bottomTabForIndex(index),
+                        );
                       }
                     },
                   ),
@@ -409,5 +415,20 @@ class _BattleMainScreenState extends State<BattleMainScreen> {
         ),
       ],
     );
+  }
+
+  EconoBottomTab _bottomTabForIndex(int index) {
+    switch (index) {
+      case 1:
+        return EconoBottomTab.learning;
+      case 2:
+        return EconoBottomTab.connect;
+      case 3:
+        return EconoBottomTab.battle;
+      case 4:
+        return EconoBottomTab.my;
+      default:
+        return EconoBottomTab.home;
+    }
   }
 }

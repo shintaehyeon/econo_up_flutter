@@ -241,6 +241,8 @@ class QuizBattleMatchedScreen extends StatelessWidget {
                 if (onBottomTabSelected != null) {
                   Navigator.of(context).popUntil((route) => route.isFirst);
                   onBottomTabSelected!(_indexForBottomTab(tab));
+                } else {
+                  EconoBottomNavigationBar.goToRootTab(context, tab);
                 }
               },
             ),

@@ -1,20 +1,43 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../../../../core/auth/auth_session.dart';
+import '../../../../core/constants/api_endpoints.dart';
+import '../../../../core/network/api_client.dart';
 import 'payment_complete_screen.dart';
 
 enum UnlockOption { categoryPass, period30, lifetime }
 
 class UnlockBottomSheet extends StatefulWidget {
   final String category;
+  final String? categoryCode;
+  final int? unitId;
+  final String? unitTitle;
 
-  const UnlockBottomSheet({Key? key, required this.category}) : super(key: key);
+  const UnlockBottomSheet({
+    Key? key,
+    required this.category,
+    this.categoryCode,
+    this.unitId,
+    this.unitTitle,
+  }) : super(key: key);
 
-  static Future<void> show(BuildContext context, {required String category}) {
+  static Future<bool?> show(
+    BuildContext context, {
+    required String category,
+    String? categoryCode,
+    int? unitId,
+    String? unitTitle,
+  }) {
     return showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => UnlockBottomSheet(category: category),
+      builder: (context) => UnlockBottomSheet(
+        category: category,
+        categoryCode: categoryCode,
+        unitId: unitId,
+        unitTitle: unitTitle,
+      ),
     );
   }
 
@@ -24,6 +47,20 @@ class UnlockBottomSheet extends StatefulWidget {
 
 class _UnlockBottomSheetState extends State<UnlockBottomSheet> {
   UnlockOption _selectedOption = UnlockOption.categoryPass;
+  late final ApiClient _client;
+  bool _isPurchasing = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _client = ApiClient(accessTokenProvider: AuthSession.accessToken);
+  }
+
+  @override
+  void dispose() {
+    _client.close();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -50,7 +87,7 @@ class _UnlockBottomSheetState extends State<UnlockBottomSheet> {
             ),
           ),
           const SizedBox(height: 30),
-          
+
           // Lock Icon
           SizedBox(
             width: 26,
@@ -60,7 +97,7 @@ class _UnlockBottomSheetState extends State<UnlockBottomSheet> {
             ),
           ),
           const SizedBox(height: 17),
-          
+
           // Title
           Text(
             '${widget.category} 카테고리',
@@ -84,7 +121,7 @@ class _UnlockBottomSheetState extends State<UnlockBottomSheet> {
             ),
           ),
           const SizedBox(height: 30),
-          
+
           // Category Pass Section
           _buildSectionTitle('카테고리'),
           const SizedBox(height: 9),
@@ -95,41 +132,31 @@ class _UnlockBottomSheetState extends State<UnlockBottomSheet> {
             cost: 5,
           ),
           const SizedBox(height: 24),
-          
+
           // Unit Section
           _buildSectionTitle('유닛'),
           const SizedBox(height: 9),
           _buildOptionCard(
             option: UnlockOption.period30,
             title: '기간 소장 (30일)',
-            subtitle: '30일간 이용',
+            subtitle: '${widget.unitTitle ?? '선택한 유닛'} 30일간 이용',
             cost: 1,
           ),
           const SizedBox(height: 10),
           _buildOptionCard(
             option: UnlockOption.lifetime,
             title: '영구 소장',
-            subtitle: '평생 이용',
+            subtitle: '${widget.unitTitle ?? '선택한 유닛'} 평생 이용',
             cost: 2,
           ),
           const SizedBox(height: 30),
-          
+
           // Purchase Button
           SizedBox(
             width: double.infinity,
             height: 48,
             child: ElevatedButton(
-              onPressed: () {
-                HapticFeedback.lightImpact();
-                Navigator.of(context).pop();
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (context) => PaymentCompleteScreen(
-                      category: widget.category,
-                    ),
-                  ),
-                );
-              },
+              onPressed: _isPurchasing ? null : _purchaseUnlock,
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF00EE94),
                 elevation: 0,
@@ -137,19 +164,101 @@ class _UnlockBottomSheetState extends State<UnlockBottomSheet> {
                   borderRadius: BorderRadius.circular(10),
                 ),
               ),
-              child: const Text(
-                '구매하기',
-                style: TextStyle(
-                  fontFamily: 'Pretendard',
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.white,
-                ),
-              ),
+              child: _isPurchasing
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      ),
+                    )
+                  : const Text(
+                      '구매하기',
+                      style: TextStyle(
+                        fontFamily: 'Pretendard',
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                      ),
+                    ),
             ),
           ),
         ],
       ),
+    );
+  }
+
+  Future<void> _purchaseUnlock() async {
+    HapticFeedback.lightImpact();
+    if (_isPurchasing) return;
+
+    final purchase = _purchasePayload();
+    if (purchase == null) {
+      _showMessage('해금할 콘텐츠 정보를 찾지 못했어요.');
+      return;
+    }
+
+    setState(() => _isPurchasing = true);
+    try {
+      await _client.post<Map<String, dynamic>>(
+        ApiEndpoints.purchaseContentUnlock,
+        body: purchase,
+      );
+      if (!mounted) return;
+      final navigator = Navigator.of(context);
+      navigator.pop(true);
+      navigator.push(
+        MaterialPageRoute(
+          builder: (context) => PaymentCompleteScreen(
+            category: widget.category,
+          ),
+        ),
+      );
+    } on ApiClientException catch (error) {
+      if (!mounted) return;
+      if (error.code == 'ALREADY_UNLOCKED') {
+        Navigator.of(context).pop(true);
+        _showMessage('이미 해금된 콘텐츠예요.');
+        return;
+      }
+      final message = error.code == 'BILL_NOT_ENOUGH'
+          ? '보유 지폐가 부족해요.'
+          : '구매 처리에 실패했어요.';
+      _showMessage(message);
+    } catch (_) {
+      if (!mounted) return;
+      _showMessage('구매 처리에 실패했어요.');
+    } finally {
+      if (mounted) {
+        setState(() => _isPurchasing = false);
+      }
+    }
+  }
+
+  Map<String, Object?>? _purchasePayload() {
+    final useCategoryPass =
+        _selectedOption == UnlockOption.categoryPass || widget.unitId == null;
+    final contentKey = useCategoryPass
+        ? widget.categoryCode
+        : widget.unitId?.toString();
+    if (contentKey == null || contentKey.isEmpty) return null;
+
+    return {
+      'contentType': useCategoryPass ? 'CATEGORY' : 'UNIT',
+      'contentKey': contentKey,
+      'priceBills': _selectedOption == UnlockOption.categoryPass
+          ? 5
+          : _selectedOption == UnlockOption.period30
+              ? 1
+              : 2,
+      if (_selectedOption == UnlockOption.period30) 'durationHours': 24 * 30,
+    };
+  }
+
+  void _showMessage(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
     );
   }
 

@@ -101,6 +101,13 @@ class LearningCompleteResult {
   final Map<String, dynamic> growth;
   final Map<String, dynamic> next;
 
+  int? get nextSessionId {
+    final value = next['nextSessionId'];
+    if (value == null) return null;
+    final parsed = _asInt(value);
+    return parsed <= 0 ? null : parsed;
+  }
+
   factory LearningCompleteResult.fromJson(Map<String, dynamic> json) {
     return LearningCompleteResult(
       sessionCompleted: json['sessionCompleted'] == true,
@@ -189,6 +196,14 @@ class LearningQuestion {
 
   bool get isTheoryCard => type == 'THEORY_CARD';
   bool get isChoice => choices.isNotEmpty;
+  bool get allowsMultipleChoice {
+    final normalized = type.toUpperCase();
+    return normalized == 'MULTIPLE_CHOICE' ||
+        normalized == 'MULTI_SELECT' ||
+        normalized == 'MATCHING' ||
+        normalized == 'CLASSIFICATION';
+  }
+
   bool get isOrdering => type == 'ORDERING';
   bool get isNumberInput => type == 'NUMBER_INPUT';
   bool get isTextInput => type == 'TEXT_INPUT' || (!isChoice && !isOrdering && !isNumberInput && !isTheoryCard);

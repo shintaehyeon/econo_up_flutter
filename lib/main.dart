@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'core/theme/app_colors.dart';
 import 'features/auth/presentation/splash_screen.dart';
+import 'features/home/presentation/home_screen.dart';
 
 void main() {
   runApp(const EconoUpApp());
@@ -32,6 +33,16 @@ class EconoUpApp extends StatelessWidget {
           bodyMedium: TextStyle(color: AppColors.ink),
         ),
       ),
+      onGenerateRoute: (settings) {
+        if (settings.name == HomeScreen.routeName) {
+          final tabIndex =
+              settings.arguments is int ? settings.arguments as int : 0;
+          return MaterialPageRoute(
+            builder: (_) => HomeScreen(initialTabIndex: tabIndex),
+          );
+        }
+        return null;
+      },
       home: const SplashScreen(),
     );
   }

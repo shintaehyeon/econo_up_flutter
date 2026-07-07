@@ -15,11 +15,13 @@ class EconoBottomNavigationBar extends StatelessWidget {
     required this.activeTab,
     this.onTabSelected,
     this.scale = 1,
+    this.resetToRootOnTap = true,
   });
 
   final EconoBottomTab activeTab;
   final ValueChanged<EconoBottomTab>? onTabSelected;
   final double scale;
+  final bool resetToRootOnTap;
 
   static const Color activeColor = Color(0xFF626262);
   static const Color inactiveColor = Color(0xFFBCBCBC);
@@ -52,12 +54,37 @@ class EconoBottomNavigationBar extends StatelessWidget {
             scale: scale,
             onTap: () {
               HapticFeedback.lightImpact();
-              onTabSelected?.call(item.tab);
+              if (onTabSelected != null) {
+                onTabSelected!(item.tab);
+                return;
+              }
+              if (resetToRootOnTap) {
+                goToRootTab(context, item.tab);
+                return;
+              }
             },
           );
         }).toList(),
       ),
     );
+  }
+
+  static void goToRootTab(BuildContext context, EconoBottomTab tab) {
+    Navigator.of(context, rootNavigator: true).pushNamedAndRemoveUntil(
+      '/home',
+      (route) => false,
+      arguments: indexForTab(tab),
+    );
+  }
+
+  static int indexForTab(EconoBottomTab tab) {
+    return switch (tab) {
+      EconoBottomTab.home => 0,
+      EconoBottomTab.learning => 1,
+      EconoBottomTab.connect => 2,
+      EconoBottomTab.battle => 3,
+      EconoBottomTab.my => 4,
+    };
   }
 }
 

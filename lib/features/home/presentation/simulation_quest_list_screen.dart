@@ -241,7 +241,7 @@ class _SimulationQuestListScreenState extends State<SimulationQuestListScreen> {
 
   String _subtitleFor(SimulationSummary simulation) {
     if (!simulation.unlocked) {
-      return simulation.unlockStageId > 0 ? 'Stage ${simulation.unlockStageId} 완료 후' : '잠금';
+      return simulation.unlockStageId > 0 ? '스테이지 ${simulation.unlockStageId} 완료 후' : '잠금';
     }
     if (simulation.status == 'COMPLETED') return '완료됨 · +${simulation.rewardXp} XP';
     return '+${simulation.rewardXp} XP 보상';

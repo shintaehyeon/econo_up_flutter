@@ -27,6 +27,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
 
   bool _isCheckingNickname = false;
   bool? _isNicknameAvailable; // 💡 비어있으므로 초기 검증 상태는 null로 시작합니다.
+  String? _nicknameAvailabilityError;
   bool _isSubmitting = false;
 
   @override
@@ -44,6 +45,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
     if (text.isEmpty) {
       setState(() {
         _isNicknameAvailable = null;
+        _nicknameAvailabilityError = null;
         _isCheckingNickname = false;
       });
       return;
@@ -53,6 +55,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
     _debounceTimer?.cancel();
     setState(() {
       _isCheckingNickname = true;
+      _nicknameAvailabilityError = null;
     });
 
     _debounceTimer = Timer(const Duration(milliseconds: 500), () {
@@ -70,12 +73,28 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
       setState(() {
         _isCheckingNickname = false;
         _isNicknameAvailable = data['available'] == true;
+        _nicknameAvailabilityError = null;
       });
-    } catch (_) {
+    } on ApiClientException catch (error) {
+      debugPrint('Nickname availability check failed: $error');
       if (!mounted || _nicknameController.text.trim() != nickname) return;
       setState(() {
         _isCheckingNickname = false;
-        _isNicknameAvailable = false;
+        if (error.statusCode == 401 || error.statusCode == 403) {
+          _isNicknameAvailable = null;
+          _nicknameAvailabilityError = '로그인 후 닉네임을 확인할 수 있어요.';
+        } else {
+          _isNicknameAvailable = false;
+          _nicknameAvailabilityError = null;
+        }
+      });
+    } catch (error) {
+      debugPrint('Nickname availability check failed: $error');
+      if (!mounted || _nicknameController.text.trim() != nickname) return;
+      setState(() {
+        _isCheckingNickname = false;
+        _isNicknameAvailable = null;
+        _nicknameAvailabilityError = '닉네임 확인에 실패했어요. 서버 연결을 확인해주세요.';
       });
     }
   }
@@ -91,7 +110,10 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
         SnackBar(
           content: const Text(
             '사용 가능한 닉네임을 입력해 주세요.',
-            style: TextStyle(fontFamily: 'Pretendard', fontWeight: FontWeight.w600),
+            style: TextStyle(
+              fontFamily: 'Pretendard',
+              fontWeight: FontWeight.w600,
+            ),
           ),
           backgroundColor: AppColors.danger,
           behavior: SnackBarBehavior.floating,
@@ -107,7 +129,10 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
         SnackBar(
           content: const Text(
             '나이를 입력해 주세요.',
-            style: TextStyle(fontFamily: 'Pretendard', fontWeight: FontWeight.w600),
+            style: TextStyle(
+              fontFamily: 'Pretendard',
+              fontWeight: FontWeight.w600,
+            ),
           ),
           backgroundColor: AppColors.danger,
           behavior: SnackBarBehavior.floating,
@@ -123,9 +148,11 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
     final requestPayload = {
       "nickname": nickname,
       "gender": _gender,
-      "age": age
+      "age": age,
     };
-    debugPrint('Submitting Profile to ${ApiEndpoints.onboardingProfile}: $requestPayload');
+    debugPrint(
+      'Submitting Profile to ${ApiEndpoints.onboardingProfile}: $requestPayload',
+    );
 
     HapticFeedback.mediumImpact();
 
@@ -148,7 +175,10 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
         SnackBar(
           content: const Text(
             '프로필 저장에 실패했어요. 로그인 상태와 서버 연결을 확인해주세요.',
-            style: TextStyle(fontFamily: 'Pretendard', fontWeight: FontWeight.w600),
+            style: TextStyle(
+              fontFamily: 'Pretendard',
+              fontWeight: FontWeight.w600,
+            ),
           ),
           backgroundColor: AppColors.danger,
           behavior: SnackBarBehavior.floating,
@@ -312,8 +342,13 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                               ),
                               decoration: InputDecoration(
                                 hintText: 'ex) 경제왕',
-                                hintStyle: const TextStyle(color: Color(0xFF9CA3AF)),
-                                contentPadding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 16.0),
+                                hintStyle: const TextStyle(
+                                  color: Color(0xFF9CA3AF),
+                                ),
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 14.0,
+                                  vertical: 16.0,
+                                ),
                                 suffixIcon: Padding(
                                   padding: const EdgeInsets.only(right: 14.0),
                                   child: Row(
@@ -338,15 +373,24 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                                 ),
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(10),
-                                  borderSide: const BorderSide(color: Color(0xFFD0D5E0), width: 1.0),
+                                  borderSide: const BorderSide(
+                                    color: Color(0xFFD0D5E0),
+                                    width: 1.0,
+                                  ),
                                 ),
                                 enabledBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(10),
-                                  borderSide: const BorderSide(color: Color(0xFFD0D5E0), width: 1.0),
+                                  borderSide: const BorderSide(
+                                    color: Color(0xFFD0D5E0),
+                                    width: 1.0,
+                                  ),
                                 ),
                                 focusedBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(10),
-                                  borderSide: const BorderSide(color: Color(0xFF00EE94), width: 1.5),
+                                  borderSide: const BorderSide(
+                                    color: Color(0xFF00EE94),
+                                    width: 1.5,
+                                  ),
                                 ),
                               ),
                             ),
@@ -421,8 +465,13 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                               ),
                               decoration: InputDecoration(
                                 hintText: 'ex) 26',
-                                hintStyle: const TextStyle(color: Color(0xFF9CA3AF)),
-                                contentPadding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 16.0),
+                                hintStyle: const TextStyle(
+                                  color: Color(0xFF9CA3AF),
+                                ),
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 14.0,
+                                  vertical: 16.0,
+                                ),
                                 suffixIcon: const Padding(
                                   padding: EdgeInsets.only(right: 14.0),
                                   child: Row(
@@ -443,15 +492,24 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                                 ),
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(10),
-                                  borderSide: const BorderSide(color: Color(0xFFD0D5E0), width: 1.0),
+                                  borderSide: const BorderSide(
+                                    color: Color(0xFFD0D5E0),
+                                    width: 1.0,
+                                  ),
                                 ),
                                 enabledBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(10),
-                                  borderSide: const BorderSide(color: Color(0xFFD0D5E0), width: 1.0),
+                                  borderSide: const BorderSide(
+                                    color: Color(0xFFD0D5E0),
+                                    width: 1.0,
+                                  ),
                                 ),
                                 focusedBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(10),
-                                  borderSide: const BorderSide(color: Color(0xFF00EE94), width: 1.5),
+                                  borderSide: const BorderSide(
+                                    color: Color(0xFF00EE94),
+                                    width: 1.5,
+                                  ),
                                 ),
                               ),
                             ),
@@ -464,7 +522,10 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                       // 4. 정보 알림 배너
                       Container(
                         width: double.infinity,
-                        padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 16.0),
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 12.0,
+                          horizontal: 16.0,
+                        ),
                         decoration: BoxDecoration(
                           color: const Color(0xFFF2FFFA),
                           borderRadius: BorderRadius.circular(10),
@@ -523,10 +584,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
     );
   }
 
-  Widget _buildGenderButton({
-    required String label,
-    required String value,
-  }) {
+  Widget _buildGenderButton({required String label, required String value}) {
     final isSelected = _gender == value;
     return SizedBox(
       height: 48,
@@ -534,7 +592,8 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
         style: OutlinedButton.styleFrom(
           backgroundColor: isSelected ? const Color(0xFFF2FFFA) : Colors.white,
           side: BorderSide(
-            color: isSelected ? const Color(0xFF00EE94) : const Color(0xFFD0D5E0),
+            color:
+                isSelected ? const Color(0xFF00EE94) : const Color(0xFFD0D5E0),
             width: isSelected ? 2.0 : 1.0,
           ),
           shape: RoundedRectangleBorder(
@@ -574,7 +633,11 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
       );
     }
     if (_isNicknameAvailable == true) {
-      return const Icon(Icons.check_circle_rounded, color: Color(0xFF00EE94), size: 14);
+      return const Icon(
+        Icons.check_circle_rounded,
+        color: Color(0xFF00EE94),
+        size: 14,
+      );
     }
     if (_isNicknameAvailable == false) {
       return const Icon(Icons.error_rounded, color: AppColors.danger, size: 14);
@@ -583,6 +646,20 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
   }
 
   Widget _buildAvailabilityFeedback() {
+    if (_nicknameAvailabilityError != null) {
+      return Padding(
+        padding: const EdgeInsets.only(left: 6.0),
+        child: Text(
+          _nicknameAvailabilityError!,
+          style: const TextStyle(
+            fontFamily: 'Pretendard',
+            fontSize: 11,
+            color: AppColors.danger,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      );
+    }
     if (_isNicknameAvailable == true) {
       return const Padding(
         padding: EdgeInsets.only(left: 6.0),

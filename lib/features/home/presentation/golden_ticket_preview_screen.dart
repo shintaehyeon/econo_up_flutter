@@ -232,7 +232,7 @@ class _GoldenTicketPreviewScreenState extends State<GoldenTicketPreviewScreen> {
   Widget _buildPreviewSection(List<_PreviewStage> stages, double scale) {
     final items = stages.isEmpty
         ? const [
-            _PreviewStage(stage: 'Stage 1', title: '미리보기 정보가 없습니다'),
+            _PreviewStage(stage: '스테이지 1', title: '미리보기 정보가 없습니다'),
           ]
         : stages;
 
@@ -893,7 +893,7 @@ class _PreviewStage {
 
   factory _PreviewStage.fromJson(Map<String, dynamic> json, int index) {
     return _PreviewStage(
-      stage: 'Stage ${index + 1}',
+      stage: '스테이지 ${index + 1}',
       title: _asString(json['title'], fallback: _asString(json['stageTitle'], fallback: '미리보기')),
       stageTitle: _asString(json['stageTitle']),
       categoryCode: _asString(json['categoryCode']),

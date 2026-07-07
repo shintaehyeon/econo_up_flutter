@@ -37,6 +37,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
     // 💡 백엔드 명세서 EC-0001 (스플래시) 시나리오:
     // 로컬 저장소 토큰 상태 확인 및 /onboarding/status 호출을 모방하여 2.5초 후 로그인 화면으로 유기적 전환
     await Future.delayed(const Duration(milliseconds: 2500));
+    await AuthSession.initialize();
     if (mounted) {
       Navigator.pushReplacement(
         context,

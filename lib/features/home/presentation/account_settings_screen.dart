@@ -3,7 +3,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../core/auth/auth_session.dart';
+import '../../../core/constants/api_endpoints.dart';
+import '../../../core/network/api_client.dart';
 import '../../../shared/widgets/econo_bottom_navigation_bar.dart';
+import '../../auth/presentation/login_screen.dart';
 
 class AccountSettingsScreen extends StatelessWidget {
   const AccountSettingsScreen({
@@ -71,7 +75,14 @@ class AccountSettingsScreen extends StatelessWidget {
             if (showBottomNavigation)
               EconoBottomNavigationBar(
                 activeTab: EconoBottomTab.my,
-                onTabSelected: (tab) => onBottomTabSelected?.call(_indexForBottomTab(tab)),
+                onTabSelected: (tab) {
+                  final index = _indexForBottomTab(tab);
+                  if (onBottomTabSelected != null) {
+                    onBottomTabSelected!(index);
+                  } else {
+                    EconoBottomNavigationBar.goToRootTab(context, tab);
+                  }
+                },
                 scale: scale,
               ),
           ],
@@ -284,10 +295,37 @@ class AccountSettingsScreen extends StatelessWidget {
           insetPadding: EdgeInsets.symmetric(horizontal: 20 * scale),
           backgroundColor: Colors.transparent,
           elevation: 0,
-          child: LogoutConfirmDialog(scale: scale),
+          child: LogoutConfirmDialog(
+            scale: scale,
+            onLogout: () => _handleLogout(context),
+          ),
         );
       },
     );
+  }
+
+  Future<void> _handleLogout(BuildContext context) async {
+    final client = ApiClient(
+      accessTokenProvider: AuthSession.accessToken,
+      onUnauthorized: AuthSession.clear,
+    );
+
+    try {
+      await client.post<Object?>(ApiEndpoints.logout);
+      await AuthSession.clear();
+      if (!context.mounted) return;
+      Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const LoginScreen()),
+        (_) => false,
+      );
+    } catch (error) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('로그아웃에 실패했어요. 다시 시도해주세요.')),
+      );
+    } finally {
+      client.close();
+    }
   }
 }
 
@@ -295,9 +333,11 @@ class LogoutConfirmDialog extends StatelessWidget {
   const LogoutConfirmDialog({
     super.key,
     required this.scale,
+    required this.onLogout,
   });
 
   final double scale;
+  final Future<void> Function() onLogout;
 
   static const Color textDark = Color(0xFF111827);
   static const Color textMuted = Color(0xFF9CA3AF);
@@ -397,7 +437,10 @@ class LogoutConfirmDialog extends StatelessWidget {
                     textColor: Colors.white,
                     fontWeight: FontWeight.w700,
                     scale: scale,
-                    onTap: () => Navigator.of(context).pop(),
+                    onTap: () async {
+                      Navigator.of(context).pop();
+                      await onLogout();
+                    },
                   ),
                 ),
               ],

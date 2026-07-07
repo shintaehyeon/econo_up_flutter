@@ -104,15 +104,15 @@ class SimulationCompleteScreen extends StatelessWidget {
 
   void _returnToLearning(BuildContext context) {
     HapticFeedback.lightImpact();
-    onBottomTabSelected?.call(1);
-    Navigator.of(context).popUntil((route) => route.isFirst);
+    if (onBottomTabSelected != null) {
+      onBottomTabSelected!(1);
+      Navigator.of(context).popUntil((route) => route.isFirst);
+    } else {
+      EconoBottomNavigationBar.goToRootTab(context, EconoBottomTab.learning);
+    }
   }
 
   void _handleBottomTab(BuildContext context, EconoBottomTab tab) {
-    if (tab == EconoBottomTab.learning) {
-      return;
-    }
-
     final tabIndex = _indexForBottomTab(tab);
     if (onBottomTabSelected != null) {
       onBottomTabSelected!(tabIndex);
@@ -120,6 +120,8 @@ class SimulationCompleteScreen extends StatelessWidget {
     }
     if (Navigator.of(context).canPop()) {
       Navigator.of(context).pop(tabIndex);
+    } else {
+      EconoBottomNavigationBar.goToRootTab(context, tab);
     }
   }
 

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../../home/presentation/home_screen.dart';
 import '../../../shared/widgets/econo_bottom_navigation_bar.dart';
 import 'quiz_battle_matched_screen.dart';
 
@@ -225,7 +226,7 @@ class _QuizBattleWaitingScreenState extends State<QuizBattleWaitingScreen> {
                             scale: 0.8 * scale,
                             child: Switch.adaptive(
                               value: _receiveNotifications,
-                              activeColor: const Color(0xFF00EE94),
+                              activeThumbColor: const Color(0xFF00EE94),
                               activeTrackColor: const Color(0x6600EE94),
                               onChanged: (val) {
                                 HapticFeedback.selectionClick();
@@ -262,11 +263,7 @@ class _QuizBattleWaitingScreenState extends State<QuizBattleWaitingScreen> {
                       subtitle: '지식 더 쌓으러 가기',
                       scale: scale,
                       onTap: () {
-                        if (widget.onBottomTabSelected != null) {
-                          // Tab 1 is 학습 (Learning)
-                          Navigator.of(context).popUntil((route) => route.isFirst);
-                          widget.onBottomTabSelected!(1);
-                        }
+                        _goToHomeTab(1);
                       },
                     ),
 
@@ -279,11 +276,7 @@ class _QuizBattleWaitingScreenState extends State<QuizBattleWaitingScreen> {
                       subtitle: '오늘의 뉴스 확인하기',
                       scale: scale,
                       onTap: () {
-                        if (widget.onBottomTabSelected != null) {
-                          // Tab 2 is 커넥트 (Connect)
-                          Navigator.of(context).popUntil((route) => route.isFirst);
-                          widget.onBottomTabSelected!(2);
-                        }
+                        _goToHomeTab(2);
                       },
                     ),
                   ],
@@ -296,15 +289,20 @@ class _QuizBattleWaitingScreenState extends State<QuizBattleWaitingScreen> {
               activeTab: EconoBottomTab.battle,
               scale: scale,
               onTabSelected: (tab) {
-                if (widget.onBottomTabSelected != null) {
-                  Navigator.of(context).popUntil((route) => route.isFirst);
-                  widget.onBottomTabSelected!(_indexForBottomTab(tab));
-                }
+                _goToHomeTab(_indexForBottomTab(tab));
               },
             ),
           ],
         ),
       ),
+    );
+  }
+
+  void _goToHomeTab(int tabIndex) {
+    Navigator.of(context, rootNavigator: true).pushNamedAndRemoveUntil(
+      HomeScreen.routeName,
+      (_) => false,
+      arguments: tabIndex,
     );
   }
 

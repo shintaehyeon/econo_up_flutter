@@ -98,7 +98,14 @@ class SettingsScreen extends StatelessWidget {
             if (showBottomNavigation)
               EconoBottomNavigationBar(
                 activeTab: EconoBottomTab.my,
-                onTabSelected: (tab) => onBottomTabSelected?.call(_indexForBottomTab(tab)),
+                onTabSelected: (tab) {
+                  final index = _indexForBottomTab(tab);
+                  if (onBottomTabSelected != null) {
+                    onBottomTabSelected!(index);
+                  } else {
+                    EconoBottomNavigationBar.goToRootTab(context, tab);
+                  }
+                },
                 scale: scale,
               ),
           ],
@@ -269,7 +276,7 @@ class SettingsScreen extends StatelessWidget {
         builder: (context) => NotificationSettingsScreen(
           onBottomTabSelected: (index) {
             Navigator.of(context).pop();
-            onBottomTabSelected?.call(index);
+            _goToBottomTab(context, index);
           },
         ),
       ),
@@ -282,7 +289,7 @@ class SettingsScreen extends StatelessWidget {
         builder: (context) => InterestAreaSettingsScreen(
           onBottomTabSelected: (index) {
             Navigator.of(context).pop();
-            onBottomTabSelected?.call(index);
+            _goToBottomTab(context, index);
           },
         ),
       ),
@@ -295,7 +302,7 @@ class SettingsScreen extends StatelessWidget {
         builder: (context) => AccountSettingsScreen(
           onBottomTabSelected: (index) {
             Navigator.of(context).pop();
-            onBottomTabSelected?.call(index);
+            _goToBottomTab(context, index);
           },
         ),
       ),
@@ -308,7 +315,7 @@ class SettingsScreen extends StatelessWidget {
         builder: (context) => FriendManagementScreen(
           onBottomTabSelected: (index) {
             Navigator.of(context).pop();
-            onBottomTabSelected?.call(index);
+            _goToBottomTab(context, index);
           },
         ),
       ),
@@ -321,10 +328,22 @@ class SettingsScreen extends StatelessWidget {
         builder: (context) => AppInfoTermsScreen(
           onBottomTabSelected: (index) {
             Navigator.of(context).pop();
-            onBottomTabSelected?.call(index);
+            _goToBottomTab(context, index);
           },
         ),
       ),
+    );
+  }
+
+  void _goToBottomTab(BuildContext context, int index) {
+    if (onBottomTabSelected != null) {
+      onBottomTabSelected!(index);
+      return;
+    }
+    Navigator.of(context, rootNavigator: true).pushNamedAndRemoveUntil(
+      '/home',
+      (route) => false,
+      arguments: index,
     );
   }
 }

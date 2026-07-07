@@ -7,6 +7,7 @@ class LevelTestFeedbackScreen extends StatelessWidget {
   final String highlightText;
   final bool isLastQuestion;
   final VoidCallback onNext;
+  final bool showRewardImpact;
 
   const LevelTestFeedbackScreen({
     super.key,
@@ -15,6 +16,7 @@ class LevelTestFeedbackScreen extends StatelessWidget {
     required this.highlightText,
     required this.isLastQuestion,
     required this.onNext,
+    this.showRewardImpact = true,
   });
 
   @override
@@ -116,7 +118,9 @@ class LevelTestFeedbackScreen extends StatelessWidget {
                   ],
                 ),
               ),
-              if (isCorrect) ...[
+              if (!showRewardImpact)
+                const SizedBox(height: 77)
+              else if (isCorrect) ...[
                 Container(
                   width: double.infinity,
                   height: 77,

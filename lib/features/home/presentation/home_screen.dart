@@ -20,8 +20,10 @@ import '../data/home_api.dart';
 
 class HomeScreen extends StatefulWidget {
   final String nickname;
+  final int initialTabIndex;
+  static const String routeName = '/home';
 
-  const HomeScreen({super.key, this.nickname = '경제왕'});
+  const HomeScreen({super.key, this.nickname = '경제왕', this.initialTabIndex = 0});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -37,7 +39,6 @@ class _HomeScreenState extends State<HomeScreen> {
   int _currentTabIdx = 0; // 0: 홈, 1: 학습, 2: 커넥트, 3: 배틀, 4: 마이
   bool _showBillPurchaseCenter = false;
   bool _showHeartRecharge = false;
-  bool _showInterestAreaSettings = false;
 
   // 테마 색상 정의
   static const Color brandInk = Color(0xFF122711);
@@ -47,6 +48,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    _currentTabIdx = widget.initialTabIndex.clamp(0, 4);
     _client = ApiClient(accessTokenProvider: AuthSession.accessToken, onUnauthorized: AuthSession.clear);
     _homeApi = HomeApi(_client);
     _loadHome();
@@ -148,18 +150,6 @@ class _HomeScreenState extends State<HomeScreen> {
           onOpenBillPurchaseCenter: () {
             setState(() {
               _showBillPurchaseCenter = true;
-            });
-          },
-        );
-      }
-
-      if (_showInterestAreaSettings) {
-        return InterestAreaSettingsScreen(
-          showBottomNavigation: false,
-          onBack: () {
-            setState(() {
-              _currentTabIdx = 0;
-              _showInterestAreaSettings = false;
             });
           },
         );
@@ -537,12 +527,7 @@ class _HomeScreenState extends State<HomeScreen> {
             GestureDetector(
               onTap: () {
                 HapticFeedback.lightImpact();
-                setState(() {
-                  _currentTabIdx = 4;
-                  _showInterestAreaSettings = true;
-                  _showBillPurchaseCenter = false;
-                  _showHeartRecharge = false;
-                });
+                _openInterestAreaSettings();
               },
               child: const Icon(
                 Icons.settings_rounded,
@@ -615,6 +600,26 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ],
     );
+  }
+
+  void _openInterestAreaSettings() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => InterestAreaSettingsScreen(
+          onBottomTabSelected: (index) {
+            setState(() {
+              _currentTabIdx = index;
+              _showBillPurchaseCenter = false;
+              _showHeartRecharge = false;
+            });
+          },
+        ),
+      ),
+    ).then((_) {
+      if (mounted) {
+        _loadHome();
+      }
+    });
   }
 
   // Card 4: Battle League Section
@@ -1007,7 +1012,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return GestureDetector(
       onTap: () async {
         HapticFeedback.lightImpact();
-        if (title == '주식' || title == '부동산' || title == '세금') {
+        if (title == '주식') {
           final result = await Navigator.push(
             context,
             MaterialPageRoute(
@@ -1021,6 +1026,15 @@ class _HomeScreenState extends State<HomeScreen> {
               _currentTabIdx = result;
             });
           }
+        } else {
+          ScaffoldMessenger.of(context)
+            ..hideCurrentSnackBar()
+            ..showSnackBar(
+              SnackBar(
+                content: Text('$title 카테고리는 아직 준비 중입니다.'),
+                duration: const Duration(seconds: 2),
+              ),
+            );
         }
       },
       child: Opacity(
@@ -1176,6 +1190,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildBottomNavigationBar() {
     return EconoBottomNavigationBar(
       activeTab: _bottomTabForIndex(_currentTabIdx),
+      resetToRootOnTap: false,
       onTabSelected: (tab) {
         setState(() {
           _currentTabIdx = _indexForBottomTab(tab);

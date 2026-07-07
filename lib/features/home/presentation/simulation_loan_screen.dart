@@ -116,10 +116,6 @@ class SimulationLoanScreen extends StatelessWidget {
   }
 
   void _handleBottomTab(BuildContext context, EconoBottomTab tab) {
-    if (tab == EconoBottomTab.learning) {
-      return;
-    }
-
     final tabIndex = _indexForBottomTab(tab);
     if (onBottomTabSelected != null) {
       onBottomTabSelected!(tabIndex);
@@ -127,6 +123,8 @@ class SimulationLoanScreen extends StatelessWidget {
     }
     if (Navigator.of(context).canPop()) {
       Navigator.of(context).pop(tabIndex);
+    } else {
+      EconoBottomNavigationBar.goToRootTab(context, tab);
     }
   }
 

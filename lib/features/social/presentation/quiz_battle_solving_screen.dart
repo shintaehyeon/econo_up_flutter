@@ -242,6 +242,8 @@ class _QuizBattleSolvingScreenState extends State<QuizBattleSolvingScreen> {
                 if (widget.onBottomTabSelected != null) {
                   Navigator.of(context).popUntil((route) => route.isFirst);
                   widget.onBottomTabSelected!(_indexForBottomTab(tab));
+                } else {
+                  EconoBottomNavigationBar.goToRootTab(context, tab);
                 }
               },
             ),

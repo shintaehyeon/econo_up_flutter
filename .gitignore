@@ -33,6 +33,9 @@ migrate_working_dir/
 /build/
 /coverage/
 
+# Local screenshots generated during UI checks
+/screenshot_*.png
+
 # Symbolication related
 app.*.symbols
 

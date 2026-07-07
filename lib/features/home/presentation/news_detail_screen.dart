@@ -549,7 +549,7 @@ class _NewsDetailScreenState extends State<NewsDetailScreen> {
             ),
             SizedBox(height: 2 * scale),
             Text(
-              stageId > 0 ? '관련 Stage $stageId →' : '경제 상식 > Unit 1. 금리 →',
+              stageId > 0 ? '관련 스테이지 $stageId →' : '경제 상식 > Unit 1. 금리 →',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontFamily: 'Pretendard',
@@ -634,12 +634,15 @@ class _NewsDetailScreenState extends State<NewsDetailScreen> {
   }
 
   void _handleBottomTab(BuildContext context, EconoBottomTab tab) {
-    if (tab == EconoBottomTab.connect) {
-      return;
+    final index = _indexForBottomTab(tab);
+    if (widget.onBottomTabSelected != null) {
+      if (Navigator.of(context).canPop()) {
+        Navigator.pop(context);
+      }
+      widget.onBottomTabSelected!(index);
+    } else {
+      EconoBottomNavigationBar.goToRootTab(context, tab);
     }
-
-    Navigator.pop(context);
-    widget.onBottomTabSelected?.call(_indexForBottomTab(tab));
   }
 
   int _indexForBottomTab(EconoBottomTab tab) {
@@ -786,7 +789,7 @@ class TermExplanationDialog extends StatelessWidget {
                 borderRadius: BorderRadius.circular(30 * scale),
               ),
               child: Text(
-                '경제 상식 · Unit 1. 금리 Stage 1 →',
+                '경제 상식 · Unit 1. 금리 스테이지 1 →',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontFamily: 'Pretendard',

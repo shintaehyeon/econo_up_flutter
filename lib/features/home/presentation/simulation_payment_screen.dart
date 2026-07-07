@@ -264,10 +264,6 @@ class _SimulationPaymentScreenState extends State<SimulationPaymentScreen> {
   }
 
   void _handleBottomTab(BuildContext context, EconoBottomTab tab) {
-    if (tab == EconoBottomTab.learning) {
-      return;
-    }
-
     final tabIndex = _indexForBottomTab(tab);
     if (widget.onBottomTabSelected != null) {
       widget.onBottomTabSelected!(tabIndex);
@@ -275,6 +271,8 @@ class _SimulationPaymentScreenState extends State<SimulationPaymentScreen> {
     }
     if (Navigator.of(context).canPop()) {
       Navigator.of(context).pop(tabIndex);
+    } else {
+      EconoBottomNavigationBar.goToRootTab(context, tab);
     }
   }
 

@@ -68,7 +68,14 @@ class AppInfoTermsScreen extends StatelessWidget {
             if (showBottomNavigation)
               EconoBottomNavigationBar(
                 activeTab: EconoBottomTab.my,
-                onTabSelected: (tab) => onBottomTabSelected?.call(_indexForBottomTab(tab)),
+                onTabSelected: (tab) {
+                  final index = _indexForBottomTab(tab);
+                  if (onBottomTabSelected != null) {
+                    onBottomTabSelected!(index);
+                  } else {
+                    EconoBottomNavigationBar.goToRootTab(context, tab);
+                  }
+                },
                 scale: scale,
               ),
           ],

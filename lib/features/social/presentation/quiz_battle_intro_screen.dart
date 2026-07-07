@@ -256,6 +256,8 @@ class QuizBattleIntroScreen extends StatelessWidget {
               onTabSelected: (tab) {
                 if (onBottomTabSelected != null) {
                   onBottomTabSelected!(_indexForBottomTab(tab));
+                } else {
+                  EconoBottomNavigationBar.goToRootTab(context, tab);
                 }
               },
             ),

@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import '../../../core/constants/api_endpoints.dart';
 import '../../../core/auth/auth_session.dart';
 import '../../../core/network/api_client.dart';
@@ -17,15 +18,19 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   static const bool _showDevLogin = bool.fromEnvironment('ECONOUP_SHOW_DEV_LOGIN');
+  static const String _googleClientId = String.fromEnvironment('ECONOUP_GOOGLE_CLIENT_ID');
+  static const String _googleServerClientId = String.fromEnvironment('ECONOUP_GOOGLE_SERVER_CLIENT_ID');
 
   final ApiClient _client = ApiClient();
-  bool _termsAgreed = true; // 💡 피그마 시안과 동일하게 기본적으로 체크(true)된 상태로 시작합니다.
+  bool _termsAgreed = false;
   bool _adminLoginLoading = false;
+  Future<void>? _googleInitializeFuture;
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await AuthSession.initialize();
       if (mounted && AuthSession.hasAccessToken) {
         _goHome();
       }
@@ -46,10 +51,38 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
+  void _goOnboardingProfile() {
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (_) => const ProfileSetupScreen()),
+      (_) => false,
+    );
+  }
+
+  Future<void> _routeAfterLogin(Map<String, dynamic> data) async {
+    final accessToken = data['accessToken']?.toString();
+    if (accessToken == null || accessToken.isEmpty) {
+      throw const FormatException('Missing access token');
+    }
+    final refreshToken = data['refreshToken']?.toString();
+
+    await AuthSession.setTokens(
+      accessToken: accessToken,
+      refreshToken: refreshToken,
+    );
+    if (!mounted) return;
+    final nextScreen = data['nextScreen']?.toString().toUpperCase();
+    if (nextScreen == 'HOME') {
+      _goHome();
+    } else {
+      _goOnboardingProfile();
+    }
+  }
+
   Future<void> _handleAdminTestLogin() async {
     HapticFeedback.mediumImpact();
     if (!_termsAgreed) {
-      setState(() => _termsAgreed = true);
+      _showTermsRequiredMessage();
       return;
     }
     if (_adminLoginLoading) return;
@@ -61,18 +94,15 @@ class _LoginScreenState extends State<LoginScreen> {
         body: const {
           'email': 'admin-test@econoup.local',
           'nickname': 'Admin Tester',
+          'completeOnboarding': true,
         },
       );
-      final accessToken = data['accessToken']?.toString();
-      if (accessToken != null && accessToken.isNotEmpty) {
-        AuthSession.setAccessToken(accessToken);
-        if (!mounted) return;
-        _goHome();
-      }
+      if (!mounted) return;
+      await _routeAfterLogin(data);
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Admin test login failed. Check backend.')),
+        SnackBar(content: Text('테스트 로그인 실패: $error')),
       );
     } finally {
       if (mounted) {
@@ -81,24 +111,104 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  void _handleSocialLogin(String provider) {
+  Future<void> _handleSocialLogin(String provider) async {
     if (!_termsAgreed) {
-      // 💡 확정시안에 없는 빨간색 스낵바 경고창을 제거하고,
-      // 약관이 해제된 상태에서 클릭 시 자연스럽게 체크를 다시 켜주며 부드럽게 진행합니다.
-      setState(() {
-        _termsAgreed = true;
-      });
+      _showTermsRequiredMessage();
+      return;
     }
 
     HapticFeedback.mediumImpact();
-    // 💡 백엔드 명세서 POST /auth/social/login (EC-0002) 호출 모방:
-    // 로그인 성공 시 온보딩 프로필 작성 화면(EC-0002-B)으로 유기적 이동
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => const ProfileSetupScreen(),
-      ),
+    if (provider == 'GOOGLE') {
+      await _handleGoogleLogin();
+      return;
+    }
+    if (_showDevLogin) {
+      _handleDevOnboardingLogin(provider);
+      return;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('$provider 로그인은 서버 설정 완료 후 이용할 수 있어요.')),
     );
+  }
+
+  Future<void> _ensureGoogleInitialized() {
+    return _googleInitializeFuture ??= GoogleSignIn.instance.initialize(
+      clientId: _googleClientId.isEmpty ? null : _googleClientId,
+      serverClientId: _googleServerClientId.isEmpty ? null : _googleServerClientId,
+    );
+  }
+
+  Future<void> _handleGoogleLogin() async {
+    if (_adminLoginLoading) return;
+
+    setState(() => _adminLoginLoading = true);
+    try {
+      await _ensureGoogleInitialized();
+      final account = await GoogleSignIn.instance.authenticate();
+      final idToken = account.authentication.idToken;
+      if (idToken == null || idToken.isEmpty) {
+        throw const FormatException('Google ID token을 받지 못했습니다.');
+      }
+
+      final data = await _client.post<Map<String, dynamic>>(
+        ApiEndpoints.googleLogin,
+        body: {
+          'idToken': idToken,
+          'termsAgreed': true,
+        },
+      );
+      if (!mounted) return;
+      await _routeAfterLogin(data);
+    } on GoogleSignInException catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Google 로그인 실패: ${error.description ?? error.code.name}')),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Google 로그인 실패: $error')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _adminLoginLoading = false);
+      }
+    }
+  }
+
+  void _showTermsRequiredMessage() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('이용약관 및 개인정보처리방침에 동의해주세요.')),
+    );
+  }
+
+  Future<void> _handleDevOnboardingLogin(String provider) async {
+    if (_adminLoginLoading) return;
+
+    setState(() => _adminLoginLoading = true);
+    final stamp = DateTime.now().millisecondsSinceEpoch;
+    try {
+      final data = await _client.post<Map<String, dynamic>>(
+        ApiEndpoints.devLogin,
+        body: {
+          'email': 'qa-${provider.toLowerCase()}-$stamp@econoup.local',
+          'nickname': 'QA가입$stamp',
+          'completeOnboarding': false,
+        },
+      );
+      if (!mounted) return;
+      await _routeAfterLogin(data);
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('테스트 로그인 실패: $error')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _adminLoginLoading = false);
+      }
+    }
   }
 
   @override
@@ -173,7 +283,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   if (_showDevLogin) ...[
                     const SizedBox(height: 16),
                     _buildSocialButton(
-                      label: _adminLoginLoading ? '로그인 중...' : 'Admin Test Login (테스트용)',
+                      label: _adminLoginLoading ? '로그인 중...' : '관리자 테스트 로그인 (QA용)',
                       bgColor: const Color(0xFF00EE94),
                       textColor: const Color(0xFF053B2B),
                       onTap: _handleAdminTestLogin,

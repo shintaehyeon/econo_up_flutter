@@ -27,10 +27,10 @@ class _InterestsScreenState extends State<InterestsScreen> {
   final List<String> _selectedInterests = [];
   String _selectedGoal = '';
   
-  // 온보딩 4단계 (학습 스타일) 초기 선택값 정의 (피그마 시안과 일치)
-  String _selectedFrequency = 'THREE_OR_FOUR'; // ONCE_OR_TWICE | THREE_OR_FOUR | DAILY (주 3~4회 기본선택)
-  String _selectedDepth = 'HARD'; // FAST | NORMAL | HARD (꼼꼼하게 기본선택)
-  String _selectedVolume = 'ONE_TO_TWO'; // ONE_TO_TWO | THREE_OR_FOUR | FIVE_OR_MORE (1~2 회차 기본선택)
+  // 온보딩 4단계 (학습 스타일) 초기 선택값은 비워둡니다.
+  String _selectedFrequency = ''; // ONCE_OR_TWICE | THREE_OR_FOUR | DAILY
+  String _selectedDepth = ''; // FAST | NORMAL | HARD
+  String _selectedVolume = ''; // ONE_TO_TWO | THREE_OR_FOUR | FIVE_OR_MORE
   
   // 온보딩 5단계 (공부 실패 원인) 선택값
   String _selectedFailureReason = '';
@@ -357,6 +357,7 @@ class _InterestsScreenState extends State<InterestsScreen> {
     final code = item['code'] as String;
     final title = item['title'] as String;
     final isSelected = _selectedInterests.contains(code);
+    final selectedOrder = isSelected ? _selectedInterests.indexOf(code) + 1 : null;
 
     return SizedBox(
       height: 56,
@@ -383,15 +384,43 @@ class _InterestsScreenState extends State<InterestsScreen> {
             }
           });
         },
-        child: Text(
-          title,
-          style: TextStyle(
-            fontFamily: 'Pretendard',
-            fontSize: 13,
-            fontWeight: FontWeight.w700,
-            color: const Color(0xFF4B5563),
-            height: 16 / 13,
-          ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (selectedOrder != null) ...[
+              Container(
+                width: 20,
+                height: 20,
+                alignment: Alignment.center,
+                decoration: const BoxDecoration(
+                  color: Color(0xFF00EE94),
+                  shape: BoxShape.circle,
+                ),
+                child: Text(
+                  '$selectedOrder',
+                  style: const TextStyle(
+                    fontFamily: 'Pretendard',
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                    height: 16 / 14,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+            ],
+            Text(
+              title,
+              style: const TextStyle(
+                fontFamily: 'Pretendard',
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF4B5563),
+                height: 16 / 13,
+              ),
+            ),
+          ],
         ),
       ),
     );

@@ -116,7 +116,14 @@ class _FriendManagementScreenState extends State<FriendManagementScreen> {
             if (widget.showBottomNavigation)
               EconoBottomNavigationBar(
                 activeTab: EconoBottomTab.my,
-                onTabSelected: (tab) => widget.onBottomTabSelected?.call(_indexForBottomTab(tab)),
+                onTabSelected: (tab) {
+                  final index = _indexForBottomTab(tab);
+                  if (widget.onBottomTabSelected != null) {
+                    widget.onBottomTabSelected!(index);
+                  } else {
+                    EconoBottomNavigationBar.goToRootTab(context, tab);
+                  }
+                },
                 scale: scale,
               ),
           ],
