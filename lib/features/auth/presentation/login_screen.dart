@@ -3,6 +3,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:kakao_flutter_sdk_user/kakao_flutter_sdk_user.dart';
+import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import '../../../core/constants/api_endpoints.dart';
 import '../../../core/auth/auth_session.dart';
 import '../../../core/network/api_client.dart';
@@ -17,9 +19,19 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  static const bool _showDevLogin = bool.fromEnvironment('ECONOUP_SHOW_DEV_LOGIN');
-  static const String _googleClientId = String.fromEnvironment('ECONOUP_GOOGLE_CLIENT_ID');
-  static const String _googleServerClientId = String.fromEnvironment('ECONOUP_GOOGLE_SERVER_CLIENT_ID');
+  static const bool _showDevLogin = bool.fromEnvironment(
+    'ECONOUP_SHOW_DEV_LOGIN',
+  );
+  static const String _googleClientId = String.fromEnvironment(
+    'ECONOUP_GOOGLE_CLIENT_ID',
+    defaultValue:
+        '330350678100-aphveart5rlo8ttjanm72a51fqf1r6hd.apps.googleusercontent.com',
+  );
+  static const String _googleServerClientId = String.fromEnvironment(
+    'ECONOUP_GOOGLE_SERVER_CLIENT_ID',
+    defaultValue:
+        '330350678100-krtuj30ebgdpeup6iieqbgg340n8eeco.apps.googleusercontent.com',
+  );
 
   final ApiClient _client = ApiClient();
   bool _termsAgreed = false;
@@ -101,9 +113,9 @@ class _LoginScreenState extends State<LoginScreen> {
       await _routeAfterLogin(data);
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('테스트 로그인 실패: $error')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('테스트 로그인 실패: $error')));
     } finally {
       if (mounted) {
         setState(() => _adminLoginLoading = false);
@@ -118,24 +130,27 @@ class _LoginScreenState extends State<LoginScreen> {
     }
 
     HapticFeedback.mediumImpact();
-    if (provider == 'GOOGLE') {
-      await _handleGoogleLogin();
-      return;
+    switch (provider) {
+      case 'GOOGLE':
+        await _handleGoogleLogin();
+        return;
+      case 'KAKAO':
+        await _handleKakaoLogin();
+        return;
+      case 'APPLE':
+        await _handleAppleLogin();
+        return;
+      default:
+        _showLoginError(provider, '지원하지 않는 로그인입니다.');
+        return;
     }
-    if (_showDevLogin) {
-      _handleDevOnboardingLogin(provider);
-      return;
-    }
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('$provider 로그인은 서버 설정 완료 후 이용할 수 있어요.')),
-    );
   }
 
   Future<void> _ensureGoogleInitialized() {
     return _googleInitializeFuture ??= GoogleSignIn.instance.initialize(
       clientId: _googleClientId.isEmpty ? null : _googleClientId,
-      serverClientId: _googleServerClientId.isEmpty ? null : _googleServerClientId,
+      serverClientId:
+          _googleServerClientId.isEmpty ? null : _googleServerClientId,
     );
   }
 
@@ -153,23 +168,16 @@ class _LoginScreenState extends State<LoginScreen> {
 
       final data = await _client.post<Map<String, dynamic>>(
         ApiEndpoints.googleLogin,
-        body: {
-          'idToken': idToken,
-          'termsAgreed': true,
-        },
+        body: {'idToken': idToken, 'termsAgreed': true},
       );
       if (!mounted) return;
       await _routeAfterLogin(data);
     } on GoogleSignInException catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Google 로그인 실패: ${error.description ?? error.code.name}')),
-      );
+      _showLoginError('Google', error.description ?? error.code.name);
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Google 로그인 실패: $error')),
-      );
+      _showLoginError('Google', error);
     } finally {
       if (mounted) {
         setState(() => _adminLoginLoading = false);
@@ -177,38 +185,99 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  void _showTermsRequiredMessage() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('이용약관 및 개인정보처리방침에 동의해주세요.')),
-    );
-  }
-
-  Future<void> _handleDevOnboardingLogin(String provider) async {
+  Future<void> _handleKakaoLogin() async {
     if (_adminLoginLoading) return;
 
     setState(() => _adminLoginLoading = true);
-    final stamp = DateTime.now().millisecondsSinceEpoch;
     try {
-      final data = await _client.post<Map<String, dynamic>>(
-        ApiEndpoints.devLogin,
-        body: {
-          'email': 'qa-${provider.toLowerCase()}-$stamp@econoup.local',
-          'nickname': 'QA가입$stamp',
-          'completeOnboarding': false,
-        },
+      final OAuthToken token;
+      if (await isKakaoTalkInstalled()) {
+        token = await UserApi.instance.loginWithKakaoTalk();
+      } else {
+        token = await UserApi.instance.loginWithKakaoAccount();
+      }
+
+      await _loginWithSocialProvider(
+        provider: 'KAKAO',
+        providerToken: token.accessToken,
       );
-      if (!mounted) return;
-      await _routeAfterLogin(data);
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('테스트 로그인 실패: $error')),
-      );
+      _showLoginError('카카오', error);
     } finally {
       if (mounted) {
         setState(() => _adminLoginLoading = false);
       }
     }
+  }
+
+  Future<void> _handleAppleLogin() async {
+    if (_adminLoginLoading) return;
+
+    setState(() => _adminLoginLoading = true);
+    try {
+      final credential = await SignInWithApple.getAppleIDCredential(
+        scopes: [
+          AppleIDAuthorizationScopes.email,
+          AppleIDAuthorizationScopes.fullName,
+        ],
+      );
+      final identityToken = credential.identityToken;
+      if (identityToken == null || identityToken.isEmpty) {
+        throw const FormatException('Apple identityToken을 받지 못했습니다.');
+      }
+
+      await _loginWithSocialProvider(
+        provider: 'APPLE',
+        providerToken: identityToken,
+      );
+    } on SignInWithAppleAuthorizationException catch (error) {
+      if (!mounted) return;
+      if (error.code == AuthorizationErrorCode.canceled) return;
+      _showLoginError('Apple', error.message);
+    } catch (error) {
+      if (!mounted) return;
+      _showLoginError('Apple', error);
+    } finally {
+      if (mounted) {
+        setState(() => _adminLoginLoading = false);
+      }
+    }
+  }
+
+  Future<void> _loginWithSocialProvider({
+    required String provider,
+    required String providerToken,
+  }) async {
+    final data = await _client.post<Map<String, dynamic>>(
+      ApiEndpoints.socialLogin,
+      body: {
+        'provider': provider,
+        'providerToken': providerToken,
+        'termsAgreed': true,
+      },
+    );
+    if (!mounted) return;
+    await _routeAfterLogin(data);
+  }
+
+  void _showLoginError(String providerLabel, Object error) {
+    var message = '$providerLabel 로그인 실패: $error';
+    if (error is ApiClientException) {
+      message =
+          error.code == 'AUTH_PROVIDER_CONFIGURATION_REQUIRED'
+              ? '$providerLabel 토큰 수신은 됐고, 백엔드 검증 로직 연결 대기 중입니다.'
+              : '$providerLabel 로그인 실패: ${error.message}';
+    }
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  void _showTermsRequiredMessage() {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('이용약관 및 개인정보처리방침에 동의해주세요.')));
   }
 
   @override
@@ -283,17 +352,22 @@ class _LoginScreenState extends State<LoginScreen> {
                   if (_showDevLogin) ...[
                     const SizedBox(height: 16),
                     _buildSocialButton(
-                      label: _adminLoginLoading ? '로그인 중...' : '관리자 테스트 로그인 (QA용)',
+                      label:
+                          _adminLoginLoading ? '로그인 중...' : '관리자 테스트 로그인 (QA용)',
                       bgColor: const Color(0xFF00EE94),
                       textColor: const Color(0xFF053B2B),
                       onTap: _handleAdminTestLogin,
-                      child: _adminLoginLoading
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(strokeWidth: 2.4, color: Color(0xFF053B2B)),
-                            )
-                          : null,
+                      child:
+                          _adminLoginLoading
+                              ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2.4,
+                                  color: Color(0xFF053B2B),
+                                ),
+                              )
+                              : null,
                     ),
                   ],
                 ],
@@ -346,7 +420,10 @@ class _LoginScreenState extends State<LoginScreen> {
                 },
                 borderRadius: BorderRadius.circular(8),
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 12.0),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 8.0,
+                    horizontal: 12.0,
+                  ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     mainAxisSize: MainAxisSize.min,
@@ -356,21 +433,28 @@ class _LoginScreenState extends State<LoginScreen> {
                         width: 16,
                         height: 16,
                         decoration: BoxDecoration(
-                          color: _termsAgreed ? const Color(0xFFF2FFFA) : Colors.white,
+                          color:
+                              _termsAgreed
+                                  ? const Color(0xFFF2FFFA)
+                                  : Colors.white,
                           border: Border.all(
-                            color: _termsAgreed ? const Color(0xFF00EE94) : const Color(0xFFD0D5E0),
+                            color:
+                                _termsAgreed
+                                    ? const Color(0xFF00EE94)
+                                    : const Color(0xFFD0D5E0),
                             width: 1.0,
                           ),
                           borderRadius: BorderRadius.circular(4),
                         ),
                         alignment: Alignment.center,
-                        child: _termsAgreed
-                            ? const Icon(
-                                Icons.check_rounded,
-                                size: 10,
-                                color: Color(0xFF00EE94),
-                              )
-                            : null,
+                        child:
+                            _termsAgreed
+                                ? const Icon(
+                                  Icons.check_rounded,
+                                  size: 10,
+                                  color: Color(0xFF00EE94),
+                                )
+                                : null,
                       ),
                       const SizedBox(width: 8),
                       // 밑줄 약관 텍스트 (이용약관 및 개인정보처리방침만 각각 밑줄 처리)
@@ -434,22 +518,25 @@ class _LoginScreenState extends State<LoginScreen> {
           elevation: 0,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(10),
-            side: hasBorder
-                ? const BorderSide(color: Color(0xFFD0D5E0), width: 1.0)
-                : BorderSide.none,
+            side:
+                hasBorder
+                    ? const BorderSide(color: Color(0xFFD0D5E0), width: 1.0)
+                    : BorderSide.none,
           ),
           padding: EdgeInsets.zero,
         ),
         onPressed: onTap,
-        child: child ?? Text(
-          label,
-          style: const TextStyle(
-            fontFamily: 'Pretendard',
-            fontSize: 14,
-            fontWeight: FontWeight.w700,
-            letterSpacing: -0.2,
-          ),
-        ),
+        child:
+            child ??
+            Text(
+              label,
+              style: const TextStyle(
+                fontFamily: 'Pretendard',
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                letterSpacing: -0.2,
+              ),
+            ),
       ),
     );
   }

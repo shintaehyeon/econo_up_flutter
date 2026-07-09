@@ -324,23 +324,25 @@ class _StageMapScreenState extends State<StageMapScreen> {
 
     return SizedBox(
       width: 350,
-      height: 100,
-      child:
-          isLeftNode
-              ? Row(
+      height: 112,
+      child: Align(
+        alignment: Alignment.center,
+        child: isLeftNode
+            ? Row(
                 children: [
                   nodeWidget,
                   const SizedBox(width: 12),
                   Expanded(child: cardWidget),
                 ],
               )
-              : Row(
+            : Row(
                 children: [
                   Expanded(child: cardWidget),
                   const SizedBox(width: 12),
                   nodeWidget,
                 ],
               ),
+      ),
     );
   }
 
@@ -475,8 +477,8 @@ class _StageMapScreenState extends State<StageMapScreen> {
     return GestureDetector(
       onTap: isOpening ? null : () => _handleStageTap(stage),
       child: Container(
-        constraints: const BoxConstraints(minHeight: 90),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+        constraints: const BoxConstraints(minHeight: 82),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
           color: cardBg,
           border:

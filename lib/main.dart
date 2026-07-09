@@ -1,11 +1,19 @@
 // lib/main.dart
 
 import 'package:flutter/material.dart';
+import 'package:kakao_flutter_sdk_user/kakao_flutter_sdk_user.dart';
 import 'core/theme/app_colors.dart';
 import 'features/auth/presentation/splash_screen.dart';
 import 'features/home/presentation/home_screen.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+  KakaoSdk.init(
+    nativeAppKey: const String.fromEnvironment(
+      'ECONOUP_KAKAO_NATIVE_APP_KEY',
+      defaultValue: '325e8b419d792b1880b65a44afdf9482',
+    ),
+  );
   runApp(const EconoUpApp());
 }
 
