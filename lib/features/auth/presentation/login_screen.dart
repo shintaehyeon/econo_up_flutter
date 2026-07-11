@@ -93,10 +93,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _handleAdminTestLogin() async {
     HapticFeedback.mediumImpact();
-    if (!_termsAgreed) {
-      _showTermsRequiredMessage();
-      return;
-    }
     if (_adminLoginLoading) return;
 
     setState(() => _adminLoginLoading = true);
